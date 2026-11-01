@@ -14,14 +14,23 @@ Depuis la racine du dépôt :
 
     python3.12 -m venv .venv
     source .venv/bin/activate
-    cp .env.example .env
+    test -f .env || cp .env.example .env
     pip install -r requirements.txt
+
+Avant la première migration, 0001_initial.py doit être générée localement. Comme la migration 0002_donnees_initiales.py référence 0001_initial.py, mettez temporairement 0002 de côté, générez 0001, puis restaurez 0002 :
+
+    migration="comptes/migrations/0002_donnees_initiales.py"
+    backup="comptes/migrations/0002_donnees_initiales.py.bak"
+    mv "$migration" "$backup"
     python manage.py makemigrations comptes
+    mv "$backup" "$migration"
+    python manage.py check
     python manage.py migrate
+
     python manage.py creer_demo
     python manage.py runserver
 
-La génération locale de comptes/migrations/0001_initial.py est nécessaire avant migrate. Cette migration contient les modèles du socle, notamment le modèle utilisateur personnalisé et le consentement RGPD. La migration versionnée 0002_donnees_initiales.py ajoute les centres et formations de démonstration.
+Si makemigrations échoue, restaurez le fichier avec la commande mv indiquée avant de reprendre. Ne laissez pas le fichier .bak dans le dossier des migrations. La migration locale 0001_initial.py contient les modèles du socle, notamment le modèle utilisateur personnalisé et le consentement RGPD. La migration versionnée 0002_donnees_initiales.py ajoute les centres et formations de démonstration.
 
 ## Configuration
 
