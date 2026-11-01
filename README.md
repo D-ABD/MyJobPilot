@@ -1,6 +1,6 @@
 # MyJobPilot — Lot 1
 
-Socle Django de l'application de prospection d'alternance : configuration, comptes, inscription, validation administrative et interface Bootstrap.
+Application Django de prospection d'alternance. Le Lot 1 met en place la configuration, les comptes, l'inscription et la validation administrative. Le Lot 2 ajoute les entreprises, l'historique des statuts, les filtres et le dashboard élève.
 
 ## Prérequis
 
@@ -17,20 +17,15 @@ Depuis la racine du dépôt :
     test -f .env || cp .env.example .env
     pip install -r requirements.txt
 
-Avant la première migration, 0001_initial.py doit être générée localement. Comme la migration 0002_donnees_initiales.py référence 0001_initial.py, mettez temporairement 0002 de côté, générez 0001, puis restaurez 0002 :
+La migration initiale des comptes et la migration des données de référence sont versionnées. Vérifiez la configuration puis appliquez-les :
 
-    migration="comptes/migrations/0002_donnees_initiales.py"
-    backup="comptes/migrations/0002_donnees_initiales.py.bak"
-    mv "$migration" "$backup"
-    python manage.py makemigrations comptes
-    mv "$backup" "$migration"
     python manage.py check
     python manage.py migrate
 
     python manage.py creer_demo
     python manage.py runserver
 
-Si makemigrations échoue, restaurez le fichier avec la commande mv indiquée avant de reprendre. Ne laissez pas le fichier .bak dans le dossier des migrations. La migration locale 0001_initial.py contient les modèles du socle, notamment le modèle utilisateur personnalisé et le consentement RGPD. La migration versionnée 0002_donnees_initiales.py ajoute les centres et formations de démonstration.
+La migration 0001_initial.py contient les modèles du socle, notamment le modèle utilisateur personnalisé et le consentement RGPD. La migration 0002_donnees_initiales.py ajoute les centres et formations de démonstration.
 
 ## Configuration
 
@@ -70,11 +65,17 @@ L'administrateur valide, refuse ou désactive les comptes depuis l'administratio
 
 - myjobpilot/ : configuration et points d'entrée WSGI/ASGI.
 - comptes/ : utilisateurs, centres, formations, consentement, authentification et journal.
-- entreprises/ : app préparée pour le Lot 2.
+- entreprises/ : prospections, statuts datés et historique du Lot 2.
 - documents/ : app préparée pour le Lot 5.
 - rgpd/ : app préparée pour le Lot 7.
 - core/ : app commune, sans logique métier à ce lot.
 - templates/ et static/css/custom.css : interface française Bootstrap.
+
+## Lot 2 — Prospection élève
+
+Les élèves validés peuvent créer, modifier, consulter et supprimer leurs propres entreprises depuis /dashboard/. Les changements de statut sont datés, attribués à leur auteur et conservés dans l'historique de chaque entreprise. Le dashboard propose des filtres combinables, un tri par colonne et une pagination de 25 lignes. La recherche du Lot 2 ignore la casse ; la normalisation des accents est reportée au Lot 8a.
+
+Les tests du Lot 2 se lancent avec python manage.py test entreprises.tests. Les fichiers de migration de modèles sont générés localement avec makemigrations entreprises ; aucune migration de ce lot n'est versionnée ici.
 
 ## Tests
 
@@ -84,7 +85,7 @@ Après la génération de la migration locale 0001 et l'application des migratio
     coverage run manage.py test
     coverage report
 
-Les tests du Lot 1 couvrent les modèles, le consentement, les sessions, la journalisation des connexions et le workflow d'inscription. Les seuils portant sur les modules des lots 2 à 7 seront vérifiables quand ces modules seront créés.
+Les tests du Lot 1 couvrent les modèles, le consentement, les sessions, la journalisation des connexions et le workflow d'inscription. Les tests du Lot 2 couvrent les entreprises, les filtres, les formulaires et les vues.
 
 ## Vérifications manuelles du Lot 1
 

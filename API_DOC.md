@@ -1,6 +1,6 @@
 # API_DOC.md — MyJobPilot
 
-Version 0.1 — périmètre du Lot 1. Les routes ci-dessous sont des vues HTML Django ; elles ne constituent pas encore une API JSON.
+Version 0.2 — périmètres des Lots 1 et 2. Les routes ci-dessous sont des vues HTML Django ; elles ne constituent pas encore une API JSON.
 
 ## Authentification et inscription
 
@@ -32,4 +32,19 @@ Un administrateur habilité peut sélectionner des comptes en attente depuis /ad
 
 ## Redirection après connexion
 
-/comptes/apres-login/ redirige un administrateur ou un superviseur vers /admin/. Un élève non validé est envoyé vers /comptes/en-attente/. Un élève validé voit un message indiquant que son tableau de bord sera disponible au Lot 2.
+/comptes/apres-login/ redirige un administrateur ou un superviseur vers /admin/. Un élève non validé est envoyé vers /comptes/en-attente/. Un élève validé est redirigé vers /dashboard/.
+
+## Lot 2 — Prospection élève
+
+Toutes ces routes exigent une connexion. Elles sont réservées à l'élève connecté et ne retournent que ses propres entreprises. Les accès d'un superviseur ou d'un administrateur à ces vues renvoient HTTP 403.
+
+| Méthode | Chemin | Comportement |
+| --- | --- | --- |
+| GET | /dashboard/ | Tableau de bord, filtres combinables, tri et pagination de 25 lignes. |
+| GET, POST | /entreprises/nouvelle/ | Affiche et crée une prospection au statut initial « À contacter ». |
+| GET | /entreprises/<id>/ | Détail et historique des statuts de l'entreprise. |
+| GET, POST | /entreprises/<id>/modifier/ | Affiche et met à jour les coordonnées et notes. |
+| GET, POST | /entreprises/<id>/supprimer/ | Confirme puis supprime l'entreprise et son historique. |
+| GET, POST | /entreprises/<id>/statut/ | Affiche et enregistre un changement de statut daté. |
+
+Les filtres du dashboard sont transmis par paramètres GET : statut, date_debut, date_fin, q, tri, ordre et page. La recherche est insensible à la casse. Les dates filtrent la date de modification.

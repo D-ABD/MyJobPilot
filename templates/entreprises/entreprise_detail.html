@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ entreprise.nom }} — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-entreprise">
+  <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+    <div>
+      <p class="text-body-secondary mb-1">Fiche de prospection</p>
+      <h1 class="h2" id="titre-entreprise">{{ entreprise.nom }}</h1>
+      <span class="badge text-bg-primary">{{ entreprise.get_statut_display }}</span>
+    </div>
+    <div class="d-flex flex-wrap align-content-start gap-2" role="group" aria-label="Actions sur l'entreprise">
+      <a class="btn btn-outline-primary" href="{% url 'entreprises:update' entreprise.pk %}" aria-label="Modifier {{ entreprise.nom }}">Modifier</a>
+      <a class="btn btn-outline-secondary" href="{% url 'entreprises:changer_statut' entreprise.pk %}" aria-label="Changer le statut de {{ entreprise.nom }}">Changer de statut</a>
+      <a class="btn btn-outline-danger" href="{% url 'entreprises:delete' entreprise.pk %}" aria-label="Supprimer {{ entreprise.nom }}">Supprimer</a>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header"><h2 class="h5 mb-0">Informations</h2></div>
+    <dl class="row card-body mb-0">
+      <dt class="col-sm-4">Secteur</dt><dd class="col-sm-8">{{ entreprise.secteur|default:"—" }}</dd>
+      <dt class="col-sm-4">Site web</dt>
+      <dd class="col-sm-8">
+        {% if entreprise.site_web %}<a href="{{ entreprise.site_web }}" rel="noopener noreferrer">{{ entreprise.site_web }}</a>{% else %}—{% endif %}
+      </dd>
+      <dt class="col-sm-4">Adresse</dt><dd class="col-sm-8">{{ entreprise.adresse|linebreaksbr|default:"—" }}</dd>
+      <dt class="col-sm-4">Ville</dt><dd class="col-sm-8">{{ entreprise.code_postal }} {{ entreprise.ville|default:"—" }}</dd>
+      <dt class="col-sm-4">Contact</dt><dd class="col-sm-8">{{ entreprise.contact_nom|default:"—" }}</dd>
+      <dt class="col-sm-4">Courriel</dt>
+      <dd class="col-sm-8">{% if entreprise.contact_email %}<a href="mailto:{{ entreprise.contact_email }}">{{ entreprise.contact_email }}</a>{% else %}—{% endif %}</dd>
+      <dt class="col-sm-4">Téléphone</dt><dd class="col-sm-8">{{ entreprise.contact_telephone|default:"—" }}</dd>
+      <dt class="col-sm-4">Source</dt><dd class="col-sm-8">{{ entreprise.source|default:"—" }}</dd>
+      <dt class="col-sm-4">Notes</dt><dd class="col-sm-8">{{ entreprise.notes|linebreaksbr|default:"—" }}</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2 class="h5 mb-0">Historique des statuts</h2></div>
+    {% if historique %}
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <caption class="visually-hidden">Historique complet des changements de statut de {{ entreprise.nom }}</caption>
+          <thead><tr><th scope="col">Date</th><th scope="col">Ancien statut</th><th scope="col">Nouveau statut</th><th scope="col">Auteur</th><th scope="col">Commentaire</th><th scope="col">Date associée</th></tr></thead>
+          <tbody>
+            {% for entree in historique %}
+              <tr>
+                <td><time datetime="{{ entree.date_changement|date:'c' }}">{{ entree.date_changement|date:"d/m/Y H:i" }}</time></td>
+                <td>{% if entree.ancien_statut %}{{ entree.get_ancien_statut_display }}{% else %}Création{% endif %}</td>
+                <td>{{ entree.get_nouveau_statut_display }}</td>
+                <td>{{ entree.auteur.get_full_name|default:entree.auteur.username|default:"—" }}</td>
+                <td>{{ entree.commentaire|default:"—" }}</td>
+                <td>{{ entree.date_associee|date:"d/m/Y"|default:"—" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="card-body mb-0">Aucun changement de statut enregistré.</p>
+    {% endif %}
+  </div>
+  <a class="btn btn-link mt-3" href="{% url 'entreprises:dashboard' %}" aria-label="Retour au dashboard">Retour au dashboard</a>
+</section>
+{% endblock %}

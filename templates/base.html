@@ -26,6 +26,9 @@
             <ul class="navbar-nav ms-auto align-items-lg-center">
               {% if user.is_authenticated %}
                 <li class="nav-item"><span class="navbar-text me-lg-3">Bonjour {{ user.first_name|default:user.username }}</span></li>
+                {% if user.role == "eleve" and user.is_valide %}
+                  <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:dashboard' %}">Mon dashboard</a></li>
+                {% endif %}
                 <li class="nav-item">
                   <form method="post" action="{% url 'comptes:deconnexion' %}">
                     {% csrf_token %}

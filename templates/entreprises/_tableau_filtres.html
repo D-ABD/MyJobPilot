@@ -1,0 +1,29 @@
+<form method="get" class="filter-form card card-body mb-4" aria-label="Filtres des entreprises">
+  <div class="row g-3 align-items-end">
+    <div class="col-12 col-md-6 col-lg-3">
+      <label class="form-label" for="filtre-statut">Statut</label>
+      <select class="form-select" id="filtre-statut" name="statut" aria-label="Filtrer par statut">
+        <option value="tous" {% if filtre_statut == "tous" %}selected{% endif %}>Tous les statuts</option>
+        {% for code, libelle in statuts %}
+          <option value="{{ code }}" {% if filtre_statut == code %}selected{% endif %}>{{ libelle }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+      <label class="form-label" for="filtre-date-debut">Modification depuis</label>
+      <input class="form-control" type="date" id="filtre-date-debut" name="date_debut" value="{{ filtre_date_debut }}" aria-label="Date de début">
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+      <label class="form-label" for="filtre-date-fin">Modification jusqu'à</label>
+      <input class="form-control" type="date" id="filtre-date-fin" name="date_fin" value="{{ filtre_date_fin }}" aria-label="Date de fin">
+    </div>
+    <div class="col-12 col-md-8 col-lg-3">
+      <label class="form-label" for="filtre-recherche">Recherche</label>
+      <input class="form-control" type="search" id="filtre-recherche" name="q" value="{{ filtre_q }}" placeholder="Nom, secteur, ville ou contact" aria-label="Rechercher une entreprise">
+    </div>
+    <div class="col-12 col-md-4 col-lg-2 d-flex gap-2">
+      <button class="btn btn-primary flex-grow-1" type="submit" aria-label="Appliquer les filtres">Filtrer</button>
+      <a class="btn btn-outline-secondary" href="{{ url_reset }}" aria-label="Réinitialiser les filtres">Réinitialiser</a>
+    </div>
+  </div>
+</form>

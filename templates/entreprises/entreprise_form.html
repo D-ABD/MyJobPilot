@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ titre }} — MyJobPilot{% endblock %}
+{% block content %}
+<section class="row justify-content-center" aria-labelledby="titre-formulaire">
+  <div class="col-12 col-lg-8">
+    <h1 class="h2 mb-4" id="titre-formulaire">{{ titre }}</h1>
+    <form method="post" class="card card-body">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {{ form.as_p }}
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        <button class="btn btn-primary" type="submit" aria-label="Enregistrer les changements">Enregistrer</button>
+        {% if entreprise %}
+          <a class="btn btn-outline-secondary" href="{% url 'entreprises:detail' entreprise.pk %}" aria-label="Annuler et revenir au détail">Annuler</a>
+        {% else %}
+          <a class="btn btn-outline-secondary" href="{% url 'entreprises:dashboard' %}" aria-label="Annuler et revenir au dashboard">Annuler</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

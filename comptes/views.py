@@ -48,11 +48,7 @@ def redirection_apres_login(request):
         return redirect("/admin/")
     if not utilisateur.is_valide:
         return redirect("comptes:en_attente")
-    return render(
-        request,
-        "comptes/en_attente.html",
-        {"eleve_valide_sans_dashboard": True},
-    )
+    return redirect("entreprises:dashboard")
 
 
 @login_required
