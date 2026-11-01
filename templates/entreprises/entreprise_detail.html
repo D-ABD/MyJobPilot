@@ -6,7 +6,7 @@
     <div>
       <p class="text-body-secondary mb-1">Fiche de prospection</p>
       <h1 class="h2" id="titre-entreprise">{{ entreprise.nom }}</h1>
-      <span class="badge text-bg-primary">{{ entreprise.get_statut_display }}</span>
+      <span class="badge text-bg-primary badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
     </div>
     <div class="d-flex flex-wrap align-content-start gap-2" role="group" aria-label="Actions sur l'entreprise">
       <a class="btn btn-outline-primary" href="{% url 'entreprises:update' entreprise.pk %}" aria-label="Modifier {{ entreprise.nom }}">Modifier</a>
