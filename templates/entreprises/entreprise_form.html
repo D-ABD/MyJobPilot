@@ -4,21 +4,144 @@
 <section class="row justify-content-center" aria-labelledby="titre-formulaire">
   <div class="col-12 col-lg-8">
     <h1 class="h2 mb-4" id="titre-formulaire">{{ titre }}</h1>
-    <form method="post" class="card card-body">
-      {% csrf_token %}
-      {% if form.non_field_errors %}
-        <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
-      {% endif %}
-      {{ form.as_p }}
-      <div class="d-flex flex-wrap gap-2 mt-2">
-        <button class="btn btn-primary" type="submit" aria-label="Enregistrer les changements">Enregistrer</button>
-        {% if entreprise %}
-          <a class="btn btn-outline-secondary" href="{% url 'entreprises:detail' entreprise.pk %}" aria-label="Annuler et revenir au détail">Annuler</a>
-        {% else %}
-          <a class="btn btn-outline-secondary" href="{% url 'entreprises:dashboard' %}" aria-label="Annuler et revenir au dashboard">Annuler</a>
+    {% if changement_statut %}
+      <form method="post" class="card card-body">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <button class="btn btn-primary" type="submit">Enregistrer le statut</button>
+          <a class="btn btn-outline-secondary" href="{% url 'entreprises:detail' prospection.pk %}">Annuler</a>
+        </div>
+      </form>
+    {% else %}
+      <form method="post" class="card card-body" id="form-prospection">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        {% for field in form %}
+          {% if field.is_hidden %}
+            {{ field }}
+          {% else %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+              {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+              {% if field.name == "entreprise_nom" %}
+                <div id="resultats-entreprises" class="list-group mt-1" role="listbox" aria-label="Résultats d'entreprises"></div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+        {% if allow_new_entreprise %}
+          <div class="mb-3">
+            <button class="btn btn-outline-secondary" type="button" id="bouton-nouvelle-entreprise" aria-expanded="false">
+              Créer une nouvelle entreprise
+            </button>
+          </div>
+          <fieldset id="champs-nouvelle-entreprise" class="border rounded p-3 mb-3" hidden>
+            <legend class="float-none w-auto px-2">Informations de l'entreprise</legend>
+            {% for field in entreprise_form %}
+              <div class="mb-3">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+              </div>
+            {% endfor %}
+            {% for error in entreprise_form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+          </fieldset>
         {% endif %}
-      </div>
-    </form>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <button class="btn btn-primary" type="submit">Enregistrer la prospection</button>
+          {% if prospection %}
+            <a class="btn btn-outline-secondary" href="{% url 'entreprises:detail' prospection.pk %}">Annuler</a>
+          {% else %}
+            <a class="btn btn-outline-secondary" href="{% url 'entreprises:dashboard' %}">Annuler</a>
+          {% endif %}
+        </div>
+      </form>
+      {% if allow_new_entreprise %}
+        <script>
+          (() => {
+            const input = document.getElementById("id_entreprise_nom");
+            const idField = document.getElementById("id_entreprise_id");
+            const resultats = document.getElementById("resultats-entreprises");
+            const bouton = document.getElementById("bouton-nouvelle-entreprise");
+            const panneau = document.getElementById("champs-nouvelle-entreprise");
+            const nouveauNom = document.getElementById("id_nom");
+            let delai;
+
+            const activerChampsEntreprise = (actif) => {
+              panneau.querySelectorAll("input, textarea, select").forEach((champ) => {
+                champ.disabled = !actif;
+              });
+            };
+
+            const afficherResultats = (entreprises) => {
+              resultats.replaceChildren();
+              entreprises.forEach((entreprise) => {
+                const choix = document.createElement("button");
+                choix.type = "button";
+                choix.className = "list-group-item list-group-item-action";
+                choix.setAttribute("role", "option");
+                choix.textContent = entreprise.ville
+                  ? `${entreprise.nom} — ${entreprise.ville}`
+                  : entreprise.nom;
+                choix.addEventListener("click", () => {
+                  input.value = entreprise.nom;
+                  idField.value = entreprise.id;
+                  resultats.replaceChildren();
+                  panneau.hidden = true;
+                  bouton.setAttribute("aria-expanded", "false");
+                  activerChampsEntreprise(false);
+                });
+                resultats.appendChild(choix);
+              });
+              if (!entreprises.length && input.value.trim()) {
+                const message = document.createElement("div");
+                message.className = "list-group-item text-body-secondary";
+                message.textContent = "Aucun résultat. Vous pouvez créer une entreprise.";
+                resultats.appendChild(message);
+              }
+            };
+
+            activerChampsEntreprise(false);
+            input.addEventListener("input", () => {
+              idField.value = "";
+              clearTimeout(delai);
+              const terme = input.value.trim();
+              if (terme.length < 2) {
+                resultats.replaceChildren();
+                return;
+              }
+              delai = setTimeout(async () => {
+                try {
+                  const url = new URL("{% url 'entreprises:search' %}", window.location.origin);
+                  url.searchParams.set("q", terme);
+                  const response = await fetch(url, {headers: {"Accept": "application/json"}});
+                  if (!response.ok) return;
+                  afficherResultats(await response.json());
+                } catch (_) {
+                  resultats.replaceChildren();
+                }
+              }, 200);
+            });
+
+            bouton.addEventListener("click", () => {
+              const ouvrir = panneau.hidden;
+              panneau.hidden = !ouvrir;
+              bouton.setAttribute("aria-expanded", String(ouvrir));
+              activerChampsEntreprise(ouvrir);
+              if (ouvrir) {
+                idField.value = "";
+                nouveauNom.value = input.value.trim();
+                resultats.replaceChildren();
+                nouveauNom.focus();
+              }
+            });
+          })();
+        </script>
+      {% endif %}
+    {% endif %}
   </div>
 </section>
 {% endblock %}

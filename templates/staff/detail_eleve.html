@@ -11,7 +11,7 @@
 
   <div class="d-flex flex-wrap gap-2 mb-4">
     <a class="btn btn-outline-primary" href="{% url 'staff:changer_centre' eleve.pk %}">Changer de centre</a>
-    <a class="btn btn-primary" href="#formulaire-ajout-entreprise">Ajouter une entreprise</a>
+    <a class="btn btn-primary" href="#formulaire-ajout-prospection">Ajouter une prospection</a>
   </div>
 
   <div class="card mb-4">
@@ -31,44 +31,127 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h2 class="h5 mb-0">Entreprises de prospection</h2></div>
-    {% if entreprises %}
+    <div class="card-header"><h2 class="h5 mb-0">Prospections de l'élève</h2></div>
+    {% if prospections %}
       <div class="table-responsive">
         <table class="table table-striped mb-0">
-          <caption class="visually-hidden">Entreprises de {{ eleve.username }}</caption>
-          <thead><tr><th scope="col">Nom</th><th scope="col">Secteur</th><th scope="col">Statut</th><th scope="col">Modifiée le</th></tr></thead>
+          <caption class="visually-hidden">Prospections de {{ eleve.username }}</caption>
+          <thead><tr><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Statut</th><th scope="col">Modifiée le</th></tr></thead>
           <tbody>
-            {% for entreprise in entreprises %}
+            {% for prospection in prospections %}
               <tr>
-                <th scope="row">{{ entreprise.nom }}</th>
-                <td>{{ entreprise.secteur|default:"—" }}</td>
-                <td>{{ entreprise.get_statut_display }}</td>
-                <td><time datetime="{{ entreprise.date_modification|date:'c' }}">{{ entreprise.date_modification|date:"d/m/Y H:i" }}</time></td>
+                <th scope="row">{{ prospection.entreprise.nom }}</th>
+                <td>{{ prospection.entreprise.ville|default:"—" }}</td>
+                <td>{{ prospection.get_statut_display }}</td>
+                <td><time datetime="{{ prospection.date_modification|date:'c' }}">{{ prospection.date_modification|date:"d/m/Y H:i" }}</time></td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     {% else %}
-      <p class="card-body mb-0">Aucune entreprise de prospection.</p>
+      <p class="card-body mb-0">Aucune prospection.</p>
     {% endif %}
   </div>
 
-  <div class="card mt-4" id="formulaire-ajout-entreprise">
-    <div class="card-header"><h2 class="h5 mb-0">Ajouter une entreprise de prospection</h2></div>
-    <form method="post" action="{% url 'staff:ajouter_entreprise' eleve.pk %}" class="card-body">
+  <div class="card mt-4" id="formulaire-ajout-prospection">
+    <div class="card-header"><h2 class="h5 mb-0">Ajouter une prospection</h2></div>
+    <form method="post" action="{% url 'staff:ajouter_entreprise' eleve.pk %}" class="card-body" id="form-prospection-staff">
       {% csrf_token %}
-      {% for field in entreprise_form %}
-        <div class="mb-3">
-          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {% if prospection_form.non_field_errors %}<div class="alert alert-danger">{{ prospection_form.non_field_errors }}</div>{% endif %}
+      {% for field in prospection_form %}
+        {% if field.is_hidden %}
           {{ field }}
-          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-          {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-        </div>
+        {% else %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+            {% if field.name == "entreprise_nom" %}<div id="resultats-entreprises-staff" class="list-group mt-1" role="listbox" aria-label="Résultats d'entreprises"></div>{% endif %}
+          </div>
+        {% endif %}
       {% endfor %}
-      {% for error in entreprise_form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
-      <button class="btn btn-primary" type="submit">Ajouter l'entreprise</button>
+      <button class="btn btn-outline-secondary mb-3" type="button" id="bouton-nouvelle-entreprise-staff" aria-expanded="false">Créer une nouvelle entreprise</button>
+      <fieldset id="champs-nouvelle-entreprise-staff" class="border rounded p-3 mb-3" hidden>
+        <legend class="float-none w-auto px-2">Informations de l'entreprise</legend>
+        {% for field in entreprise_form %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          </div>
+        {% endfor %}
+        {% for error in entreprise_form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+      </fieldset>
+      <button class="btn btn-primary" type="submit">Ajouter la prospection</button>
     </form>
   </div>
 </section>
+<script>
+  (() => {
+    const input = document.getElementById("id_entreprise_nom");
+    const idField = document.getElementById("id_entreprise_id");
+    const results = document.getElementById("resultats-entreprises-staff");
+    const button = document.getElementById("bouton-nouvelle-entreprise-staff");
+    const panel = document.getElementById("champs-nouvelle-entreprise-staff");
+    const newName = document.getElementById("id_nom");
+    let timer;
+
+    const toggleCompanyFields = (active) => {
+      panel.querySelectorAll("input, textarea, select").forEach((field) => { field.disabled = !active; });
+    };
+    toggleCompanyFields(false);
+    input.addEventListener("input", () => {
+      idField.value = "";
+      clearTimeout(timer);
+      const query = input.value.trim();
+      if (query.length < 2) { results.replaceChildren(); return; }
+      timer = setTimeout(async () => {
+        try {
+          const url = new URL("{% url 'entreprises:search' %}", window.location.origin);
+          url.searchParams.set("q", query);
+          const response = await fetch(url, {headers: {"Accept": "application/json"}});
+          if (!response.ok) return;
+          const companies = await response.json();
+          results.replaceChildren();
+          companies.forEach((company) => {
+            const option = document.createElement("button");
+            option.type = "button";
+            option.className = "list-group-item list-group-item-action";
+            option.setAttribute("role", "option");
+            option.textContent = company.ville ? `${company.nom} — ${company.ville}` : company.nom;
+            option.addEventListener("click", () => {
+              input.value = company.nom;
+              idField.value = company.id;
+              results.replaceChildren();
+              panel.hidden = true;
+              button.setAttribute("aria-expanded", "false");
+              toggleCompanyFields(false);
+            });
+            results.appendChild(option);
+          });
+          if (!companies.length) {
+            const noResult = document.createElement("div");
+            noResult.className = "list-group-item text-body-secondary";
+            noResult.textContent = "Aucun résultat. Vous pouvez créer une entreprise.";
+            results.appendChild(noResult);
+          }
+        } catch (_) { results.replaceChildren(); }
+      }, 200);
+    });
+    button.addEventListener("click", () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      button.setAttribute("aria-expanded", String(open));
+      toggleCompanyFields(open);
+      if (open) {
+        idField.value = "";
+        newName.value = input.value.trim();
+        results.replaceChildren();
+        newName.focus();
+      }
+    });
+  })();
+</script>
 {% endblock %}

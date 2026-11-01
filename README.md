@@ -73,7 +73,7 @@ L'administrateur valide, refuse ou désactive les comptes depuis l'administratio
 
 ## Lot 2 — Prospection élève
 
-Les élèves validés peuvent créer, modifier, consulter et supprimer leurs propres entreprises depuis /dashboard/. Les changements de statut sont datés, attribués à leur auteur et conservés dans l'historique de chaque entreprise. Le dashboard propose des filtres combinables, un tri par colonne et une pagination de 25 lignes. La recherche du Lot 2 ignore la casse ; la normalisation des accents est reportée au Lot 8a.
+Les élèves validés peuvent créer, modifier, consulter et supprimer leurs propres prospections depuis /dashboard/. Les entreprises sont partagées dans le référentiel ; chaque prospection conserve le statut et l'historique propres à l'élève. Le dashboard propose des filtres combinables, un tri par colonne et une pagination de 25 lignes. La recherche du Lot 2 ignore la casse ; la normalisation des accents est reportée au Lot 8a.
 
 Les tests du Lot 2 se lancent avec python manage.py test entreprises.tests. Les fichiers de migration de modèles sont générés localement avec makemigrations entreprises ; aucune migration de ce lot n'est versionnée ici.
 
@@ -90,6 +90,14 @@ Les tests du Lot 3 se lancent avec `python manage.py test staff.tests comptes.te
 Depuis la fiche staff d'un élève, un administrateur peut changer son centre ou lui ajouter une prospection. Un superviseur peut effectuer ces deux actions uniquement sur un élève de son scope actif ; le changement de centre est limité à ses centres de scope. Les changements de centre et ajouts de prospection sont inscrits dans JournalAction. Les prospections existantes restent rattachées à l'élève lors du changement de centre.
 
 Les tests du Lot 4 se lancent avec `python manage.py test staff.tests.test_actions`. Aucune migration n'est requise pour ce lot.
+
+## Refonte — Entreprise et Prospection
+
+Le modèle `Entreprise` constitue un référentiel partagé. Les informations générales d'une entreprise ne sont enregistrées qu'une fois, avec un nom unique sans distinction de casse. Le modèle `Prospection` relie un élève à une entreprise et porte les données personnelles de sa démarche : statut, dates, source, notes et historique. Un même élève ne peut créer qu'une prospection par entreprise ; plusieurs élèves peuvent prospecter la même entreprise.
+
+Les vues élève filtrent strictement les prospections par compte connecté. L'autocomplete authentifié `/entreprises/search/?q=...` ne renvoie que l'identifiant, le nom et la ville de l'entreprise, dans une limite de 10 résultats. Il ne renvoie aucune information sur les démarches d'autres élèves.
+
+La base de développement étant recréée pour cette refonte, aucune migration de données n'est prévue. Après sauvegarde puis suppression de `db.sqlite3`, générez et appliquez localement les migrations avec `python manage.py makemigrations` puis `python manage.py migrate`, avant `python manage.py creer_demo`.
 
 ## Tests
 

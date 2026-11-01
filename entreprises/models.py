@@ -1,6 +1,7 @@
-"""Modèles de prospection et historique des changements de statut."""
+"""Référentiel partagé des entreprises et prospections individuelles."""
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Lower
 
 
 class Statut(models.TextChoices):
@@ -14,12 +15,6 @@ class Statut(models.TextChoices):
 
 
 class Entreprise(models.Model):
-    eleve = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="entreprises",
-        verbose_name="élève",
-    )
     nom = models.CharField("nom", max_length=200)
     secteur = models.CharField("secteur", max_length=100, blank=True)
     site_web = models.URLField("site web", blank=True)
@@ -29,8 +24,32 @@ class Entreprise(models.Model):
     contact_nom = models.CharField("nom du contact", max_length=100, blank=True)
     contact_email = models.EmailField("courriel du contact", blank=True)
     contact_telephone = models.CharField("téléphone du contact", max_length=30, blank=True)
-    source = models.CharField("source", max_length=100, blank=True)
-    notes = models.TextField("notes", blank=True)
+    date_creation = models.DateTimeField("date de création", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "entreprise"
+        verbose_name_plural = "entreprises"
+        constraints = [
+            models.UniqueConstraint(Lower("nom"), name="unique_entreprise_nom_ci"),
+        ]
+
+    def __str__(self):
+        return self.nom
+
+
+class Prospection(models.Model):
+    eleve = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="prospections",
+        verbose_name="élève",
+    )
+    entreprise = models.ForeignKey(
+        Entreprise,
+        on_delete=models.CASCADE,
+        related_name="prospections",
+        verbose_name="entreprise",
+    )
     statut = models.CharField(
         "statut",
         max_length=30,
@@ -43,28 +62,31 @@ class Entreprise(models.Model):
     date_entretien = models.DateTimeField("date d'entretien", null=True, blank=True)
     date_refus = models.DateField("date de refus", null=True, blank=True)
     date_acceptation = models.DateField("date d'acceptation", null=True, blank=True)
+    notes = models.TextField("notes", blank=True)
+    source = models.CharField("source", max_length=100, blank=True)
     date_creation = models.DateTimeField("date de création", auto_now_add=True)
     date_modification = models.DateTimeField("date de modification", auto_now=True)
 
     class Meta:
         ordering = ["-date_modification"]
-        verbose_name = "entreprise"
-        verbose_name_plural = "entreprises"
+        verbose_name = "prospection"
+        verbose_name_plural = "prospections"
+        unique_together = [("eleve", "entreprise")]
         indexes = [
-            models.Index(fields=["eleve", "statut"], name="entreprise_eleve_statut_idx"),
-            models.Index(fields=["eleve", "-date_modification"], name="entreprise_eleve_modif_idx"),
+            models.Index(fields=["eleve", "statut"]),
+            models.Index(fields=["eleve", "-date_modification"]),
         ]
 
     def __str__(self):
-        return f"{self.nom} ({self.get_statut_display()})"
+        return f"{self.eleve.username} → {self.entreprise.nom}"
 
 
 class HistoriqueStatut(models.Model):
-    entreprise = models.ForeignKey(
-        Entreprise,
+    prospection = models.ForeignKey(
+        Prospection,
         on_delete=models.CASCADE,
         related_name="historique",
-        verbose_name="entreprise",
+        verbose_name="prospection",
     )
     ancien_statut = models.CharField("ancien statut", max_length=30, choices=Statut.choices, blank=True)
     nouveau_statut = models.CharField("nouveau statut", max_length=30, choices=Statut.choices)
@@ -90,4 +112,4 @@ class HistoriqueStatut(models.Model):
         verbose_name_plural = "historiques de statuts"
 
     def __str__(self):
-        return f"{self.entreprise.nom} : {self.ancien_statut} → {self.nouveau_statut}"
+        return f"{self.prospection.entreprise.nom} : {self.ancien_statut} → {self.nouveau_statut}"

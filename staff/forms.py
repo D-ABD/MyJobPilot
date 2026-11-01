@@ -2,6 +2,7 @@
 from django import forms
 
 from comptes.models import Centre
+from entreprises.forms import ProspectionForm
 
 
 class ChangementCentreFormStaff(forms.Form):
@@ -16,3 +17,12 @@ class ChangementCentreFormStaff(forms.Form):
         super().__init__(*args, **kwargs)
         if centres is not None:
             self.fields["centre"].queryset = centres
+
+
+class AjoutProspectionStaffForm(ProspectionForm):
+    """Formulaire de prospection prérempli dans la fiche staff de l'élève."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["entreprise_nom"].label = "Entreprise pour cet élève"
+        self.fields["entreprise_nom"].help_text = "Sélectionnez une entreprise ou créez son référentiel."

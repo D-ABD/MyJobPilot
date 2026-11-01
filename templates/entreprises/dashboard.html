@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Mon dashboard — MyJobPilot{% endblock %}
+{% block title %}Mes prospections — MyJobPilot{% endblock %}
 {% block content %}
 <section aria-labelledby="titre-dashboard">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-      <h1 class="h2 mb-1" id="titre-dashboard">Mon dashboard</h1>
+      <h1 class="h2 mb-1" id="titre-dashboard">Mes prospections</h1>
       <p class="text-body-secondary mb-0">Suivez vos démarches de prospection.</p>
     </div>
-    <a class="btn btn-primary" href="{% url 'entreprises:create' %}" aria-label="Créer une nouvelle entreprise">
-      Nouvelle entreprise
+    <a class="btn btn-primary" href="{% url 'entreprises:create' %}" aria-label="Créer une nouvelle prospection">
+      Nouvelle prospection
     </a>
   </div>
 
-  <div class="row g-3 mb-4" aria-label="Nombre d'entreprises par statut">
+  <div class="row g-3 mb-4" aria-label="Nombre de prospections par statut">
     {% for statistique in stats_par_statut %}
       <div class="col-6 col-lg-3">
         <div class="card h-100 dashboard-stat">
@@ -27,17 +27,17 @@
 
   {% include "entreprises/_tableau_filtres.html" %}
 
-  {% if entreprises %}
+  {% if prospections %}
     {% include "entreprises/_tableau_resultats.html" %}
     {% include "entreprises/_pagination.html" %}
   {% elif total_count %}
     <p class="alert alert-info" role="status">Aucun résultat ne correspond à ces filtres.</p>
   {% else %}
     <div class="empty-state text-center p-4 p-md-5">
-      <h2 class="h4">Aucune entreprise pour le moment</h2>
+      <h2 class="h4">Aucune prospection pour le moment</h2>
       <p>Créez votre première prospection.</p>
-      <a class="btn btn-primary" href="{% url 'entreprises:create' %}" aria-label="Créer ma première entreprise">
-        Nouvelle entreprise
+      <a class="btn btn-primary" href="{% url 'entreprises:create' %}" aria-label="Créer ma première prospection">
+        Nouvelle prospection
       </a>
     </div>
   {% endif %}

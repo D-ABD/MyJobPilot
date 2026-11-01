@@ -1,6 +1,6 @@
 # API_DOC.md — MyJobPilot
 
-Version 0.4 — périmètres des Lots 1 à 4. Les routes ci-dessous sont des vues HTML Django ; elles ne constituent pas encore une API JSON.
+Version 0.5 — périmètres des Lots 1 à 4 et séparation du référentiel Entreprise des Prospections. Les routes ci-dessous sont des vues HTML Django, à l'exception de la recherche JSON ; elles ne constituent pas encore une API JSON complète.
 
 ## Authentification et inscription
 
@@ -41,13 +41,16 @@ Toutes ces routes exigent une connexion. Elles sont réservées à l'élève con
 | Méthode | Chemin | Comportement |
 | --- | --- | --- |
 | GET | /dashboard/ | Tableau de bord, filtres combinables, tri et pagination de 25 lignes. |
-| GET, POST | /entreprises/nouvelle/ | Affiche et crée une prospection au statut initial « À contacter ». |
-| GET | /entreprises/<id>/ | Détail et historique des statuts de l'entreprise. |
-| GET, POST | /entreprises/<id>/modifier/ | Affiche et met à jour les coordonnées et notes. |
-| GET, POST | /entreprises/<id>/supprimer/ | Confirme puis supprime l'entreprise et son historique. |
-| GET, POST | /entreprises/<id>/statut/ | Affiche et enregistre un changement de statut daté. |
+| GET | /entreprises/search/?q=... | Recherche authentifiée dans le référentiel. Retourne au plus 10 objets JSON contenant uniquement `id`, `nom` et `ville`. |
+| GET, POST | /entreprises/nouvelle/ | Affiche et crée une Prospection liée à une entreprise existante ou à une nouvelle entrée du référentiel. |
+| GET | /entreprises/<id>/ | Détail de la prospection de l'élève connecté et son historique. |
+| GET, POST | /entreprises/<id>/modifier/ | Affiche et met à jour les données de prospection de l'élève. |
+| GET, POST | /entreprises/<id>/supprimer/ | Confirme puis supprime la prospection et son historique ; l'entreprise partagée est conservée. |
+| GET, POST | /entreprises/<id>/statut/ | Affiche et enregistre un changement de statut daté sur la prospection. |
 
-Les filtres du dashboard sont transmis par paramètres GET : statut, date_debut, date_fin, q, tri, ordre et page. La recherche est insensible à la casse. Les dates filtrent la date de modification.
+Les filtres du dashboard sont transmis par paramètres GET : statut, date_debut, date_fin, q, tri, ordre et page. Ils portent uniquement sur les prospections de l'élève connecté ; la recherche interroge les informations de l'entreprise liée. La recherche est insensible à la casse. Les dates filtrent la date de modification de la prospection.
+
+Le référentiel Entreprise est partagé et son nom est unique sans distinction de casse. Une Prospection relie un élève à une entreprise et porte son statut, ses dates, sa source et ses notes. Chaque élève ne peut avoir qu'une prospection par entreprise. L'endpoint de recherche ne renvoie aucune donnée de prospection.
 
 ## Lot 3 — Tableau de bord superviseur
 
@@ -72,6 +75,6 @@ Les actions ci-dessous nécessitent une connexion. Un administrateur peut agir s
 | --- | --- | --- | --- |
 | GET | /staff/eleves/<id>/ | Admin, superviseur du scope | Affiche la fiche élève et ses prospections ; cette fiche présente les actions autorisées. |
 | GET, POST | /staff/eleves/<id>/centre/ | Admin ou superviseur du scope | Affiche et enregistre le changement de centre. Un superviseur ne peut choisir qu'un centre de son scope actif ; sinon l'accès est refusé (HTTP 403). L'action est journalisée par `CHANGEMENT_CENTRE`. |
-| POST | /staff/eleves/<id>/entreprises/ajouter/ | Admin ou superviseur du scope | Crée une prospection pour l'élève au statut initial « À contacter », avec son historique initial. L'action est journalisée par `ACTION_STAFF_ELEVE`. |
+| POST | /staff/eleves/<id>/entreprises/ajouter/ | Admin ou superviseur du scope | Crée une prospection pour l'élève, liée à une entreprise existante ou nouvellement créée, avec son historique initial. L'action est journalisée par `ACTION_STAFF_ELEVE` et cible la Prospection. |
 
 Le changement de centre conserve les prospections existantes, qui restent liées à l'élève. Les centres proposés sont tous les centres pour l'administrateur et uniquement les centres du scope actif pour le superviseur. Les élèves n'ont pas accès à ces actions.

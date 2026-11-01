@@ -1,36 +1,48 @@
 {% extends "base.html" %}
-{% block title %}{{ entreprise.nom }} — MyJobPilot{% endblock %}
+{% block title %}{{ prospection.entreprise.nom }} — MyJobPilot{% endblock %}
 {% block content %}
 <section aria-labelledby="titre-entreprise">
   <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
     <div>
-      <p class="text-body-secondary mb-1">Fiche de prospection</p>
-      <h1 class="h2" id="titre-entreprise">{{ entreprise.nom }}</h1>
-      <span class="badge text-bg-primary badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
+      <p class="text-body-secondary mb-1">Ma prospection</p>
+      <h1 class="h2" id="titre-entreprise">{{ prospection.entreprise.nom }}</h1>
+      <span class="badge text-bg-primary badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
     </div>
-    <div class="d-flex flex-wrap align-content-start gap-2" role="group" aria-label="Actions sur l'entreprise">
-      <a class="btn btn-outline-primary" href="{% url 'entreprises:update' entreprise.pk %}" aria-label="Modifier {{ entreprise.nom }}">Modifier</a>
-      <a class="btn btn-outline-secondary" href="{% url 'entreprises:changer_statut' entreprise.pk %}" aria-label="Changer le statut de {{ entreprise.nom }}">Changer de statut</a>
-      <a class="btn btn-outline-danger" href="{% url 'entreprises:delete' entreprise.pk %}" aria-label="Supprimer {{ entreprise.nom }}">Supprimer</a>
+    <div class="d-flex flex-wrap align-content-start gap-2" role="group" aria-label="Actions sur la prospection">
+      <a class="btn btn-outline-primary" href="{% url 'entreprises:update' prospection.pk %}">Modifier</a>
+      <a class="btn btn-outline-secondary" href="{% url 'entreprises:changer_statut' prospection.pk %}">Changer de statut</a>
+      <a class="btn btn-outline-danger" href="{% url 'entreprises:delete' prospection.pk %}">Supprimer</a>
     </div>
   </div>
 
   <div class="card mb-4">
-    <div class="card-header"><h2 class="h5 mb-0">Informations</h2></div>
+    <div class="card-header"><h2 class="h5 mb-0">Informations de l'entreprise</h2></div>
     <dl class="row card-body mb-0">
-      <dt class="col-sm-4">Secteur</dt><dd class="col-sm-8">{{ entreprise.secteur|default:"—" }}</dd>
+      <dt class="col-sm-4">Secteur</dt><dd class="col-sm-8">{{ prospection.entreprise.secteur|default:"—" }}</dd>
       <dt class="col-sm-4">Site web</dt>
       <dd class="col-sm-8">
-        {% if entreprise.site_web %}<a href="{{ entreprise.site_web }}" rel="noopener noreferrer">{{ entreprise.site_web }}</a>{% else %}—{% endif %}
+        {% if prospection.entreprise.site_web %}<a href="{{ prospection.entreprise.site_web }}" rel="noopener noreferrer">{{ prospection.entreprise.site_web }}</a>{% else %}—{% endif %}
       </dd>
-      <dt class="col-sm-4">Adresse</dt><dd class="col-sm-8">{{ entreprise.adresse|linebreaksbr|default:"—" }}</dd>
-      <dt class="col-sm-4">Ville</dt><dd class="col-sm-8">{{ entreprise.code_postal }} {{ entreprise.ville|default:"—" }}</dd>
-      <dt class="col-sm-4">Contact</dt><dd class="col-sm-8">{{ entreprise.contact_nom|default:"—" }}</dd>
+      <dt class="col-sm-4">Adresse</dt><dd class="col-sm-8">{{ prospection.entreprise.adresse|linebreaksbr|default:"—" }}</dd>
+      <dt class="col-sm-4">Ville</dt><dd class="col-sm-8">{{ prospection.entreprise.code_postal }} {{ prospection.entreprise.ville|default:"—" }}</dd>
+      <dt class="col-sm-4">Contact</dt><dd class="col-sm-8">{{ prospection.entreprise.contact_nom|default:"—" }}</dd>
       <dt class="col-sm-4">Courriel</dt>
-      <dd class="col-sm-8">{% if entreprise.contact_email %}<a href="mailto:{{ entreprise.contact_email }}">{{ entreprise.contact_email }}</a>{% else %}—{% endif %}</dd>
-      <dt class="col-sm-4">Téléphone</dt><dd class="col-sm-8">{{ entreprise.contact_telephone|default:"—" }}</dd>
-      <dt class="col-sm-4">Source</dt><dd class="col-sm-8">{{ entreprise.source|default:"—" }}</dd>
-      <dt class="col-sm-4">Notes</dt><dd class="col-sm-8">{{ entreprise.notes|linebreaksbr|default:"—" }}</dd>
+      <dd class="col-sm-8">{% if prospection.entreprise.contact_email %}<a href="mailto:{{ prospection.entreprise.contact_email }}">{{ prospection.entreprise.contact_email }}</a>{% else %}—{% endif %}</dd>
+      <dt class="col-sm-4">Téléphone</dt><dd class="col-sm-8">{{ prospection.entreprise.contact_telephone|default:"—" }}</dd>
+    </dl>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header"><h2 class="h5 mb-0">Ma démarche</h2></div>
+    <dl class="row card-body mb-0">
+      <dt class="col-sm-4">Source</dt><dd class="col-sm-8">{{ prospection.source|default:"—" }}</dd>
+      <dt class="col-sm-4">Notes</dt><dd class="col-sm-8">{{ prospection.notes|linebreaksbr|default:"—" }}</dd>
+      <dt class="col-sm-4">Date de relance</dt><dd class="col-sm-8">{{ prospection.date_relance|date:"d/m/Y"|default:"—" }}</dd>
+      <dt class="col-sm-4">Date de candidature</dt><dd class="col-sm-8">{{ prospection.date_candidature|date:"d/m/Y"|default:"—" }}</dd>
+      <dt class="col-sm-4">Date de mise en attente</dt><dd class="col-sm-8">{{ prospection.date_mise_en_attente|date:"d/m/Y"|default:"—" }}</dd>
+      <dt class="col-sm-4">Date d'entretien</dt><dd class="col-sm-8">{{ prospection.date_entretien|date:"d/m/Y H:i"|default:"—" }}</dd>
+      <dt class="col-sm-4">Date de refus</dt><dd class="col-sm-8">{{ prospection.date_refus|date:"d/m/Y"|default:"—" }}</dd>
+      <dt class="col-sm-4">Date d'acceptation</dt><dd class="col-sm-8">{{ prospection.date_acceptation|date:"d/m/Y"|default:"—" }}</dd>
     </dl>
   </div>
 
@@ -39,7 +51,7 @@
     {% if historique %}
       <div class="table-responsive">
         <table class="table table-striped mb-0">
-          <caption class="visually-hidden">Historique complet des changements de statut de {{ entreprise.nom }}</caption>
+          <caption class="visually-hidden">Historique des statuts de ma prospection chez {{ prospection.entreprise.nom }}</caption>
           <thead><tr><th scope="col">Date</th><th scope="col">Ancien statut</th><th scope="col">Nouveau statut</th><th scope="col">Auteur</th><th scope="col">Commentaire</th><th scope="col">Date associée</th></tr></thead>
           <tbody>
             {% for entree in historique %}
@@ -59,6 +71,6 @@
       <p class="card-body mb-0">Aucun changement de statut enregistré.</p>
     {% endif %}
   </div>
-  <a class="btn btn-link mt-3" href="{% url 'entreprises:dashboard' %}" aria-label="Retour au dashboard">Retour au dashboard</a>
+  <a class="btn btn-link mt-3" href="{% url 'entreprises:dashboard' %}">Retour au dashboard</a>
 </section>
 {% endblock %}

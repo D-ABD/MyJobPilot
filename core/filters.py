@@ -5,7 +5,10 @@ from django.db.models import Q
 class FiltreMixin:
     """Applique les filtres, la recherche et le tri reçus dans l'URL."""
 
-    CHAMPS_TRIABLES = ["nom", "secteur", "ville", "statut", "date_creation", "date_modification"]
+    CHAMPS_TRIABLES = [
+        "entreprise__nom", "entreprise__secteur", "entreprise__ville",
+        "statut", "date_creation", "date_modification",
+    ]
 
     def apply_filters(self, queryset, params):
         statut = params.get("statut")
@@ -23,11 +26,11 @@ class FiltreMixin:
         recherche = params.get("q", "").strip()
         if recherche:
             queryset = queryset.filter(
-                Q(nom__icontains=recherche)
-                | Q(secteur__icontains=recherche)
-                | Q(ville__icontains=recherche)
-                | Q(contact_nom__icontains=recherche)
-                | Q(contact_email__icontains=recherche)
+                Q(entreprise__nom__icontains=recherche)
+                | Q(entreprise__secteur__icontains=recherche)
+                | Q(entreprise__ville__icontains=recherche)
+                | Q(entreprise__contact_nom__icontains=recherche)
+                | Q(entreprise__contact_email__icontains=recherche)
             )
 
         tri = params.get("tri", "-date_modification")

@@ -1,24 +1,31 @@
-"""Administration des entreprises et lecture du journal des statuts."""
+"""Administration du référentiel et des prospections."""
 from django.contrib import admin
 
 from comptes.models import Utilisateur
 
-from .models import Entreprise, HistoriqueStatut
+from .models import Entreprise, HistoriqueStatut, Prospection
 
 
 @admin.register(Entreprise)
 class EntrepriseAdmin(admin.ModelAdmin):
-    list_display = ("nom", "eleve", "statut", "date_modification")
+    list_display = ("nom", "secteur", "ville", "contact_nom", "date_creation")
+    search_fields = ("nom", "secteur", "ville", "contact_nom", "contact_email")
+    readonly_fields = ("date_creation",)
+
+
+@admin.register(Prospection)
+class ProspectionAdmin(admin.ModelAdmin):
+    list_display = ("eleve", "entreprise", "statut", "date_creation", "date_modification")
     list_filter = ("statut", "date_modification")
-    search_fields = ("nom", "eleve__username", "ville", "contact_email")
+    search_fields = ("eleve__username", "entreprise__nom", "entreprise__ville")
     readonly_fields = ("date_creation", "date_modification")
 
 
 @admin.register(HistoriqueStatut)
 class HistoriqueStatutAdmin(admin.ModelAdmin):
-    list_display = ("entreprise", "ancien_statut", "nouveau_statut", "auteur", "date_changement")
+    list_display = ("prospection", "ancien_statut", "nouveau_statut", "auteur", "date_changement")
     list_filter = ("nouveau_statut", "date_changement")
-    search_fields = ("entreprise__nom", "auteur__username")
+    search_fields = ("prospection__entreprise__nom", "prospection__eleve__username", "auteur__username")
     readonly_fields = tuple(field.name for field in HistoriqueStatut._meta.fields)
 
     def has_add_permission(self, request):

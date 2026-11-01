@@ -1,45 +1,45 @@
 <div class="table-responsive dashboard-table-wrap">
   <table class="table table-hover align-middle dashboard-table">
-    <caption class="visually-hidden">Entreprises de prospection de {{ user.get_full_name|default:user.username }}</caption>
+    <caption class="visually-hidden">Prospections de {{ user.get_full_name|default:user.username }}</caption>
     <thead class="table-light">
       <tr>
-        <th scope="col"><a href="{{ tri_urls.nom }}" class="table-sort-link">Nom <span aria-hidden="true">↕</span></a></th>
-        <th scope="col"><a href="{{ tri_urls.secteur }}" class="table-sort-link">Secteur <span aria-hidden="true">↕</span></a></th>
-        <th scope="col"><a href="{{ tri_urls.ville }}" class="table-sort-link">Ville <span aria-hidden="true">↕</span></a></th>
+        <th scope="col"><a href="{{ tri_urls.entreprise__nom }}" class="table-sort-link">Nom <span aria-hidden="true">↕</span></a></th>
+        <th scope="col"><a href="{{ tri_urls.entreprise__secteur }}" class="table-sort-link">Secteur <span aria-hidden="true">↕</span></a></th>
+        <th scope="col"><a href="{{ tri_urls.entreprise__ville }}" class="table-sort-link">Ville <span aria-hidden="true">↕</span></a></th>
         <th scope="col"><a href="{{ tri_urls.statut }}" class="table-sort-link">Statut <span aria-hidden="true">↕</span></a></th>
         <th scope="col"><a href="{{ tri_urls.date_modification }}" class="table-sort-link">Modifiée le <span aria-hidden="true">↕</span></a></th>
         <th scope="col"><span class="visually-hidden">Actions</span></th>
       </tr>
     </thead>
     <tbody>
-      {% for entreprise in entreprises %}
+      {% for prospection in prospections %}
         <tr>
           <th scope="row">
-            <a href="{% url 'entreprises:detail' entreprise.pk %}">{{ entreprise.nom }}</a>
+            <a href="{% url 'entreprises:detail' prospection.pk %}">{{ prospection.entreprise.nom }}</a>
           </th>
-          <td>{{ entreprise.secteur|default:"—" }}</td>
-          <td>{{ entreprise.ville|default:"—" }}</td>
+          <td>{{ prospection.entreprise.secteur|default:"—" }}</td>
+          <td>{{ prospection.entreprise.ville|default:"—" }}</td>
           <td>
-            {% if entreprise.statut == "a_contacter" %}
-              <span class="badge text-bg-secondary badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
-            {% elif entreprise.statut == "a_relancer" %}
-              <span class="badge text-bg-warning badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
-            {% elif entreprise.statut == "candidature_envoyee" %}
-              <span class="badge text-bg-info badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
-            {% elif entreprise.statut == "en_attente" %}
-              <span class="badge text-bg-primary badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
-            {% elif entreprise.statut == "refus" %}
-              <span class="badge text-bg-danger badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
+            {% if prospection.statut == "a_contacter" %}
+              <span class="badge text-bg-secondary badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+            {% elif prospection.statut == "a_relancer" %}
+              <span class="badge text-bg-warning badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+            {% elif prospection.statut == "candidature_envoyee" %}
+              <span class="badge text-bg-info badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+            {% elif prospection.statut == "en_attente" %}
+              <span class="badge text-bg-primary badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+            {% elif prospection.statut == "refus" %}
+              <span class="badge text-bg-danger badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
             {% else %}
-              <span class="badge text-bg-success badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
+              <span class="badge text-bg-success badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
             {% endif %}
           </td>
-          <td><time datetime="{{ entreprise.date_modification|date:'c' }}">{{ entreprise.date_modification|date:"d/m/Y H:i" }}</time></td>
+          <td><time datetime="{{ prospection.date_modification|date:'c' }}">{{ prospection.date_modification|date:"d/m/Y H:i" }}</time></td>
           <td>
-            <div class="table-actions" role="group" aria-label="Actions pour {{ entreprise.nom }}">
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' entreprise.pk %}" aria-label="Détails de {{ entreprise.nom }}">Détail</a>
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'entreprises:update' entreprise.pk %}" aria-label="Modifier {{ entreprise.nom }}">Modifier</a>
-              <a class="btn btn-sm btn-outline-danger" href="{% url 'entreprises:delete' entreprise.pk %}" aria-label="Supprimer {{ entreprise.nom }}">Supprimer</a>
+            <div class="table-actions" role="group" aria-label="Actions pour {{ prospection.entreprise.nom }}">
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' prospection.pk %}" aria-label="Détails de {{ prospection.entreprise.nom }}">Détail</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'entreprises:update' prospection.pk %}" aria-label="Modifier la prospection de {{ prospection.entreprise.nom }}">Modifier</a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'entreprises:delete' prospection.pk %}" aria-label="Supprimer la prospection de {{ prospection.entreprise.nom }}">Supprimer</a>
             </div>
           </td>
         </tr>

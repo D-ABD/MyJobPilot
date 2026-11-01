@@ -33,7 +33,7 @@
             <th scope="col"><a href="{{ tri_urls.centre }}">Centre <span aria-hidden="true">↕</span></a></th>
             <th scope="col">Formation</th>
             <th scope="col"><a href="{{ tri_urls.is_valide }}">Statut <span aria-hidden="true">↕</span></a></th>
-            <th scope="col">Entreprises</th>
+            <th scope="col">Prospections</th>
             <th scope="col"><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
@@ -51,7 +51,7 @@
                   <span class="badge text-bg-warning">En attente</span>
                 {% endif %}
               </td>
-              <td>{{ eleve.nombre_entreprises }}</td>
+              <td>{{ eleve.nombre_prospections }}</td>
               <td>
                 <a class="btn btn-sm btn-outline-primary" href="{% url 'staff:detail_eleve' eleve.pk %}" aria-label="Détail de {{ eleve.username }}">Détail</a>
               </td>

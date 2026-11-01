@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Supprimer {{ entreprise.nom }} — MyJobPilot{% endblock %}
+{% block title %}Supprimer la prospection — MyJobPilot{% endblock %}
 {% block content %}
 <section class="row justify-content-center" aria-labelledby="titre-suppression">
   <div class="col-12 col-lg-7">
     <div class="card border-danger">
       <div class="card-body">
-        <h1 class="h2" id="titre-suppression">Supprimer cette entreprise ?</h1>
-        <p>La fiche de prospection de <strong>{{ entreprise.nom }}</strong> et son historique seront supprimés.</p>
+        <h1 class="h2" id="titre-suppression">Supprimer cette prospection ?</h1>
+        <p>Votre prospection pour <strong>{{ prospection.entreprise.nom }}</strong> et son historique seront supprimés. Le référentiel partagé de l'entreprise sera conservé.</p>
         <form method="post" class="d-flex flex-wrap gap-2">
           {% csrf_token %}
-          <button class="btn btn-danger" type="submit" aria-label="Confirmer la suppression de {{ entreprise.nom }}">Confirmer la suppression</button>
-          <a class="btn btn-outline-secondary" href="{% url 'entreprises:detail' entreprise.pk %}" aria-label="Annuler et revenir au détail">Annuler</a>
+          <button class="btn btn-danger" type="submit">Confirmer la suppression</button>
+          <a class="btn btn-outline-secondary" href="{% url 'entreprises:detail' prospection.pk %}">Annuler et revenir au détail</a>
         </form>
       </div>
     </div>

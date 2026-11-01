@@ -7,6 +7,7 @@ app_name = "entreprises"
 
 urlpatterns = [
     path("dashboard/", views.dashboard_eleve, name="dashboard"),
+    path("entreprises/search/", views.recherche_entreprises, name="search"),
     path("entreprises/nouvelle/", views.entreprise_create, name="create"),
     path("entreprises/<int:pk>/", views.entreprise_detail, name="detail"),
     path("entreprises/<int:pk>/modifier/", views.entreprise_update, name="update"),

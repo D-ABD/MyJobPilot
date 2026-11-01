@@ -1,19 +1,21 @@
-"""Tableau de bord en lecture seule du périmètre superviseur."""
+"""Tableau de bord et actions staff sur les élèves de leur périmètre."""
+from datetime import datetime, time
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
-from django.shortcuts import get_object_or_404, render
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from comptes.models import Centre, JournalAction, Utilisateur
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
 from entreprises.forms import EntrepriseForm
-from entreprises.models import Entreprise, HistoriqueStatut, Statut
+from entreprises.models import HistoriqueStatut, Prospection, Statut
 
-from .forms import ChangementCentreFormStaff
+from .forms import AjoutProspectionStaffForm, ChangementCentreFormStaff
 
 
 NOMBRE_PAR_PAGE = 25
@@ -38,7 +40,7 @@ def dashboard_staff(request):
     queryset = (
         Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE, centre_id__in=centres_ids)
         .select_related("centre", "formation")
-        .annotate(nombre_entreprises=Count("entreprises", distinct=True))
+        .annotate(nombre_prospections=Count("prospections", distinct=True))
     )
 
     recherche = request.GET.get("q", "").strip()
@@ -136,12 +138,17 @@ def _eleve_pour_action(request, pk):
     return eleve
 
 
-def _rendre_detail_eleve(request, eleve, entreprise_form=None):
-    entreprises = Entreprise.objects.filter(eleve=eleve).order_by("-date_modification")
+def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=None):
+    prospections = Prospection.objects.filter(eleve=eleve).select_related("entreprise").order_by("-date_modification")
     return render(
         request,
         "staff/detail_eleve.html",
-        {"eleve": eleve, "entreprises": entreprises, "entreprise_form": entreprise_form},
+        {
+            "eleve": eleve,
+            "prospections": prospections,
+            "prospection_form": prospection_form if prospection_form is not None else AjoutProspectionStaffForm(),
+            "entreprise_form": entreprise_form if entreprise_form is not None else EntrepriseForm(),
+        },
     )
 
 
@@ -199,31 +206,79 @@ def ajouter_entreprise_staff(request, pk):
     """Ajoute une prospection à un élève autorisé et journalise l'action."""
     eleve = _eleve_pour_action(request, pk)
     if request.method == "POST":
-        form = EntrepriseForm(request.POST)
+        form = AjoutProspectionStaffForm(request.POST)
+        entreprise_form = EntrepriseForm(request.POST)
         if form.is_valid():
-            with transaction.atomic():
-                entreprise = form.save(commit=False)
-                entreprise.eleve = eleve
-                entreprise.statut = Statut.A_CONTACTER
-                entreprise.save()
-                HistoriqueStatut.objects.create(
-                    entreprise=entreprise,
-                    ancien_statut="",
-                    nouveau_statut=Statut.A_CONTACTER,
-                    auteur=request.user,
+            entreprise = form.cleaned_data.get("entreprise_id")
+            if entreprise is None and not entreprise_form.is_valid():
+                return _rendre_detail_eleve(request, eleve, form, entreprise_form)
+            if entreprise is None:
+                if entreprise_form.cleaned_data["nom"].strip().casefold() != form.cleaned_data["entreprise_nom"].strip().casefold():
+                    form.add_error("entreprise_nom", "Le nom doit correspondre aux informations de l'entreprise.")
+                    return _rendre_detail_eleve(request, eleve, form, entreprise_form)
+                entreprise = entreprise_form.save(commit=False)
+            if Prospection.objects.filter(eleve=eleve, entreprise=entreprise).exists():
+                form.add_error("entreprise_nom", "Cet élève a déjà une prospection pour cette entreprise.")
+                return _rendre_detail_eleve(request, eleve, form, entreprise_form)
+
+            donnees = form.cleaned_data
+            date_entretien = donnees.get("date_entretien")
+            date_entretien = (
+                timezone.make_aware(
+                    datetime.combine(date_entretien, time.min),
+                    timezone.get_current_timezone(),
                 )
-                log_action(
-                    JournalAction.Action.ACTION_STAFF_ELEVE,
-                    utilisateur=request.user,
-                    cible=entreprise,
-                    details={
-                        "entreprise_id": entreprise.pk,
-                        "eleve_id": eleve.pk,
-                        "action": "ajout_prospection",
-                    },
-                    request=request,
-                )
+                if date_entretien
+                else None
+            )
+            try:
+                with transaction.atomic():
+                    if entreprise.pk is None:
+                        entreprise.save()
+                    prospection = Prospection.objects.create(
+                        eleve=eleve,
+                        entreprise=entreprise,
+                        statut=donnees["statut"],
+                        notes=donnees.get("notes", ""),
+                        source=donnees.get("source", ""),
+                        date_relance=donnees.get("date_relance"),
+                        date_candidature=donnees.get("date_candidature"),
+                        date_mise_en_attente=donnees.get("date_mise_en_attente"),
+                        date_entretien=date_entretien,
+                        date_refus=donnees.get("date_refus"),
+                        date_acceptation=donnees.get("date_acceptation"),
+                    )
+                    champ_date = {
+                        Statut.A_RELANCER: prospection.date_relance,
+                        Statut.CANDIDATURE_ENVOYEE: prospection.date_candidature,
+                        Statut.EN_ATTENTE: prospection.date_mise_en_attente,
+                        Statut.ENTRETIEN_PROGRAMME: date_entretien.date() if date_entretien else None,
+                        Statut.REFUS: prospection.date_refus,
+                        Statut.ACCEPTE: prospection.date_acceptation,
+                    }.get(prospection.statut)
+                    HistoriqueStatut.objects.create(
+                        prospection=prospection,
+                        ancien_statut="",
+                        nouveau_statut=prospection.statut,
+                        auteur=request.user,
+                        date_associee=champ_date,
+                    )
+                    log_action(
+                        JournalAction.Action.ACTION_STAFF_ELEVE,
+                        utilisateur=request.user,
+                        cible=prospection,
+                        details={
+                            "prospection_id": prospection.pk,
+                            "eleve_id": eleve.pk,
+                            "action": "ajout_prospection",
+                        },
+                        request=request,
+                    )
+            except IntegrityError:
+                form.add_error("entreprise_nom", "Cette entreprise fait déjà l'objet d'une prospection pour cet élève.")
+                return _rendre_detail_eleve(request, eleve, form, entreprise_form)
             return redirect("staff:detail_eleve", pk=eleve.pk)
     else:
-        form = EntrepriseForm()
-    return _rendre_detail_eleve(request, eleve, entreprise_form=form)
+        form = AjoutProspectionStaffForm()
+        entreprise_form = EntrepriseForm()
+    return _rendre_detail_eleve(request, eleve, form, entreprise_form)

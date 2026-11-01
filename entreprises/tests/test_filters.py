@@ -1,4 +1,4 @@
-"""Tests unitaires du FiltreMixin."""
+"""Tests unitaires du FiltreMixin appliqué aux prospections."""
 from datetime import timedelta
 
 from django.test import RequestFactory, TestCase
@@ -6,41 +6,47 @@ from django.utils import timezone
 
 from comptes.models import Centre, Formation, Utilisateur
 from core.filters import FiltreMixin
-from entreprises.models import Entreprise, Statut
+from entreprises.models import Entreprise, Prospection, Statut
 
 
 class FiltreMixinTests(TestCase):
     def setUp(self):
-        centre = Centre.objects.create(nom="Centre filtres", departement="75 - Paris")
-        formation = Formation.objects.create(centre=centre, nom="BTS Test")
+        centre, _ = Centre.objects.get_or_create(
+            nom="Centre Paris",
+            defaults={"departement": "75 - Paris"},
+        )
+        formation, _ = Formation.objects.get_or_create(centre=centre, nom="BTS SIO")
         self.eleve = Utilisateur.objects.create_user(
-            username="filtre",
+            username="filtre_prospection",
             password="mot-de-passe-test",
             role=Utilisateur.Role.ELEVE,
             centre=centre,
             formation=formation,
             is_valide=True,
         )
-        self.acme = Entreprise.objects.create(
-            eleve=self.eleve,
+        entreprise_acme = Entreprise.objects.create(
             nom="ACME Corp",
             secteur="Conseil",
             ville="Paris",
             contact_nom="Émilie",
             contact_email="contact@acme.test",
         )
-        self.beta = Entreprise.objects.create(
-            eleve=self.eleve,
+        entreprise_beta = Entreprise.objects.create(
             nom="Beta Services",
             secteur="Informatique",
             ville="Lyon",
+        )
+        self.acme = Prospection.objects.create(eleve=self.eleve, entreprise=entreprise_acme)
+        self.beta = Prospection.objects.create(
+            eleve=self.eleve,
+            entreprise=entreprise_beta,
             statut=Statut.A_RELANCER,
         )
         instant = timezone.now()
-        Entreprise.objects.filter(pk=self.acme.pk).update(date_modification=instant - timedelta(days=10))
-        Entreprise.objects.filter(pk=self.beta.pk).update(date_modification=instant)
+        Prospection.objects.filter(pk=self.acme.pk).update(date_modification=instant - timedelta(days=10))
+        Prospection.objects.filter(pk=self.beta.pk).update(date_modification=instant)
         self.filtreur = FiltreMixin()
-        self.queryset = Entreprise.objects.filter(eleve=self.eleve)
+        self.queryset = Prospection.objects.filter(eleve=self.eleve).select_related("entreprise")
 
     def test_filtre_par_statut(self):
         resultats = self.filtreur.apply_filters(self.queryset, {"statut": Statut.A_CONTACTER})
@@ -58,11 +64,11 @@ class FiltreMixinTests(TestCase):
         )
         self.assertEqual(list(resultats), [self.beta])
 
-    def test_recherche_insensible_a_la_casse(self):
+    def test_recherche_insensible_a_la_casse_dans_entreprise_liee(self):
         resultats = self.filtreur.apply_filters(self.queryset, {"q": "acme"})
         self.assertEqual(list(resultats), [self.acme])
 
-    def test_recherche_ne_necessite_pas_de_normalisation_des_accents(self):
+    def test_recherche_ne_normalise_pas_les_accents(self):
         resultats = self.filtreur.apply_filters(self.queryset, {"q": "emilie"})
         self.assertEqual(resultats.count(), 0)
 
@@ -82,12 +88,12 @@ class FiltreMixinTests(TestCase):
         )
         self.assertEqual(list(resultats), [self.beta])
 
-    def test_tri_nom_ascendant(self):
-        resultats = self.filtreur.apply_filters(self.queryset, {"tri": "nom", "ordre": "asc"})
+    def test_tri_nom_entreprise_ascendant(self):
+        resultats = self.filtreur.apply_filters(self.queryset, {"tri": "entreprise__nom", "ordre": "asc"})
         self.assertEqual(list(resultats), [self.acme, self.beta])
 
-    def test_tri_nom_descendant(self):
-        resultats = self.filtreur.apply_filters(self.queryset, {"tri": "-nom", "ordre": "desc"})
+    def test_tri_nom_entreprise_descendant(self):
+        resultats = self.filtreur.apply_filters(self.queryset, {"tri": "-entreprise__nom", "ordre": "desc"})
         self.assertEqual(list(resultats), [self.beta, self.acme])
 
     def test_tri_invalide_est_ignore(self):
@@ -104,13 +110,13 @@ class FiltreMixinTests(TestCase):
 
     def test_contexte_reprend_les_filtres_actuels(self):
         request = RequestFactory().get(
-            "/dashboard/?statut=a_contacter&date_debut=2026-01-01&date_fin=2026-01-31&q=acme&tri=nom&ordre=asc"
+            "/dashboard/?statut=a_contacter&date_debut=2026-01-01&date_fin=2026-01-31&q=acme&tri=entreprise__nom&ordre=asc"
         )
         contexte = self.filtreur.get_contexte_filtres(request)
         self.assertEqual(contexte["filtre_statut"], Statut.A_CONTACTER)
         self.assertEqual(contexte["filtre_date_debut"], "2026-01-01")
         self.assertEqual(contexte["filtre_date_fin"], "2026-01-31")
         self.assertEqual(contexte["filtre_q"], "acme")
-        self.assertEqual(contexte["filtre_tri"], "nom")
+        self.assertEqual(contexte["filtre_tri"], "entreprise__nom")
         self.assertEqual(contexte["filtre_ordre"], "asc")
         self.assertEqual(contexte["url_reset"], "/dashboard/")

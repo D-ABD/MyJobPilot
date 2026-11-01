@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from comptes.models import Centre, Formation, ScopeSuperviseur, Utilisateur
-from entreprises.models import Entreprise, Statut
+from entreprises.models import Entreprise, Prospection, Statut
 
 
 class VuesStaffTests(TestCase):
@@ -164,9 +164,10 @@ class VuesStaffTests(TestCase):
         response = self.client.get(reverse("staff:detail_eleve", args=[self.eleve_a.pk]))
         self.assertEqual(response.status_code, 200)
 
-    def test_detail_eleve_affiche_entreprises_sans_actions(self):
+    def test_detail_eleve_affiche_prospections_sans_actions(self):
         self.ajouter_scope()
-        Entreprise.objects.create(eleve=self.eleve_a, nom="Entreprise visible", statut=Statut.A_RELANCER)
+        entreprise = Entreprise.objects.create(nom="Entreprise visible")
+        Prospection.objects.create(eleve=self.eleve_a, entreprise=entreprise, statut=Statut.A_RELANCER)
         self.connecter()
         response = self.client.get(reverse("staff:detail_eleve", args=[self.eleve_a.pk]))
         self.assertEqual(response.status_code, 200)
