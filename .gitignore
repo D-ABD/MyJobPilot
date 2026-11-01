@@ -11,3 +11,9 @@ logs/*
 .coverage
 htmlcov/
 PROMPT_REFERENCE*.txt
+
+# Fichiers internes
+projet jobpilot.txt
+
+# VSCode
+.vscode/
