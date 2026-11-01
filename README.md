@@ -1,4 +1,4 @@
-# MyJobPilot — Lot 1
+# MyJobPilot — Lots 1 à 4
 
 Application Django de prospection d'alternance. Le Lot 1 met en place la configuration, les comptes, l'inscription et la validation administrative. Le Lot 2 ajoute les entreprises, l'historique des statuts, les filtres et le dashboard élève.
 
@@ -84,6 +84,12 @@ Les superviseurs voient uniquement les élèves rattachés aux centres de leurs 
 Les scopes peuvent être créés et désactivés depuis l'administration Django. Leur création est journalisée par `SCOPE_CREE` et leur désactivation par `ACCES_SCOPE_REFUSE`. Une désactivation conserve l'enregistrement du scope.
 
 Les tests du Lot 3 se lancent avec `python manage.py test staff.tests comptes.tests` après génération locale des migrations du modèle `ScopeSuperviseur`.
+
+## Lot 4 — Actions staff sur les élèves
+
+Depuis la fiche staff d'un élève, un administrateur peut changer son centre ou lui ajouter une prospection. Un superviseur peut effectuer ces deux actions uniquement sur un élève de son scope actif ; le changement de centre est limité à ses centres de scope. Les changements de centre et ajouts de prospection sont inscrits dans JournalAction. Les prospections existantes restent rattachées à l'élève lors du changement de centre.
+
+Les tests du Lot 4 se lancent avec `python manage.py test staff.tests.test_actions`. Aucune migration n'est requise pour ce lot.
 
 ## Tests
 

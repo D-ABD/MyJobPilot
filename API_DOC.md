@@ -1,6 +1,6 @@
 # API_DOC.md — MyJobPilot
 
-Version 0.3 — périmètres des Lots 1 à 3. Les routes ci-dessous sont des vues HTML Django ; elles ne constituent pas encore une API JSON.
+Version 0.4 — périmètres des Lots 1 à 4. Les routes ci-dessous sont des vues HTML Django ; elles ne constituent pas encore une API JSON.
 
 ## Authentification et inscription
 
@@ -63,3 +63,15 @@ Les paramètres du dashboard sont `q`, `centre`, `is_valide`, `tri`, `ordre` et 
 Les scopes sont gérés dans l'administration Django. Leur création est journalisée avec `SCOPE_CREE`; leur désactivation conserve l'enregistrement et journalise `ACCES_SCOPE_REFUSE`.
 
 Actions ajoutées au journal au Lot 3 : `scope_cree` (création d'un scope superviseur) et `acces_scope_refuse` (désactivation d'un scope).
+
+## Lot 4 — Actions staff sur les élèves
+
+Les actions ci-dessous nécessitent une connexion. Un administrateur peut agir sur tout élève. Un superviseur peut agir uniquement sur un élève de son scope actif.
+
+| Méthode | Chemin | Accès | Comportement |
+| --- | --- | --- | --- |
+| GET | /staff/eleves/<id>/ | Admin, superviseur du scope | Affiche la fiche élève et ses prospections ; cette fiche présente les actions autorisées. |
+| GET, POST | /staff/eleves/<id>/centre/ | Admin ou superviseur du scope | Affiche et enregistre le changement de centre. Un superviseur ne peut choisir qu'un centre de son scope actif ; sinon l'accès est refusé (HTTP 403). L'action est journalisée par `CHANGEMENT_CENTRE`. |
+| POST | /staff/eleves/<id>/entreprises/ajouter/ | Admin ou superviseur du scope | Crée une prospection pour l'élève au statut initial « À contacter », avec son historique initial. L'action est journalisée par `ACTION_STAFF_ELEVE`. |
+
+Le changement de centre conserve les prospections existantes, qui restent liées à l'élève. Les centres proposés sont tous les centres pour l'administrateur et uniquement les centres du scope actif pour le superviseur. Les élèves n'ont pas accès à ces actions.

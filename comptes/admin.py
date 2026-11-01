@@ -2,6 +2,7 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
+from django.utils.html import format_html
 
 from .models import Centre, ConsentementRGPD, Formation, JournalAction, ScopeSuperviseur, Utilisateur
 from .utils import invalidate_user_sessions, log_action
@@ -30,9 +31,16 @@ class UtilisateurAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (
         ("Parcours", {"fields": ("role", "centre", "formation", "is_valide")}),
     )
-    list_display = ("username", "email", "role", "centre", "formation", "is_valide", "is_active")
+    list_display = ("username", "email", "role", "centre", "formation", "is_valide", "is_active", "voir_fiche_staff")
     list_filter = ("role", "centre", "is_valide", "is_active")
     actions = ("valider_comptes", "refuser_comptes", "desactiver_comptes")
+
+    def voir_fiche_staff(self, obj):
+        if obj.role == "eleve":
+            return format_html('<a href="/staff/eleves/{}/">Fiche staff</a>', obj.pk)
+        return "—"
+
+    voir_fiche_staff.short_description = "Fiche staff"
 
     def save_model(self, request, obj, form, change):
         if not change and obj.role in {Utilisateur.Role.ADMIN, Utilisateur.Role.SUPERVISEUR}:

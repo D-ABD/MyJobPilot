@@ -2,8 +2,17 @@
 {% block title %}Détail de {{ eleve.username }} — MyJobPilot{% endblock %}
 {% block content %}
 <section aria-labelledby="titre-eleve">
-  <a class="btn btn-link px-0 mb-3" href="{% url 'staff:dashboard' %}">Retour au dashboard staff</a>
+  {% if request.user.role == "admin" %}
+    <a class="btn btn-link px-0 mb-3" href="{% url 'admin:comptes_utilisateur_changelist' %}">Retour à l'administration</a>
+  {% else %}
+    <a class="btn btn-link px-0 mb-3" href="{% url 'staff:dashboard' %}">Retour au dashboard staff</a>
+  {% endif %}
   <h1 class="h2 mb-4" id="titre-eleve">Détail de l'élève : {{ eleve.username }}</h1>
+
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    <a class="btn btn-outline-primary" href="{% url 'staff:changer_centre' eleve.pk %}">Changer de centre</a>
+    <a class="btn btn-primary" href="#formulaire-ajout-entreprise">Ajouter une entreprise</a>
+  </div>
 
   <div class="card mb-4">
     <div class="card-header"><h2 class="h5 mb-0">Informations de l'élève</h2></div>
@@ -43,6 +52,23 @@
     {% else %}
       <p class="card-body mb-0">Aucune entreprise de prospection.</p>
     {% endif %}
+  </div>
+
+  <div class="card mt-4" id="formulaire-ajout-entreprise">
+    <div class="card-header"><h2 class="h5 mb-0">Ajouter une entreprise de prospection</h2></div>
+    <form method="post" action="{% url 'staff:ajouter_entreprise' eleve.pk %}" class="card-body">
+      {% csrf_token %}
+      {% for field in entreprise_form %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+        </div>
+      {% endfor %}
+      {% for error in entreprise_form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+      <button class="btn btn-primary" type="submit">Ajouter l'entreprise</button>
+    </form>
   </div>
 </section>
 {% endblock %}

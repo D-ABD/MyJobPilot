@@ -156,13 +156,13 @@ class VuesStaffTests(TestCase):
         response = self.client.get(reverse("staff:detail_eleve", args=[self.eleve_a.pk]))
         self.assertEqual(response.status_code, 403)
 
-    def test_detail_eleve_refuse_un_admin(self):
+    def test_detail_eleve_autorise_un_admin(self):
         administrateur = Utilisateur.objects.create_superuser(
             username="admin_detail_staff", email="detail@example.com", password="mot-de-passe"
         )
         self.connecter(administrateur)
         response = self.client.get(reverse("staff:detail_eleve", args=[self.eleve_a.pk]))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
     def test_detail_eleve_affiche_entreprises_sans_actions(self):
         self.ajouter_scope()

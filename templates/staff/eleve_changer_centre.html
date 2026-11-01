@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Changer le centre de {{ eleve.username }} — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-changement-centre">
+  <a class="btn btn-link px-0 mb-3" href="{% url 'staff:detail_eleve' eleve.pk %}">Retour à la fiche de l'élève</a>
+  <h1 class="h2 mb-4" id="titre-changement-centre">Changer le centre de {{ eleve.username }}</h1>
+  <form method="post" class="card card-body">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+    {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Enregistrer le nouveau centre</button>
+      <a class="btn btn-outline-secondary" href="{% url 'staff:detail_eleve' eleve.pk %}">Annuler</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
