@@ -3,7 +3,7 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
 
-from .models import Centre, ConsentementRGPD, Formation, JournalAction, Utilisateur
+from .models import Centre, ConsentementRGPD, Formation, JournalAction, ScopeSuperviseur, Utilisateur
 from .utils import invalidate_user_sessions, log_action
 
 
@@ -137,3 +137,35 @@ class ConsentementRGPDAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(ScopeSuperviseur)
+class ScopeSuperviseurAdmin(admin.ModelAdmin):
+    list_display = ("superviseur", "centre", "is_active", "date_creation", "date_desactivation")
+    list_filter = ("is_active", "centre")
+    search_fields = ("superviseur__username", "centre__nom")
+    readonly_fields = ("date_creation", "date_desactivation", "cree_par", "is_active")
+    actions = ("desactiver_scopes",)
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            super().save_model(request, obj, form, change)
+            return
+        scope, _ = ScopeSuperviseur.creer(
+            superviseur=obj.superviseur,
+            centre=obj.centre,
+            auteur=request.user,
+        )
+        obj.pk = scope.pk
+        obj._state.adding = False
+        obj._state.db = scope._state.db
+        obj.date_creation = scope.date_creation
+        obj.cree_par = scope.cree_par
+
+    @admin.action(description="Désactiver les scopes sélectionnés")
+    def desactiver_scopes(self, request, queryset):
+        nombre = 0
+        for scope in queryset.filter(is_active=True):
+            scope.desactiver(auteur=request.user)
+            nombre += 1
+        self.message_user(request, f"{nombre} scope(s) désactivé(s).")

@@ -7,14 +7,8 @@ from entreprises.models import Entreprise, HistoriqueStatut, Statut
 
 class ModelesEntreprisesTests(TestCase):
     def setUp(self):
-        self.centre, _ = Centre.objects.get_or_create(
-            nom="Centre Paris",
-            defaults={"departement": "75 - Paris"},
-        )
-        self.formation, _ = Formation.objects.get_or_create(
-            centre=self.centre,
-            nom="BTS SIO",
-        )
+        self.centre = Centre.objects.create(nom="Centre Paris", departement="75 - Paris")
+        self.formation = Formation.objects.create(centre=self.centre, nom="BTS SIO")
         self.eleve = Utilisateur.objects.create_user(
             username="eleve",
             password="mot-de-passe-test",

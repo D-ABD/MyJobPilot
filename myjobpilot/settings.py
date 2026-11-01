@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "core.apps.CoreConfig",
     "comptes.apps.ComptesConfig",
     "entreprises.apps.EntreprisesConfig",
+    "staff.apps.StaffConfig",
     "documents.apps.DocumentsConfig",
     "rgpd.apps.RgpdConfig",
 ]

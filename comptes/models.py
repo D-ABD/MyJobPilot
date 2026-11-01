@@ -139,6 +139,7 @@ class JournalAction(models.Model):
         COMPTE_DESACTIVE = "compte_desactive", "Compte désactivé"
         SESSION_INVALIDE = "session_invalidee", "Session invalidée"
         CHANGEMENT_STATUT = "changement_statut", "Changement de statut"
+        SCOPE_CREE = "scope_cree", "Scope superviseur créé"
         ACCES_SCOPE_REFUSE = "acces_scope_refuse", "Accès hors périmètre refusé"
         ACTION_STAFF_ELEVE = "action_staff_eleve", "Action staff sur un élève"
         CHANGEMENT_CENTRE = "changement_centre", "Changement de centre"
@@ -176,3 +177,81 @@ class JournalAction(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} — {self.date:%Y-%m-%d %H:%M}"
+
+
+class ScopeSuperviseur(models.Model):
+    """Périmètre actif ou révoqué d'un superviseur sur un centre."""
+
+    superviseur = models.ForeignKey(
+        "comptes.Utilisateur",
+        related_name="scopes",
+        on_delete=models.CASCADE,
+    )
+    centre = models.ForeignKey(
+        Centre,
+        related_name="scopes_superviseurs",
+        on_delete=models.CASCADE,
+    )
+    is_active = models.BooleanField(default=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_desactivation = models.DateTimeField(null=True, blank=True)
+    cree_par = models.ForeignKey(
+        "comptes.Utilisateur",
+        related_name="scopes_crees",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+
+    class Meta:
+        verbose_name = "scope superviseur"
+        verbose_name_plural = "scopes superviseurs"
+        ordering = ["superviseur__username", "centre__nom"]
+        unique_together = [("superviseur", "centre")]
+        indexes = [
+            models.Index(fields=["superviseur", "is_active"]),
+            models.Index(fields=["centre", "is_active"]),
+        ]
+
+    def __str__(self):
+        return f"{self.superviseur.username} → {self.centre.nom}"
+
+    @classmethod
+    def creer(cls, superviseur, centre, auteur=None):
+        """Crée un scope unique et journalise sa création une seule fois."""
+        scope, created = cls.objects.get_or_create(
+            superviseur=superviseur,
+            centre=centre,
+            defaults={"cree_par": auteur, "is_active": True},
+        )
+        if created:
+            JournalAction.objects.create(
+                utilisateur=auteur,
+                action=JournalAction.Action.SCOPE_CREE,
+                cible_type="ScopeSuperviseur",
+                cible_id=str(scope.pk),
+                details={
+                    "superviseur_id": superviseur.pk,
+                    "centre_id": centre.pk,
+                },
+            )
+        return scope, created
+
+    def desactiver(self, auteur=None):
+        """Désactive le scope et journalise sa révocation une seule fois."""
+        if not self.is_active:
+            return
+        self.is_active = False
+        self.date_desactivation = timezone.now()
+        self.save(update_fields=["is_active", "date_desactivation"])
+        JournalAction.objects.create(
+            utilisateur=auteur,
+            action=JournalAction.Action.ACCES_SCOPE_REFUSE,
+            cible_type="ScopeSuperviseur",
+            cible_id=str(self.pk),
+            details={
+                "superviseur_id": self.superviseur_id,
+                "centre_id": self.centre_id,
+                "action": "desactivation",
+            },
+        )

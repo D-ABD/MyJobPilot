@@ -1,6 +1,6 @@
 # API_DOC.md — MyJobPilot
 
-Version 0.2 — périmètres des Lots 1 et 2. Les routes ci-dessous sont des vues HTML Django ; elles ne constituent pas encore une API JSON.
+Version 0.3 — périmètres des Lots 1 à 3. Les routes ci-dessous sont des vues HTML Django ; elles ne constituent pas encore une API JSON.
 
 ## Authentification et inscription
 
@@ -32,7 +32,7 @@ Un administrateur habilité peut sélectionner des comptes en attente depuis /ad
 
 ## Redirection après connexion
 
-/comptes/apres-login/ redirige un administrateur ou un superviseur vers /admin/. Un élève non validé est envoyé vers /comptes/en-attente/. Un élève validé est redirigé vers /dashboard/.
+/comptes/apres-login/ redirige un administrateur vers /admin/, un superviseur vers /staff/, un élève non validé vers /comptes/en-attente/ et un élève validé vers /dashboard/.
 
 ## Lot 2 — Prospection élève
 
@@ -48,3 +48,18 @@ Toutes ces routes exigent une connexion. Elles sont réservées à l'élève con
 | GET, POST | /entreprises/<id>/statut/ | Affiche et enregistre un changement de statut daté. |
 
 Les filtres du dashboard sont transmis par paramètres GET : statut, date_debut, date_fin, q, tri, ordre et page. La recherche est insensible à la casse. Les dates filtrent la date de modification.
+
+## Lot 3 — Tableau de bord superviseur
+
+Ces routes exigent une connexion et sont réservées aux superviseurs. Le dashboard ne liste que les élèves rattachés aux centres ayant un scope actif pour le superviseur. Un accès à la fiche d'un élève hors scope renvoie HTTP 403.
+
+| Méthode | Chemin | Comportement |
+| --- | --- | --- |
+| GET | /staff/ | Dashboard des élèves des centres du scope, avec recherche, filtres, tri par colonne et pagination de 25 lignes. |
+| GET | /staff/eleves/<id>/ | Fiche en lecture seule d'un élève du scope, avec la liste de ses entreprises. |
+
+Les paramètres du dashboard sont `q`, `centre`, `is_valide`, `tri`, `ordre` et `page`. Le tri accepte `username`, `last_name`, `centre__nom` et `is_valide`; par défaut, les élèves sont triés par identifiant croissant. Les filtres de centre ne peuvent sélectionner que les centres couverts par un scope actif.
+
+Les scopes sont gérés dans l'administration Django. Leur création est journalisée avec `SCOPE_CREE`; leur désactivation conserve l'enregistrement et journalise `ACCES_SCOPE_REFUSE`.
+
+Actions ajoutées au journal au Lot 3 : `scope_cree` (création d'un scope superviseur) et `acces_scope_refuse` (désactivation d'un scope).

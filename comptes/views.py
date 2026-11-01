@@ -45,7 +45,7 @@ def redirection_apres_login(request):
     if utilisateur.role == Utilisateur.Role.ADMIN:
         return redirect("/admin/")
     if utilisateur.role == Utilisateur.Role.SUPERVISEUR:
-        return redirect("/admin/")
+        return redirect("staff:dashboard")
     if not utilisateur.is_valide:
         return redirect("comptes:en_attente")
     return redirect("entreprises:dashboard")

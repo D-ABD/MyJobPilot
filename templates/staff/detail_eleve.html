@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Détail de {{ eleve.username }} — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-eleve">
+  <a class="btn btn-link px-0 mb-3" href="{% url 'staff:dashboard' %}">Retour au dashboard staff</a>
+  <h1 class="h2 mb-4" id="titre-eleve">Détail de l'élève : {{ eleve.username }}</h1>
+
+  <div class="card mb-4">
+    <div class="card-header"><h2 class="h5 mb-0">Informations de l'élève</h2></div>
+    <dl class="row card-body mb-0">
+      <dt class="col-sm-4">Identifiant</dt><dd class="col-sm-8">{{ eleve.username }}</dd>
+      <dt class="col-sm-4">Prénom</dt><dd class="col-sm-8">{{ eleve.first_name|default:"—" }}</dd>
+      <dt class="col-sm-4">Nom</dt><dd class="col-sm-8">{{ eleve.last_name|default:"—" }}</dd>
+      <dt class="col-sm-4">Courriel</dt><dd class="col-sm-8">{{ eleve.email|default:"—" }}</dd>
+      <dt class="col-sm-4">Centre</dt><dd class="col-sm-8">{{ eleve.centre.nom|default:"—" }}</dd>
+      <dt class="col-sm-4">Formation</dt><dd class="col-sm-8">{{ eleve.formation.nom|default:"—" }}</dd>
+      <dt class="col-sm-4">Validation</dt>
+      <dd class="col-sm-8">
+        {% if eleve.is_valide %}<span class="badge text-bg-success">Validé</span>{% else %}<span class="badge text-bg-warning">En attente</span>{% endif %}
+      </dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2 class="h5 mb-0">Entreprises de prospection</h2></div>
+    {% if entreprises %}
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <caption class="visually-hidden">Entreprises de {{ eleve.username }}</caption>
+          <thead><tr><th scope="col">Nom</th><th scope="col">Secteur</th><th scope="col">Statut</th><th scope="col">Modifiée le</th></tr></thead>
+          <tbody>
+            {% for entreprise in entreprises %}
+              <tr>
+                <th scope="row">{{ entreprise.nom }}</th>
+                <td>{{ entreprise.secteur|default:"—" }}</td>
+                <td>{{ entreprise.get_statut_display }}</td>
+                <td><time datetime="{{ entreprise.date_modification|date:'c' }}">{{ entreprise.date_modification|date:"d/m/Y H:i" }}</time></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="card-body mb-0">Aucune entreprise de prospection.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

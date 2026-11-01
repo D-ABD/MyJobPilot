@@ -3,7 +3,14 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
-from comptes.models import Centre, ConsentementRGPD, Formation, Utilisateur
+from comptes.models import (
+    Centre,
+    ConsentementRGPD,
+    Formation,
+    JournalAction,
+    ScopeSuperviseur,
+    Utilisateur,
+)
 
 
 class ModelesComptesTests(TestCase):
@@ -93,3 +100,65 @@ class ModelesComptesTests(TestCase):
         utilisateur = Utilisateur.objects.create_user(username="with_consent", password="p")
         ConsentementRGPD.objects.create(utilisateur=utilisateur, version_politique="1.0")
         self.assertTrue(utilisateur.a_consenti_rgpd)
+
+    def creer_superviseur(self):
+        return Utilisateur.objects.create_user(
+            username="scope_superviseur",
+            password=None,
+            role=Utilisateur.Role.SUPERVISEUR,
+            centre=self.centre,
+            is_staff=True,
+            is_valide=True,
+        )
+
+    def test_scope_str_contient_superviseur_et_centre(self):
+        superviseur = self.creer_superviseur()
+        scope = ScopeSuperviseur.objects.create(superviseur=superviseur, centre=self.centre)
+        self.assertIn(superviseur.username, str(scope))
+        self.assertIn(self.centre.nom, str(scope))
+
+    def test_scope_superviseur_centre_est_unique(self):
+        superviseur = self.creer_superviseur()
+        ScopeSuperviseur.objects.create(superviseur=superviseur, centre=self.centre)
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                ScopeSuperviseur.objects.create(superviseur=superviseur, centre=self.centre)
+
+    def test_desactiver_scope_renseigne_date_et_journalise(self):
+        superviseur = self.creer_superviseur()
+        scope = ScopeSuperviseur.objects.create(superviseur=superviseur, centre=self.centre)
+        scope.desactiver(auteur=superviseur)
+        scope.refresh_from_db()
+        self.assertFalse(scope.is_active)
+        self.assertIsNotNone(scope.date_desactivation)
+        action = JournalAction.objects.get(action=JournalAction.Action.ACCES_SCOPE_REFUSE)
+        self.assertEqual(action.cible_type, "ScopeSuperviseur")
+        self.assertEqual(action.cible_id, str(scope.pk))
+        self.assertEqual(action.details["action"], "desactivation")
+
+    def test_desactiver_scope_deux_fois_est_idempotent(self):
+        superviseur = self.creer_superviseur()
+        scope = ScopeSuperviseur.objects.create(superviseur=superviseur, centre=self.centre)
+        scope.desactiver(auteur=superviseur)
+        scope.refresh_from_db()
+        premiere_date = scope.date_desactivation
+        scope.desactiver(auteur=superviseur)
+        scope.refresh_from_db()
+        self.assertEqual(scope.date_desactivation, premiere_date)
+        self.assertEqual(JournalAction.objects.filter(action=JournalAction.Action.ACCES_SCOPE_REFUSE).count(), 1)
+
+    def test_creer_scope_journalise_une_seule_fois(self):
+        superviseur = self.creer_superviseur()
+        scope, cree = ScopeSuperviseur.creer(superviseur, self.centre, auteur=superviseur)
+        meme_scope, cree_une_seconde_fois = ScopeSuperviseur.creer(
+            superviseur,
+            self.centre,
+            auteur=superviseur,
+        )
+        self.assertTrue(cree)
+        self.assertFalse(cree_une_seconde_fois)
+        self.assertEqual(scope, meme_scope)
+        journal = JournalAction.objects.get(action=JournalAction.Action.SCOPE_CREE)
+        self.assertEqual(journal.cible_id, str(scope.pk))
+        self.assertEqual(journal.details["superviseur_id"], superviseur.pk)
+        self.assertEqual(journal.details["centre_id"], self.centre.pk)

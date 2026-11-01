@@ -77,6 +77,14 @@ Les élèves validés peuvent créer, modifier, consulter et supprimer leurs pro
 
 Les tests du Lot 2 se lancent avec python manage.py test entreprises.tests. Les fichiers de migration de modèles sont générés localement avec makemigrations entreprises ; aucune migration de ce lot n'est versionnée ici.
 
+## Lot 3 — Scopes et dashboard superviseur
+
+Les superviseurs voient uniquement les élèves rattachés aux centres de leurs scopes actifs. Leur dashboard permet de rechercher un élève, de filtrer par centre et par état de validation, de trier par identifiant, nom, centre ou état de validation, et de parcourir les résultats par pages de 25. La fiche élève affiche ses informations et ses entreprises en lecture seule.
+
+Les scopes peuvent être créés et désactivés depuis l'administration Django. Leur création est journalisée par `SCOPE_CREE` et leur désactivation par `ACCES_SCOPE_REFUSE`. Une désactivation conserve l'enregistrement du scope.
+
+Les tests du Lot 3 se lancent avec `python manage.py test staff.tests comptes.tests` après génération locale des migrations du modèle `ScopeSuperviseur`.
+
 ## Tests
 
 Après la génération de la migration locale 0001 et l'application des migrations :

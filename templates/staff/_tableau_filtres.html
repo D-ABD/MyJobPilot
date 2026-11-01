@@ -1,0 +1,29 @@
+<form method="get" class="card card-body mb-4" aria-label="Filtres des élèves">
+  <div class="row g-3 align-items-end">
+    <div class="col-12 col-md-5">
+      <label class="form-label" for="filtre-q">Recherche</label>
+      <input class="form-control" type="search" id="filtre-q" name="q" value="{{ filtre_q }}" placeholder="Identifiant, nom ou courriel">
+    </div>
+    <div class="col-12 col-md-3">
+      <label class="form-label" for="filtre-centre">Centre</label>
+      <select class="form-select" id="filtre-centre" name="centre">
+        <option value="">Tous mes centres</option>
+        {% for centre in centres %}
+          <option value="{{ centre.pk }}" {% if filtre_centre == centre.pk|stringformat:"s" %}selected{% endif %}>{{ centre.nom }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-2">
+      <label class="form-label" for="filtre-validation">Validation</label>
+      <select class="form-select" id="filtre-validation" name="is_valide">
+        <option value="" {% if not filtre_is_valide %}selected{% endif %}>Tous</option>
+        <option value="true" {% if filtre_is_valide == "true" %}selected{% endif %}>Validés</option>
+        <option value="false" {% if filtre_is_valide == "false" %}selected{% endif %}>En attente</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+      <button class="btn btn-primary flex-grow-1" type="submit">Filtrer</button>
+      <a class="btn btn-outline-secondary" href="{{ url_reset }}">Réinitialiser</a>
+    </div>
+  </div>
+</form>

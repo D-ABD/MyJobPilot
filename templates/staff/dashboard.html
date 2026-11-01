@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Mon staff — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-staff">
+  <div class="mb-4">
+    <h1 class="h2 mb-1" id="titre-staff">Mon staff</h1>
+    <p class="text-body-secondary mb-0">Élèves rattachés aux centres de votre périmètre.</p>
+  </div>
+
+  <div class="row g-3 mb-4" aria-label="Nombre d'élèves par centre">
+    {% for statistique in stats_par_centre %}
+      <div class="col-12 col-sm-6 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h2 class="h6">{{ statistique.centre.nom }}</h2>
+            <p class="h3 mb-0">{{ statistique.nombre }}</p>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% include "staff/_tableau_filtres.html" %}
+
+  {% if eleves %}
+    <div class="table-responsive dashboard-table-wrap">
+      <table class="table table-hover align-middle dashboard-table">
+        <caption class="visually-hidden">Élèves du périmètre superviseur</caption>
+        <thead class="table-light">
+          <tr>
+            <th scope="col"><a href="{{ tri_urls.username }}">Identifiant <span aria-hidden="true">↕</span></a></th>
+            <th scope="col"><a href="{{ tri_urls.last_name }}">Nom complet <span aria-hidden="true">↕</span></a></th>
+            <th scope="col"><a href="{{ tri_urls.centre }}">Centre <span aria-hidden="true">↕</span></a></th>
+            <th scope="col">Formation</th>
+            <th scope="col"><a href="{{ tri_urls.is_valide }}">Statut <span aria-hidden="true">↕</span></a></th>
+            <th scope="col">Entreprises</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for eleve in eleves %}
+            <tr>
+              <th scope="row">{{ eleve.username }}</th>
+              <td>{{ eleve.get_full_name|default:"—" }}</td>
+              <td>{{ eleve.centre.nom }}</td>
+              <td>{{ eleve.formation.nom|default:"—" }}</td>
+              <td>
+                {% if eleve.is_valide %}
+                  <span class="badge text-bg-success">Validé</span>
+                {% else %}
+                  <span class="badge text-bg-warning">En attente</span>
+                {% endif %}
+              </td>
+              <td>{{ eleve.nombre_entreprises }}</td>
+              <td>
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'staff:detail_eleve' eleve.pk %}" aria-label="Détail de {{ eleve.username }}">Détail</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "staff/_pagination.html" %}
+  {% else %}
+    <p class="alert alert-info" role="status">Aucun élève dans votre périmètre.</p>
+  {% endif %}
+</section>
+{% endblock %}

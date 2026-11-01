@@ -21,17 +21,17 @@
           <td>{{ entreprise.ville|default:"—" }}</td>
           <td>
             {% if entreprise.statut == "a_contacter" %}
-              <span class="badge text-bg-secondary badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
+              <span class="badge text-bg-secondary">{{ entreprise.get_statut_display }}</span>
             {% elif entreprise.statut == "a_relancer" %}
-              <span class="badge text-bg-warning badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
+              <span class="badge text-bg-warning">{{ entreprise.get_statut_display }}</span>
             {% elif entreprise.statut == "candidature_envoyee" %}
-              <span class="badge text-bg-info badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
+              <span class="badge text-bg-info">{{ entreprise.get_statut_display }}</span>
             {% elif entreprise.statut == "en_attente" %}
-              <span class="badge text-bg-primary badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
+              <span class="badge text-bg-primary">{{ entreprise.get_statut_display }}</span>
             {% elif entreprise.statut == "refus" %}
-              <span class="badge text-bg-danger badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
+              <span class="badge text-bg-danger">{{ entreprise.get_statut_display }}</span>
             {% else %}
-              <span class="badge text-bg-success badge-statut-{{ entreprise.statut }}">{{ entreprise.get_statut_display }}</span>
+              <span class="badge text-bg-success">{{ entreprise.get_statut_display }}</span>
             {% endif %}
           </td>
           <td><time datetime="{{ entreprise.date_modification|date:'c' }}">{{ entreprise.date_modification|date:"d/m/Y H:i" }}</time></td>
