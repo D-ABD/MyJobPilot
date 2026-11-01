@@ -2,6 +2,7 @@
 from datetime import date
 
 from django.test import TestCase
+from django.utils import timezone
 from django.urls import reverse
 
 from comptes.models import Centre, Formation, JournalAction, Utilisateur
@@ -81,7 +82,7 @@ class VuesEntreprisesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["total_count"], 1)
         self.assertContains(response, "À relancer")
-        self.assertNotContains(response, "À contacter")
+        self.assertNotContains(response, "badge-statut-a_contacter")
 
     def test_dashboard_page_limitee_a_vingt_cinq_entreprises(self):
         for numero in range(26):
@@ -223,7 +224,10 @@ class VuesEntreprisesTests(TestCase):
         )
         entreprise.refresh_from_db()
         self.assertIsNotNone(entreprise.date_entretien)
-        self.assertEqual(entreprise.date_entretien.date(), date(2026, 11, 20))
+        self.assertEqual(
+            timezone.localtime(entreprise.date_entretien).date(),
+            date(2026, 11, 20),
+        )
 
     def test_changement_de_statut_a_contacter_ne_demande_pas_de_date(self):
         entreprise = self.creer_entreprise()

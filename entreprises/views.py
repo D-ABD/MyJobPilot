@@ -1,9 +1,12 @@
 """Tableau de bord élève et gestion des entreprises de prospection."""
+from datetime import datetime, time
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from comptes.models import JournalAction, Utilisateur
 from comptes.utils import log_action
@@ -157,7 +160,13 @@ def entreprise_changer_statut(request, pk):
                 entreprise.statut = nouveau_statut
                 champ_date = CHAMPS_DATE_STATUT.get(nouveau_statut)
                 if champ_date:
-                    setattr(entreprise, champ_date, date_associee)
+                    valeur_date = date_associee
+                    if champ_date == "date_entretien" and date_associee:
+                        valeur_date = timezone.make_aware(
+                            datetime.combine(date_associee, time.min),
+                            timezone.get_current_timezone(),
+                        )
+                    setattr(entreprise, champ_date, valeur_date)
                 entreprise.save()
                 HistoriqueStatut.objects.create(
                     entreprise=entreprise,
