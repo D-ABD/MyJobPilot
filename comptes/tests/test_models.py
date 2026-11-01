@@ -34,22 +34,43 @@ class ModelesComptesTests(TestCase):
         self.assertIsNone(utilisateur.departement)
 
     def test_clean_eleve_sans_centre_echoue(self):
-        utilisateur = Utilisateur(username="eleve", role=Utilisateur.Role.ELEVE, formation=self.formation)
-        with self.assertRaises(ValidationError):
+        utilisateur = Utilisateur(
+            username="eleve",
+            password="mot-de-passe-valide",
+            role=Utilisateur.Role.ELEVE,
+            formation=self.formation,
+        )
+        with self.assertRaises(ValidationError) as erreur:
             utilisateur.full_clean()
+        self.assertIn("centre", erreur.exception.message_dict)
 
     def test_clean_eleve_sans_formation_echoue(self):
-        utilisateur = Utilisateur(username="eleve", role=Utilisateur.Role.ELEVE, centre=self.centre)
-        with self.assertRaises(ValidationError):
+        utilisateur = Utilisateur(
+            username="eleve",
+            password="mot-de-passe-valide",
+            role=Utilisateur.Role.ELEVE,
+            centre=self.centre,
+        )
+        with self.assertRaises(ValidationError) as erreur:
             utilisateur.full_clean()
+        self.assertIn("formation", erreur.exception.message_dict)
 
     def test_clean_superviseur_sans_centre_echoue(self):
-        utilisateur = Utilisateur(username="superviseur", role=Utilisateur.Role.SUPERVISEUR)
-        with self.assertRaises(ValidationError):
+        utilisateur = Utilisateur(
+            username="superviseur",
+            password="mot-de-passe-valide",
+            role=Utilisateur.Role.SUPERVISEUR,
+        )
+        with self.assertRaises(ValidationError) as erreur:
             utilisateur.full_clean()
+        self.assertIn("centre", erreur.exception.message_dict)
 
     def test_clean_admin_sans_centre_est_valide(self):
-        utilisateur = Utilisateur(username="admin", role=Utilisateur.Role.ADMIN)
+        utilisateur = Utilisateur(
+            username="admin",
+            password="mot-de-passe-valide",
+            role=Utilisateur.Role.ADMIN,
+        )
         utilisateur.full_clean()
 
     def test_role_par_defaut_est_eleve(self):
