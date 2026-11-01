@@ -1,0 +1,19 @@
+:focus-visible {
+  outline: 3px solid #ffbf47;
+  outline-offset: 3px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.navbar-text {
+  color: #fff;
+}
+
+@media (max-width: 575.98px) {
+  main.container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

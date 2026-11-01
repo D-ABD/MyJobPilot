@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Déconnexion — MyJobPilot{% endblock %}
+{% block content %}
+<section class="text-center">
+  <h1 class="h2">Vous êtes déconnecté</h1>
+  <p>Votre session MyJobPilot est terminée.</p>
+  <a class="btn btn-primary" href="{% url 'comptes:connexion' %}" aria-label="Se reconnecter">Se reconnecter</a>
+</section>
+{% endblock %}

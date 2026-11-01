@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Validation du compte — MyJobPilot{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="card-body">
+    {% if eleve_valide_sans_dashboard %}
+      <h1 class="h2">Votre espace élève sera disponible au Lot 2</h1>
+      <p>Votre compte est validé. L'accueil de votre espace personnel sera activé lors du prochain lot.</p>
+    {% else %}
+      <h1 class="h2">Votre compte est en attente de validation</h1>
+      {% if user.motif_refus %}
+        <p class="mb-2">Votre demande n'a pas été acceptée.</p>
+        <p class="alert alert-warning" role="status">{{ user.motif_refus }}</p>
+      {% else %}
+        <p>Vous pourrez accéder aux fonctions protégées dès que l'administration aura validé votre inscription.</p>
+      {% endif %}
+    {% endif %}
+    <form method="post" action="{% url 'comptes:deconnexion' %}">
+      {% csrf_token %}
+      <button class="btn btn-outline-secondary" type="submit" aria-label="Se déconnecter">Se déconnecter</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

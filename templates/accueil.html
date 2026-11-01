@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Accueil — MyJobPilot{% endblock %}
+{% block content %}
+<section class="p-4 p-md-5 bg-light rounded-3">
+  <div class="container-fluid py-2">
+    <h1 class="display-5 fw-bold">Préparez votre prospection d'alternance</h1>
+    <p class="col-md-9 fs-5">MyJobPilot vous accompagne dans le suivi de vos démarches et de vos échanges avec votre centre.</p>
+    {% if user.is_authenticated %}
+      <a class="btn btn-primary btn-lg" href="{% url 'comptes:redirection_apres_login' %}" aria-label="Accéder à mon espace">Accéder à mon espace</a>
+    {% else %}
+      <a class="btn btn-primary btn-lg me-2 mb-2" href="{% url 'comptes:inscription' %}" aria-label="Créer un compte">Créer un compte</a>
+      <a class="btn btn-outline-primary btn-lg mb-2" href="{% url 'comptes:connexion' %}" aria-label="Se connecter">Se connecter</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
