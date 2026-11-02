@@ -168,8 +168,18 @@ class VuesEntreprisesTests(TestCase):
                 "statut": Statut.A_CONTACTER,
             },
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(Prospection.objects.filter(eleve=self.eleve).count(), 1)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            reverse("entreprises:detail", args=[prospection.pk]),
+        )
+        self.assertEqual(
+            Prospection.objects.filter(
+                eleve=self.eleve,
+                entreprise=prospection.entreprise,
+            ).count(),
+            1,
+        )
 
     def test_detail_est_visible_par_le_proprietaire(self):
         prospection = self.creer_prospection()
