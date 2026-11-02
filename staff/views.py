@@ -216,7 +216,7 @@ def ajouter_entreprise_staff(request, pk):
                 if entreprise_form.cleaned_data["nom"].strip().casefold() != form.cleaned_data["entreprise_nom"].strip().casefold():
                     form.add_error("entreprise_nom", "Le nom doit correspondre aux informations de l'entreprise.")
                     return _rendre_detail_eleve(request, eleve, form, entreprise_form)
-                entreprise = entreprise_form.save(commit=False)
+                entreprise = entreprise_form.save()
             if Prospection.objects.filter(eleve=eleve, entreprise=entreprise).exists():
                 form.add_error("entreprise_nom", "Cet élève a déjà une prospection pour cette entreprise.")
                 return _rendre_detail_eleve(request, eleve, form, entreprise_form)

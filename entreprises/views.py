@@ -1,6 +1,7 @@
 """Tableau de bord élève et gestion isolée des prospections."""
 from datetime import datetime, time
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
@@ -155,13 +156,14 @@ def entreprise_create(request):
                     return _rendre_formulaire_prospection(
                         request, form, entreprise_form, "Nouvelle prospection"
                     )
-                entreprise = entreprise_form.save(commit=False)
+                entreprise = entreprise_form.save()
 
-            if Prospection.objects.filter(eleve=request.user, entreprise=entreprise).exists():
-                form.add_error("entreprise_nom", "Vous avez déjà une prospection pour cette entreprise.")
-                return _rendre_formulaire_prospection(
-                    request, form, entreprise_form, "Nouvelle prospection"
-                )
+            prospection_existante = Prospection.objects.filter(
+                eleve=request.user, entreprise=entreprise
+            ).first()
+            if prospection_existante:
+                messages.info(request, "Vous avez déjà une prospection pour cette entreprise.")
+                return redirect("entreprises:detail", pk=prospection_existante.pk)
 
             donnees = form.cleaned_data
             try:

@@ -19,6 +19,7 @@ class RechercheEntreprisesTests(TestCase):
             role=Utilisateur.Role.ELEVE,
             centre=self.centre,
             formation=self.formation,
+            is_valide=True,
         )
 
     def test_recherche_est_refusee_sans_authentification(self):
