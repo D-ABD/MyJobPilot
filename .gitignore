@@ -17,3 +17,7 @@ projet jobpilot.txt
 
 # VSCode
 .vscode/
+
+# Backups base locale
+db.sqlite3.backup*
+db.sqlite3.bak
