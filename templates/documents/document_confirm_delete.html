@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Supprimer un document — MyJobPilot{% endblock %}
+{% block content %}
+<section class="mx-auto" style="max-width: 640px" aria-labelledby="titre-suppression-document">
+  <h1 class="h2" id="titre-suppression-document">Supprimer le document</h1>
+  <p>Confirmez-vous la suppression de « {{ document.nom }} » ?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Supprimer définitivement</button>
+    <a class="btn btn-outline-secondary" href="{% url 'documents:list' %}">Annuler</a>
+  </form>
+</section>
+{% endblock %}

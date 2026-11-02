@@ -78,3 +78,18 @@ Les actions ci-dessous nécessitent une connexion. Un administrateur peut agir s
 | POST | /staff/eleves/<id>/entreprises/ajouter/ | Admin ou superviseur du scope | Crée une prospection pour l'élève, liée à une entreprise existante ou nouvellement créée, avec son historique initial. L'action est journalisée par `ACTION_STAFF_ELEVE` et cible la Prospection. |
 
 Le changement de centre conserve les prospections existantes, qui restent liées à l'élève. Les centres proposés sont tous les centres pour l'administrateur et uniquement les centres du scope actif pour le superviseur. Les élèves n'ont pas accès à ces actions.
+
+
+## Lot 5 — Documents
+
+Les routes ci-dessous nécessitent une authentification. Les fichiers sont stockés dans Document.contenu ; les listings n'exposent pas le binaire.
+
+| Méthode | Chemin | Accès | Comportement |
+| --- | --- | --- | --- |
+| GET | /documents/ | Élève, admin | Liste les documents propres à l'élève ; l'admin voit tous les documents. L'élève voit son quota utilisé sur 20 Mo. |
+| GET, POST | /documents/ajouter/ | Élève | Téléverse un document, limité à 5 Mo, sous réserve du quota de 20 Mo. L'action est journalisée par DOCUMENT_UPLOAD. |
+| GET | /documents/<id>/telecharger/ | Propriétaire, admin, superviseur du scope | Télécharge le document et journalise DOCUMENT_DOWNLOAD. |
+| GET, POST | /documents/<id>/supprimer/ | Propriétaire, admin | Confirme puis supprime le document ; l'action est journalisée par DOCUMENT_SUPPRIME. |
+| GET | /staff/eleves/<id>/documents/ | Admin, superviseur du scope actif | Consulte les documents de l'élève en lecture seule. L'accès hors scope est refusé (HTTP 403). |
+
+Les superviseurs ne peuvent pas téléverser ou supprimer les documents. Les vues élève filtrent strictement sur l'utilisateur connecté.

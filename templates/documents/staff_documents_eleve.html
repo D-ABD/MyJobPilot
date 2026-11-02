@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Documents de {{ eleve.username }} — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-documents-eleve">
+  <a class="btn btn-link px-0" href="{% url 'staff:detail_eleve' eleve.pk %}">Retour à la fiche élève</a>
+  <h1 class="h2 mb-4" id="titre-documents-eleve">Documents de {{ eleve.username }}</h1>
+  {% if documents %}
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <caption class="visually-hidden">Documents de {{ eleve.username }}</caption>
+        <thead><tr><th scope="col">Nom</th><th scope="col">Type</th><th scope="col">Taille</th><th scope="col">Ajouté le</th><th scope="col">Action</th></tr></thead>
+        <tbody>
+          {% for document in documents %}
+            <tr>
+              <td>{{ document.nom }}</td>
+              <td>{{ document.get_type_display }}</td>
+              <td>{{ document.taille|filesizeformat }}</td>
+              <td>{{ document.date_upload|date:"d/m/Y H:i" }}</td>
+              <td><a class="btn btn-sm btn-outline-primary" href="{% url 'documents:download' document.pk %}">Télécharger</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="alert alert-info" role="status">Aucun document pour cet élève.</p>
+  {% endif %}
+</section>
+{% endblock %}

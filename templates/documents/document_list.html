@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Mes documents — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-documents">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h1 class="h2 mb-1" id="titre-documents">Mes documents</h1>
+      <p class="text-body-secondary mb-0">Retrouvez vos documents téléversés.</p>
+    </div>
+    {% if request.user.role == "eleve" %}
+      <a class="btn btn-primary" href="{% url 'documents:upload' %}">Ajouter un document</a>
+    {% endif %}
+  </div>
+
+  {% if quota_total_mo %}
+    <div class="card mb-4">
+      <div class="card-body">
+        <p class="mb-2"><strong>{{ quota_utilise_mo|floatformat:2 }} Mo utilisés sur {{ quota_total_mo|floatformat:0 }} Mo</strong></p>
+        <div class="progress" role="progressbar" aria-label="Quota de stockage utilisé"
+             aria-valuenow="{{ quota_pourcentage }}" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar" style="width: {{ quota_pourcentage }}%">{{ quota_pourcentage }}%</div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if documents %}
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <caption class="visually-hidden">Documents disponibles</caption>
+        <thead><tr>
+          {% if request.user.role == "admin" %}<th scope="col">Élève</th>{% endif %}
+          <th scope="col">Nom</th><th scope="col">Type</th>
+          <th scope="col">Taille</th><th scope="col">Ajouté le</th><th scope="col">Actions</th>
+        </tr></thead>
+        <tbody>
+          {% for document in documents %}
+            <tr>
+              {% if request.user.role == "admin" %}<td>{{ document.eleve.username }}</td>{% endif %}
+              <td>{{ document.nom }}</td>
+              <td>{{ document.get_type_display }}</td>
+              <td>{{ document.taille|filesizeformat }}</td>
+              <td>{{ document.date_upload|date:"d/m/Y H:i" }}</td>
+              <td class="text-nowrap">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'documents:download' document.pk %}">Télécharger</a>
+                {% if request.user.role == "admin" or document.eleve_id == request.user.id %}
+                  <a class="btn btn-sm btn-outline-danger" href="{% url 'documents:delete' document.pk %}">Supprimer</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="alert alert-info" role="status">Aucun document enregistré.</p>
+  {% endif %}
+</section>
+{% endblock %}

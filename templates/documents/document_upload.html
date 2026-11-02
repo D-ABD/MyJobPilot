@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Ajouter un document — MyJobPilot{% endblock %}
+{% block content %}
+<section class="mx-auto" style="max-width: 680px" aria-labelledby="titre-ajout-document">
+  <a class="btn btn-link px-0" href="{% url 'documents:list' %}">Retour à mes documents</a>
+  <h1 class="h2 mb-3" id="titre-ajout-document">Ajouter un document</h1>
+  <p class="text-body-secondary">Taille maximale : 5 Mo. Quota total : 20 Mo.</p>
+  <form method="post" enctype="multipart/form-data" class="card card-body">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Téléverser</button>
+      <a class="btn btn-outline-secondary" href="{% url 'documents:list' %}">Annuler</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

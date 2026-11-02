@@ -118,3 +118,10 @@ Les tests du Lot 1 couvrent les modèles, le consentement, les sessions, la jour
 5. Connectez-vous comme admin_demo, validez le compte d'un élève depuis l'administration, puis vérifiez que cet élève peut accéder à l'accueil après reconnexion et que l'action est visible dans le journal.
 6. Renseignez un motif sur un autre compte élève, appliquez l'action de refus et vérifiez que le motif apparaît sur sa page d'attente.
 7. Connectez un compte élève dans une fenêtre, désactivez-le depuis une autre session d'administration, puis vérifiez que son ancienne session n'accède plus aux pages protégées.
+
+
+## Lot 5 — Documents
+
+Les élèves peuvent téléverser leurs documents (CV, lettre de motivation, diplôme ou autre) depuis leur espace dédié. Chaque fichier est limité à 5 Mo et le quota par élève est de 20 Mo. Les documents sont stockés dans un BinaryField et les listes utilisent un manager qui ne charge pas le contenu binaire.
+
+Un élève ne voit que ses documents. Un superviseur peut les consulter et les télécharger pour un élève de son scope actif, sans pouvoir les ajouter ou les supprimer. L'administrateur peut consulter les documents de tous les élèves. Les envois, téléchargements et suppressions sont journalisés.
