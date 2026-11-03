@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Demandes RGPD — administration{% endblock %}
+{% block content %}<h1>Demandes RGPD</h1>
+<table class="table"><thead><tr><th>Utilisateur</th><th>Type</th><th>Description</th><th>Statut</th><th>Date</th><th></th></tr></thead>
+<tbody>{% for demande in demandes %}<tr><td>{{ demande.utilisateur.username }}</td><td>{{ demande.get_type_display }}</td>
+<td>{{ demande.description|default:"—"|truncatechars:100 }}</td><td>{{ demande.get_statut_display }}</td>
+<td>{{ demande.date_demande|date:"d/m/Y H:i" }}</td><td><a href="{% url 'rgpd:admin_demande_rgpd_traiter' demande.pk %}">Traiter</a></td></tr>
+{% empty %}<tr><td colspan="6">Aucune demande.</td></tr>{% endfor %}</tbody></table>{% endblock %}

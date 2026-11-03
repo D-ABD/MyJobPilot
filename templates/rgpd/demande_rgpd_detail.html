@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Demande RGPD — MyJobPilot{% endblock %}
+{% block content %}
+<h1>{{ demande.get_type_display }}</h1>
+<dl class="row"><dt class="col-sm-3">Statut</dt><dd class="col-sm-9">{{ demande.get_statut_display }}</dd>
+<dt class="col-sm-3">Date</dt><dd class="col-sm-9">{{ demande.date_demande|date:"d/m/Y H:i" }}</dd>
+<dt class="col-sm-3">Description</dt><dd class="col-sm-9">{{ demande.description|default:"—"|linebreaksbr }}</dd>
+{% if demande.motif_refus %}<dt class="col-sm-3">Motif du refus</dt><dd class="col-sm-9">{{ demande.motif_refus|linebreaksbr }}</dd>{% endif %}
+</dl><a href="{% url 'rgpd:demandes_rgpd_list' %}">Retour</a>
+{% endblock %}

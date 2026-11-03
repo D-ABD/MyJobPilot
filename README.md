@@ -132,3 +132,17 @@ Un élève ne voit que ses documents. Un superviseur peut les consulter et les t
 Les élèves, les superviseurs de leur scope et les administrateurs peuvent commenter les prospections visibles selon leurs permissions. L'auteur ou un administrateur peut supprimer un commentaire. La création est journalisée.
 
 Les notifications sont personnelles et consultables dans l'application. Un compteur non lu est actualisé toutes les 60 secondes. Les notifications créées au Lot 6 concernent les commentaires ; les hooks de validation de compte, changement de statut et ajout de document sont reportés au Lot 8b.
+
+
+## Lot 7 — RGPD
+
+Les élèves peuvent créer et suivre leurs demandes RGPD, et télécharger un export JSON de leurs données. L'export exclut le contenu binaire des documents. La politique de confidentialité version 1.0 est accessible sur `/confidentialite/` ; les coordonnées du responsable ou DPO doivent être renseignées avant mise en production.
+
+Les commandes `purge_rgpd` et `purge_journal` prennent l'option `--dry-run`. La première purge les comptes désactivés après 1095 jours (référence `last_login`, ou `date_joined` s'il n'y a pas de connexion) et les comptes élèves non validés après 180 jours. La seconde supprime les entrées de journal de plus de 1095 jours. La purge du journal écrit son bilan via le logger `comptes` dans `logs/app.log`.
+
+Exemple de planification cron (à adapter aux chemins et à l'heure retenue pour le serveur) :
+
+    <minute> <heure> * * * /chemin/vers/venv/bin/python /chemin/vers/projet/manage.py purge_rgpd
+    <minute> <heure> * * * /chemin/vers/venv/bin/python /chemin/vers/projet/manage.py purge_journal
+
+Avant d'activer ces tâches, valider les durées, la politique et le calendrier de purge avec le responsable du traitement.

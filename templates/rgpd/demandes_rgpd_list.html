@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Mes demandes RGPD — MyJobPilot{% endblock %}
+{% block content %}
+<h1>Mes demandes RGPD</h1>
+<p><a class="btn btn-primary" href="{% url 'rgpd:demande_rgpd_create' %}">Créer une demande</a></p>
+<table class="table">
+<thead><tr><th>Type</th><th>Description</th><th>Statut</th><th>Date</th><th></th></tr></thead>
+<tbody>{% for demande in demandes %}<tr>
+<td>{{ demande.get_type_display }}</td><td>{{ demande.description|default:"—"|truncatechars:100 }}</td>
+<td>{{ demande.get_statut_display }}</td><td>{{ demande.date_demande|date:"d/m/Y H:i" }}</td>
+<td><a href="{% url 'rgpd:demande_rgpd_detail' demande.pk %}">Détail</a></td>
+</tr>{% empty %}<tr><td colspan="5">Aucune demande.</td></tr>{% endfor %}</tbody>
+</table>
+<a class="btn btn-outline-secondary" href="{% url 'rgpd:export_rgpd' %}">Télécharger mes données</a>
+{% endblock %}

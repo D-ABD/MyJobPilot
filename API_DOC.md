@@ -107,3 +107,18 @@ Les superviseurs ne peuvent pas téléverser ou supprimer les documents. Les vue
 | POST | /notifications/marquer-tout-lu/ | Utilisateur connecté | Marque toutes ses notifications comme lues. |
 
 Les notifications de commentaires sont envoyées aux superviseurs actifs du centre de l'élève ; en l'absence de superviseur actif, au premier admin actif. Un commentaire de superviseur ou d'admin notifie l'élève propriétaire s'il est actif. Les hooks des Lots 1 à 5 ne sont pas activés dans ce lot.
+
+
+## Lot 7 — Droits RGPD
+
+| Méthode | Chemin | Accès | Comportement |
+| --- | --- | --- | --- |
+| GET | /mon-compte/demandes-rgpd/ | Élève | Liste ses demandes. |
+| GET, POST | /mon-compte/demandes-rgpd/creer/ | Élève | Affiche et crée une demande avec type et description facultative. |
+| GET | /mon-compte/demandes-rgpd/<id>/ | Propriétaire | Consulte le détail de sa demande. |
+| GET | /admin-dashboard/demandes-rgpd/ | Admin | Liste les demandes. |
+| GET, POST | /admin-dashboard/demandes-rgpd/<id>/traiter/ | Admin | Met à jour le statut, le motif, la date de traitement et le responsable. |
+| GET | /mon-compte/export-rgpd/ | Élève | Télécharge un JSON de ses données ; les fichiers binaires des documents sont exclus. |
+| GET | /confidentialite/ | Public | Affiche la politique de confidentialité version 1.0. |
+
+Les transitions de statut des demandes sont journalisées avec `DEMANDE_RGPD_MAJ`; les exports avec `EXPORT_RGPD`. `purge_rgpd --dry-run` liste les comptes concernés sans suppression. `purge_journal --dry-run` compte les entrées anciennes sans suppression.

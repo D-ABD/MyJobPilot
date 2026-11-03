@@ -21,6 +21,9 @@ DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 
 DOCUMENT_MAX_SIZE_BYTES = 5 * 1024 * 1024
 DOCUMENT_QUOTA_BYTES = 20 * 1024 * 1024
+RETENTION_COMPTE_DESACTIVE_JOURS = 1095
+RETENTION_COMPTE_NON_VALIDE_JOURS = 180
+RETENTION_JOURNAL_JOURS = 1095
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -111,8 +114,7 @@ _LOG_HANDLERS = {
         "formatter": "standard",
     },
 }
-if DEBUG:
-    _LOG_HANDLERS["file"] = {
+_LOG_HANDLERS["file"] = {
         "class": "logging.handlers.RotatingFileHandler",
         "filename": str(LOG_DIR / "app.log"),
         "maxBytes": 5 * 1024 * 1024,
@@ -134,7 +136,7 @@ LOGGING = {
             "propagate": False,
         },
         "comptes": {
-            "handlers": _ACTIVE_HANDLERS,
+            "handlers": ["console", "file"],
             "level": "INFO",
             "propagate": False,
         },
