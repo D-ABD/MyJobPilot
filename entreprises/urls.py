@@ -1,11 +1,13 @@
 """Routes de prospection, limitées au compte élève connecté."""
 from django.urls import path
 
-from . import views
+from . import commentaires, views
 
 app_name = "entreprises"
 
 urlpatterns = [
+    path("commentaires/ajouter/<int:prospection_pk>/", commentaires.commentaire_ajouter, name="commentaire_ajouter"),
+    path("commentaires/<int:pk>/supprimer/", commentaires.commentaire_supprimer, name="commentaire_supprimer"),
     path("dashboard/", views.dashboard_eleve, name="dashboard"),
     path("entreprises/search/", views.recherche_entreprises, name="search"),
     path("entreprises/nouvelle/", views.entreprise_create, name="create"),

@@ -26,6 +26,7 @@
             <ul class="navbar-nav ms-auto align-items-lg-center">
               {% if user.is_authenticated %}
                 <li class="nav-item"><span class="navbar-text me-lg-3">Bonjour {{ user.first_name|default:user.username }}</span></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}" aria-label="Notifications">Notifications <span id="notifications-count" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
                 {% if user.role == "eleve" and user.is_valide %}
                   <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:dashboard' %}">Mon dashboard</a></li>
                   <li class="nav-item"><a class="nav-link" href="{% url 'documents:list' %}">Mes documents</a></li>
@@ -65,6 +66,28 @@
   <footer class="container py-3 border-top">
     <p class="mb-0 text-body-secondary">MyJobPilot — accompagnement à la prospection d'alternance</p>
   </footer>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  {% if user.is_authenticated %}
+  <script>
+    (() => {
+      const badge = document.getElementById("notifications-count");
+      if (!badge) return;
+      const actualiserCompteur = async () => {
+        try {
+          const response = await fetch("{% url 'comptes:notifications_unread_count' %}", {
+            headers: {"Accept": "application/json"},
+            credentials: "same-origin"
+          });
+          if (!response.ok) return;
+          const donnees = await response.json();
+          badge.textContent = String(donnees.count);
+          badge.classList.toggle("d-none", donnees.count === 0);
+        } catch (_) {}
+      };
+      actualiserCompteur();
+      window.setInterval(actualiserCompteur, 60000);
+    })();
+  </script>
+  {% endif %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tYlHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>

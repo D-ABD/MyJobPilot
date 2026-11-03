@@ -113,3 +113,31 @@ class HistoriqueStatut(models.Model):
 
     def __str__(self):
         return f"{self.prospection.entreprise.nom} : {self.ancien_statut} → {self.nouveau_statut}"
+
+
+class Commentaire(models.Model):
+    auteur = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="commentaires",
+        verbose_name="auteur",
+    )
+    prospection = models.ForeignKey(
+        Prospection,
+        on_delete=models.CASCADE,
+        related_name="commentaires",
+        verbose_name="prospection",
+    )
+    contenu = models.TextField("contenu")
+    date = models.DateTimeField("date", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date"]
+        indexes = [
+            models.Index(fields=["prospection", "-date"]),
+        ]
+        verbose_name = "commentaire"
+        verbose_name_plural = "commentaires"
+
+    def __str__(self):
+        return f"Commentaire de {self.auteur.username} — {self.prospection}"

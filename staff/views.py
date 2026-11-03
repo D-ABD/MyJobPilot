@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -13,7 +13,7 @@ from comptes.models import Centre, JournalAction, Utilisateur
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
 from entreprises.forms import EntrepriseForm
-from entreprises.models import HistoriqueStatut, Prospection, Statut
+from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut
 
 from .forms import AjoutProspectionStaffForm, ChangementCentreFormStaff
 
@@ -139,7 +139,17 @@ def _eleve_pour_action(request, pk):
 
 
 def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=None):
-    prospections = Prospection.objects.filter(eleve=eleve).select_related("entreprise").order_by("-date_modification")
+    prospections = (
+        Prospection.objects.filter(eleve=eleve)
+        .select_related("entreprise")
+        .prefetch_related(
+            Prefetch(
+                "commentaires",
+                queryset=Commentaire.objects.select_related("auteur"),
+            )
+        )
+        .order_by("-date_modification")
+    )
     return render(
         request,
         "staff/detail_eleve.html",

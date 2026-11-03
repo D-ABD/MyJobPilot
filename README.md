@@ -125,3 +125,10 @@ Les tests du Lot 1 couvrent les modèles, le consentement, les sessions, la jour
 Les élèves peuvent téléverser leurs documents (CV, lettre de motivation, diplôme ou autre) depuis leur espace dédié. Chaque fichier est limité à 5 Mo et le quota par élève est de 20 Mo. Les documents sont stockés dans un BinaryField et les listes utilisent un manager qui ne charge pas le contenu binaire.
 
 Un élève ne voit que ses documents. Un superviseur peut les consulter et les télécharger pour un élève de son scope actif, sans pouvoir les ajouter ou les supprimer. L'administrateur peut consulter les documents de tous les élèves. Les envois, téléchargements et suppressions sont journalisés.
+
+
+## Lot 6 — Commentaires et notifications in-app
+
+Les élèves, les superviseurs de leur scope et les administrateurs peuvent commenter les prospections visibles selon leurs permissions. L'auteur ou un administrateur peut supprimer un commentaire. La création est journalisée.
+
+Les notifications sont personnelles et consultables dans l'application. Un compteur non lu est actualisé toutes les 60 secondes. Les notifications créées au Lot 6 concernent les commentaires ; les hooks de validation de compte, changement de statut et ajout de document sont reportés au Lot 8b.

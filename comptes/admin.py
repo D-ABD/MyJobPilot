@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import Centre, ConsentementRGPD, Formation, JournalAction, ScopeSuperviseur, Utilisateur
+from .models import Centre, ConsentementRGPD, Formation, JournalAction, Notification, ScopeSuperviseur, Utilisateur
 from .utils import invalidate_user_sessions, log_action
 
 
@@ -177,3 +177,11 @@ class ScopeSuperviseurAdmin(admin.ModelAdmin):
             scope.desactiver(auteur=request.user)
             nombre += 1
         self.message_user(request, f"{nombre} scope(s) désactivé(s).")
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("destinataire", "type", "message", "lu", "date_creation")
+    list_filter = ("type", "lu", "date_creation")
+    search_fields = ("destinataire__username", "message")
+    readonly_fields = ("date_creation",)

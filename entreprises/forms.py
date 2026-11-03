@@ -1,7 +1,7 @@
 """Formulaires du référentiel, des prospections et de leurs statuts."""
 from django import forms
 
-from .models import Entreprise, Prospection, Statut
+from .models import Commentaire, Entreprise, Prospection, Statut
 
 
 class ProspectionForm(forms.Form):
@@ -151,3 +151,21 @@ class ChangementStatutForm(forms.Form):
         if statut in {Statut.A_RELANCER, Statut.ENTRETIEN_PROGRAMME} and not date_associee:
             self.add_error("date_associee", "Cette date est obligatoire pour le statut sélectionné.")
         return donnees
+
+
+
+class CommentaireForm(forms.ModelForm):
+    class Meta:
+        model = Commentaire
+        fields = ("contenu",)
+        widgets = {
+            "contenu": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3}
+            ),
+        }
+
+    def clean_contenu(self):
+        contenu = self.cleaned_data["contenu"].strip()
+        if not contenu:
+            raise forms.ValidationError("Le commentaire ne peut pas être vide.")
+        return contenu

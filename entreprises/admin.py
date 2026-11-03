@@ -3,7 +3,7 @@ from django.contrib import admin
 
 from comptes.models import Utilisateur
 
-from .models import Entreprise, HistoriqueStatut, Prospection
+from .models import Commentaire, Entreprise, HistoriqueStatut, Prospection
 
 
 @admin.register(Entreprise)
@@ -41,3 +41,19 @@ class HistoriqueStatutAdmin(admin.ModelAdmin):
         return request.user.is_active and (
             request.user.is_superuser or getattr(request.user, "role", None) == Utilisateur.Role.ADMIN
         )
+
+
+@admin.register(Commentaire)
+class CommentaireAdmin(admin.ModelAdmin):
+    list_display = ("prospection", "auteur", "date")
+    list_filter = ("date",)
+    search_fields = (
+        "auteur__username",
+        "prospection__eleve__username",
+        "prospection__entreprise__nom",
+        "contenu",
+    )
+    readonly_fields = tuple(field.name for field in Commentaire._meta.fields)
+
+    def has_add_permission(self, request):
+        return False

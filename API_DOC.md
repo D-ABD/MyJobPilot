@@ -93,3 +93,17 @@ Les routes ci-dessous nécessitent une authentification. Les fichiers sont stock
 | GET | /staff/eleves/<id>/documents/ | Admin, superviseur du scope actif | Consulte les documents de l'élève en lecture seule. L'accès hors scope est refusé (HTTP 403). |
 
 Les superviseurs ne peuvent pas téléverser ou supprimer les documents. Les vues élève filtrent strictement sur l'utilisateur connecté.
+
+
+## Lot 6 — Commentaires et notifications
+
+| Méthode | Chemin | Accès | Comportement |
+| --- | --- | --- | --- |
+| POST | /commentaires/ajouter/<prospection_pk>/ | Élève propriétaire, superviseur du scope actif, admin | Crée un commentaire sur une prospection et journalise COMMENTAIRE_CREE. |
+| POST | /commentaires/<pk>/supprimer/ | Auteur du commentaire, admin | Supprime le commentaire. |
+| GET | /notifications/ | Utilisateur connecté | Liste les notifications du destinataire, non lues en premier. |
+| GET | /notifications/unread-count/ | Utilisateur connecté | Retourne le nombre de notifications non lues sous la forme JSON {count: N}. |
+| POST | /notifications/<pk>/marquer-lu/ | Destinataire | Marque sa notification comme lue. |
+| POST | /notifications/marquer-tout-lu/ | Utilisateur connecté | Marque toutes ses notifications comme lues. |
+
+Les notifications de commentaires sont envoyées aux superviseurs actifs du centre de l'élève ; en l'absence de superviseur actif, au premier admin actif. Un commentaire de superviseur ou d'admin notifie l'élève propriétaire s'il est actif. Les hooks des Lots 1 à 5 ne sont pas activés dans ce lot.

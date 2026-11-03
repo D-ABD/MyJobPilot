@@ -50,6 +50,11 @@
           </tbody>
         </table>
       </div>
+      <div class="p-3">
+        {% for prospection in prospections %}
+          {% include "entreprises/_commentaires.html" with prospection=prospection %}
+        {% endfor %}
+      </div>
     {% else %}
       <p class="card-body mb-0">Aucune prospection.</p>
     {% endif %}

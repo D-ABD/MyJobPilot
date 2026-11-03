@@ -255,3 +255,40 @@ class ScopeSuperviseur(models.Model):
                 "action": "desactivation",
             },
         )
+
+
+class TypeNotification(models.TextChoices):
+    COMPTE_VALIDE = "compte_valide", "Compte validé"
+    COMPTE_REFUSE = "compte_refuse", "Compte refusé"
+    STATUT_CHANGE = "statut_change", "Statut de prospection modifié"
+    COMMENTAIRE = "commentaire", "Nouveau commentaire"
+    DOCUMENT = "document", "Nouveau document"
+
+
+class Notification(models.Model):
+    destinataire = models.ForeignKey(
+        "comptes.Utilisateur",
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        verbose_name="destinataire",
+    )
+    type = models.CharField(
+        "type",
+        max_length=30,
+        choices=TypeNotification.choices,
+    )
+    message = models.CharField("message", max_length=255)
+    lien = models.CharField("lien", max_length=255, blank=True)
+    lu = models.BooleanField("lu", default=False)
+    date_creation = models.DateTimeField("date de création", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date_creation"]
+        indexes = [
+            models.Index(fields=["destinataire", "lu", "-date_creation"]),
+        ]
+        verbose_name = "notification"
+        verbose_name_plural = "notifications"
+
+    def __str__(self):
+        return f"{self.destinataire.username} — {self.message[:60]}"
