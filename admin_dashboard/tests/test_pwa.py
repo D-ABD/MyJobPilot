@@ -34,6 +34,10 @@ class PWATests(TestCase):
         self.assertContains(response, "Vous êtes hors ligne")
 
     def test_templates_ont_classes_responsive(self):
+        from entreprises.models import Entreprise, Prospection
+
+        entreprise = Entreprise.objects.create(nom="PWA responsive")
+        Prospection.objects.create(eleve=self.eleve, entreprise=entreprise)
         self.client.force_login(self.eleve)
         response = self.client.get(reverse("entreprises:dashboard"))
         self.assertContains(response, "table-responsive")
