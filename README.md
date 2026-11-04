@@ -146,3 +146,10 @@ Exemple de planification cron (à adapter aux chemins et à l'heure retenue pour
     <minute> <heure> * * * /chemin/vers/venv/bin/python /chemin/vers/projet/manage.py purge_journal
 
 Avant d'activer ces tâches, valider les durées, la politique et le calendrier de purge avec le responsable du traitement.
+
+
+## Lot 8a — Dashboard administrateur et exports
+
+Le dashboard administrateur affiche les principaux volumes du service et signale les demandes RGPD ouvertes depuis plus de 25 jours. Les pages d'élèves, superviseurs, scopes et demandes RGPD sont paginées à 25 lignes. La gestion des superviseurs permet de créer un compte avec son premier scope, puis d'ajouter ou de désactiver des scopes.
+
+La page des exports produit quatre fichiers CSV pour les élèves, les prospections, l'historique des statuts et les demandes RGPD. Ils sont encodés en UTF-8 avec BOM pour une ouverture correcte dans Excel. Chaque téléchargement est inscrit dans le journal par `EXPORT_CSV`.

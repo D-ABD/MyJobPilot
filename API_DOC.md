@@ -122,3 +122,26 @@ Les notifications de commentaires sont envoyées aux superviseurs actifs du cent
 | GET | /confidentialite/ | Public | Affiche la politique de confidentialité version 1.0. |
 
 Les transitions de statut des demandes sont journalisées avec `DEMANDE_RGPD_MAJ`; les exports avec `EXPORT_RGPD`. `purge_rgpd --dry-run` liste les comptes concernés sans suppression. `purge_journal --dry-run` compte les entrées anciennes sans suppression.
+
+
+## Lot 8a — Dashboard administrateur et exports CSV
+
+Toutes les routes du lot sont réservées aux comptes dont le rôle est `admin`. Les autres rôles reçoivent HTTP 403.
+
+| Méthode | Chemin | Comportement |
+| --- | --- | --- |
+| GET | /admin-dashboard/ | Statistiques de validation, superviseurs, prospections et demandes RGPD, avec raccourcis. |
+| GET | /admin-dashboard/eleves/ | Liste paginée des élèves, filtres de recherche, centre, validation et tri. |
+| GET | /admin-dashboard/superviseurs/ | Liste paginée des superviseurs et de leurs scopes. |
+| GET, POST | /admin-dashboard/superviseurs/creer/ | Crée un superviseur et son scope initial. |
+| GET | /admin-dashboard/superviseurs/<id>/scopes/ | Liste paginée des scopes actifs et inactifs. |
+| GET, POST | /admin-dashboard/superviseurs/<id>/scopes/creer/ | Affiche le formulaire puis ajoute un scope. |
+| POST | /admin-dashboard/scopes/<id>/desactiver/ | Désactive un scope et journalise l'action. |
+| GET | /admin-dashboard/demandes-rgpd/ | Liste paginée et filtrable des demandes RGPD ; les demandes ouvertes de plus de 25 jours sont signalées. |
+| GET | /admin-dashboard/exports/ | Présente les quatre téléchargements CSV. |
+| GET | /admin-dashboard/exports/eleves.csv | Exporte les élèves et leur nombre de prospections. |
+| GET | /admin-dashboard/exports/prospections.csv | Exporte les prospections et leurs dates. |
+| GET | /admin-dashboard/exports/historique.csv | Exporte les transitions de statut. |
+| GET | /admin-dashboard/exports/demandes-rgpd.csv | Exporte les demandes RGPD. |
+
+Chaque CSV est encodé en UTF-8 avec BOM pour Excel. Chaque téléchargement est journalisé avec `EXPORT_CSV`, son type et son nombre de lignes.

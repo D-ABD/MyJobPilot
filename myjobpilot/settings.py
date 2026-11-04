@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "staff.apps.StaffConfig",
     "documents.apps.DocumentsConfig",
     "rgpd.apps.RgpdConfig",
+    "admin_dashboard.apps.AdminDashboardConfig",
 ]
 
 MIDDLEWARE = [

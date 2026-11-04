@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Exports CSV — administration{% endblock %}
+{% block content %}<h1>Exports CSV</h1>
+<ul class="list-group">
+<li class="list-group-item"><a href="{% url 'admin_dashboard:export_eleves' %}">Télécharger les élèves</a></li>
+<li class="list-group-item"><a href="{% url 'admin_dashboard:export_prospections' %}">Télécharger les prospections</a></li>
+<li class="list-group-item"><a href="{% url 'admin_dashboard:export_historique' %}">Télécharger l'historique des statuts</a></li>
+<li class="list-group-item"><a href="{% url 'admin_dashboard:export_demandes_rgpd' %}">Télécharger les demandes RGPD</a></li>
+</ul>{% endblock %}

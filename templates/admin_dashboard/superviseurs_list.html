@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Superviseurs — administration{% endblock %}
+{% block content %}
+<h1>Superviseurs</h1>
+<p><a class="btn btn-primary" href="{% url 'admin_dashboard:superviseur_create' %}">Créer un superviseur</a></p>
+<div class="table-responsive"><table class="table"><thead><tr><th>Identifiant</th><th>Courriel</th><th>Scopes</th><th></th></tr></thead><tbody>
+{% for superviseur in page_obj %}<tr><td>{{ superviseur.username }}</td><td>{{ superviseur.email }}</td><td>{% for scope in superviseur.scopes.all %}{{ scope.centre.nom }}{% if not scope.is_active %} (inactif){% endif %}{% if not forloop.last %}, {% endif %}{% empty %}Aucun{% endfor %}</td><td><a href="{% url 'admin_dashboard:superviseur_scopes' superviseur.pk %}">Gérer les scopes</a></td></tr>
+{% empty %}<tr><td colspan="4">Aucun superviseur.</td></tr>{% endfor %}
+</tbody></table></div>
+{% if page_obj.paginator.num_pages > 1 %}<nav aria-label="Pagination"><ul class="pagination">{% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a></li>{% endif %}<li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>{% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li>{% endif %}</ul></nav>{% endif %}
+{% endblock %}

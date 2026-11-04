@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Scopes de {{ superviseur.username }}{% endblock %}
+{% block content %}
+<h1>Scopes de {{ superviseur.username }}</h1>
+<p><a class="btn btn-outline-primary" href="{% url 'admin_dashboard:scope_create' superviseur.pk %}">Ajouter un scope</a></p>
+{% if afficher_formulaire %}<form method="post" action="{% url 'admin_dashboard:scope_create' superviseur.pk %}" class="mb-4">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary" type="submit">Ajouter</button></form>{% endif %}
+<table class="table"><thead><tr><th>Centre</th><th>État</th><th>Créé le</th><th></th></tr></thead><tbody>
+{% for scope in page_obj %}<tr><td>{{ scope.centre.nom }}</td><td>{% if scope.is_active %}Actif{% else %}Inactif{% endif %}</td><td>{{ scope.date_creation|date:"d/m/Y H:i" }}</td><td>{% if scope.is_active %}<form method="post" action="{% url 'admin_dashboard:scope_desactiver' scope.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit">Désactiver</button></form>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="4">Aucun scope.</td></tr>{% endfor %}
+</tbody></table>
+{% if page_obj.paginator.num_pages > 1 %}<nav aria-label="Pagination"><ul class="pagination">{% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a></li>{% endif %}<li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>{% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li>{% endif %}</ul></nav>{% endif %}
+{% endblock %}

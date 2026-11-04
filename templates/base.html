@@ -33,6 +33,7 @@
                   <li class="nav-item"><a class="nav-link" href="{% url 'documents:list' %}">Mes documents</a></li>
                 {% endif %}
                 {% if user.role == "admin" %}
+                  <li class="nav-item"><a class="nav-link" href="{% url 'admin_dashboard:dashboard' %}">Administration</a></li>
                   <li class="nav-item"><a class="nav-link" href="{% url 'rgpd:admin_demandes_rgpd_list' %}">Demandes RGPD</a></li>
                 {% endif %}
                 {% if user.role == "superviseur" %}

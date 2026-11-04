@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Élèves — administration{% endblock %}
+{% block content %}
+<h1>Élèves</h1>
+<form method="get" class="row g-2 mb-3">
+<div class="col-md-3"><label for="id_q">Recherche</label><input id="id_q" name="q" class="form-control" value="{{ filtres.q }}"></div>
+<div class="col-md-3"><label for="id_centre">Centre</label><select id="id_centre" name="centre" class="form-select"><option value="">Tous</option>{% for centre in centres %}<option value="{{ centre.pk }}" {% if filtres.centre == centre.pk|stringformat:"s" %}selected{% endif %}>{{ centre.nom }}</option>{% endfor %}</select></div>
+<div class="col-md-3"><label for="id_valide">Validation</label><select id="id_valide" name="is_valide" class="form-select"><option value="">Tous</option><option value="true" {% if filtres.is_valide == "true" %}selected{% endif %}>Validés</option><option value="false" {% if filtres.is_valide == "false" %}selected{% endif %}>En attente</option></select></div>
+<div class="col-md-2"><label for="id_tri">Trier par</label><select id="id_tri" name="tri" class="form-select"><option value="username">Identifiant</option><option value="last_name">Nom</option><option value="centre__nom">Centre</option><option value="is_valide">Validation</option></select></div>
+<div class="col-md-1"><label for="id_ordre">Ordre</label><select id="id_ordre" name="ordre" class="form-select"><option value="asc">↑</option><option value="desc">↓</option></select></div>
+<button class="btn btn-primary" type="submit">Filtrer</button>
+</form>
+<div class="table-responsive"><table class="table table-striped"><thead><tr><th>Identifiant</th><th>Nom</th><th>Courriel</th><th>Centre</th><th>Formation</th><th>Validé</th><th>Prospections</th></tr></thead><tbody>
+{% for eleve in page_obj %}<tr><td>{{ eleve.username }}</td><td>{{ eleve.first_name }} {{ eleve.last_name }}</td><td>{{ eleve.email }}</td><td>{{ eleve.centre|default:"—" }}</td><td>{{ eleve.formation|default:"—" }}</td><td>{{ eleve.is_valide|yesno:"Oui,Non" }}</td><td>{{ eleve.nb_prospections }}</td></tr>
+{% empty %}<tr><td colspan="7">Aucun élève.</td></tr>{% endfor %}
+</tbody></table></div>
+<nav aria-label="Pagination"><ul class="pagination">{% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a></li>{% endif %}<li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>{% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li>{% endif %}</ul></nav>
+{% endblock %}
