@@ -3,7 +3,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 from comptes.models import Centre, Formation, Notification, ScopeSuperviseur, TypeNotification, Utilisateur
-from comptes.notifications import creer_notification, notifier_ajout_prospection
+from comptes.notifications import creer_notification, notifier_ajout_prospection, notifier_changement_statut
 from entreprises.models import Entreprise, Prospection
 
 
@@ -133,14 +133,14 @@ class NotificationTests(TestCase):
         ScopeSuperviseur.objects.create(superviseur=user, centre=self.centre, is_active=True)
         return user
 
-    def test_ajout_prospection_eleve_notifie_superviseurs(self):
+    def test_ajout_prospection_par_eleve_notifie_superviseurs(self):
         superviseur = self._superviseur("sup_notif_eleve")
         prospection = self._prospection()
         notifier_ajout_prospection(prospection, self.user)
         self.assertTrue(Notification.objects.filter(destinataire=superviseur, type=TypeNotification.AJOUT_PROSPECTION).exists())
         self.assertFalse(Notification.objects.filter(destinataire=self.user).exists())
 
-    def test_ajout_prospection_superviseur_notifie_eleve(self):
+    def test_ajout_prospection_par_superviseur_notifie_eleve_et_autres_superviseurs(self):
         superviseur = self._superviseur("sup_notif_auteur")
         autre = self._superviseur("sup_notif_autre")
         prospection = self._prospection()
@@ -149,7 +149,7 @@ class NotificationTests(TestCase):
         self.assertTrue(Notification.objects.filter(destinataire=autre, type=TypeNotification.AJOUT_PROSPECTION).exists())
         self.assertFalse(Notification.objects.filter(destinataire=superviseur).exists())
 
-    def test_ajout_prospection_admin_notifie_eleve_et_superviseurs(self):
+    def test_ajout_prospection_par_admin_notifie_eleve_et_superviseurs(self):
         admin = Utilisateur.objects.create_user(username="admin_notif", password="p", role=Utilisateur.Role.ADMIN)
         superviseur = self._superviseur("sup_notif_admin")
         prospection = self._prospection()
@@ -157,11 +157,26 @@ class NotificationTests(TestCase):
         self.assertTrue(Notification.objects.filter(destinataire=self.user, type=TypeNotification.AJOUT_PROSPECTION).exists())
         self.assertTrue(Notification.objects.filter(destinataire=superviseur, type=TypeNotification.AJOUT_PROSPECTION).exists())
 
-    def test_ajout_prospection_eleve_sans_superviseur_notifie_admin(self):
-        admin = Utilisateur.objects.create_user(username="admin_fallback", password="p", role=Utilisateur.Role.ADMIN)
+    def test_ajout_prospection_sans_superviseur_ne_notifie_personne(self):
         prospection = self._prospection()
         notifier_ajout_prospection(prospection, self.user)
-        self.assertTrue(Notification.objects.filter(destinataire=admin, type=TypeNotification.AJOUT_PROSPECTION).exists())
+        self.assertFalse(Notification.objects.exists())
+
+    def test_changement_statut_par_eleve_notifie_superviseurs(self):
+        superviseur = self._superviseur("sup_notif_statut")
+        prospection = self._prospection()
+        notifier_changement_statut(prospection, self.user, "a_contacter", "a_relancer")
+        self.assertTrue(Notification.objects.filter(
+            destinataire=superviseur, type=TypeNotification.STATUT_CHANGE,
+        ).exists())
+
+    def test_changement_statut_par_eleve_ne_notifie_pas_eleve_lui_meme(self):
+        self._superviseur("sup_notif_self")
+        prospection = self._prospection()
+        notifier_changement_statut(prospection, self.user, "a_contacter", "a_relancer")
+        self.assertFalse(Notification.objects.filter(
+            destinataire=self.user, type=TypeNotification.STATUT_CHANGE,
+        ).exists())
 
     def test_validation_compte_cree_notification(self):
         from django.contrib import admin

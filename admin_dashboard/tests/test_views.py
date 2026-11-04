@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from django.contrib.sessions.models import Session
-from comptes.models import Centre, ConsentementRGPD, Formation, JournalAction, Notification, TypeNotification, Utilisateur
+from comptes.models import Centre, ConsentementRGPD, Formation, JournalAction, Notification, ScopeSuperviseur, TypeNotification, Utilisateur
 from entreprises.models import Commentaire, Entreprise, HistoriqueStatut, Prospection, Statut
 from rgpd.models import DemandeRGPD, StatutDemande
 
@@ -120,7 +120,7 @@ class AdminDashboardViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["form"].is_valid())
 
-    def test_changement_statut_cree_notification(self):
+    def test_changement_statut_par_admin_notifie_eleve(self):
         prospection = self._creer_prospection()
         self.client.force_login(self.admin)
         response = self.client.post(reverse("admin_dashboard:prospection_changer_statut", args=[prospection.pk]), {
@@ -129,6 +129,20 @@ class AdminDashboardViewsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Notification.objects.filter(
             destinataire=self.eleve, type=TypeNotification.STATUT_CHANGE,
+        ).exists())
+
+
+    def test_changement_statut_par_admin_notifie_superviseurs(self):
+        ScopeSuperviseur.objects.create(superviseur=self.superviseur, centre=self.centre)
+        prospection = self._creer_prospection()
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("admin_dashboard:prospection_changer_statut", args=[prospection.pk]),
+            {"nouveau_statut": Statut.REFUS},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Notification.objects.filter(
+            destinataire=self.superviseur, type=TypeNotification.STATUT_CHANGE,
         ).exists())
 
 

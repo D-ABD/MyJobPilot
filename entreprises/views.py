@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from comptes.models import JournalAction, Utilisateur
-from comptes.notifications import notifier_ajout_prospection
+from comptes.notifications import notifier_ajout_prospection, notifier_changement_statut
 from comptes.utils import log_action
 from core.filters import FiltreMixin
 
@@ -324,6 +324,10 @@ def entreprise_changer_statut(request, pk):
                         "nouveau_statut": nouveau_statut,
                     },
                     request=request,
+                )
+            if ancien_statut != nouveau_statut:
+                notifier_changement_statut(
+                    prospection, request.user, ancien_statut, nouveau_statut,
                 )
             return redirect("entreprises:detail", pk=prospection.pk)
     else:

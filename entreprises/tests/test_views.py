@@ -259,15 +259,39 @@ class VuesEntreprisesTests(TestCase):
         self.assertEqual(journal.cible_type, "entreprises.Prospection")
         self.assertEqual(journal.cible_id, str(prospection.pk))
 
-    def test_changement_statut_par_eleve_ne_notifie_pas(self):
-        prospection = self.creer_prospection(nom="Sans notification")
+    def test_changement_statut_par_eleve_notifie_superviseurs(self):
+        superviseur = Utilisateur.objects.create_user(
+            username="sup_statut_vue", password="p", role=Utilisateur.Role.SUPERVISEUR,
+            centre=self.centre, is_valide=True,
+        )
+        ScopeSuperviseur.objects.create(superviseur=superviseur, centre=self.centre)
+        prospection = self.creer_prospection(nom="Notif superviseur")
         self.connecter()
         response = self.client.post(
             reverse("entreprises:changer_statut", args=[prospection.pk]),
             {"nouveau_statut": Statut.A_RELANCER, "date_associee": "2026-11-15"},
         )
         self.assertEqual(response.status_code, 302)
-        self.assertFalse(Notification.objects.filter(destinataire=self.eleve, type=TypeNotification.STATUT_CHANGE).exists())
+        self.assertTrue(Notification.objects.filter(
+            destinataire=superviseur, type=TypeNotification.STATUT_CHANGE,
+        ).exists())
+
+    def test_changement_statut_par_eleve_ne_notifie_pas_eleve_lui_meme(self):
+        superviseur = Utilisateur.objects.create_user(
+            username="sup_statut_self", password="p", role=Utilisateur.Role.SUPERVISEUR,
+            centre=self.centre, is_valide=True,
+        )
+        ScopeSuperviseur.objects.create(superviseur=superviseur, centre=self.centre)
+        prospection = self.creer_prospection(nom="Sans notification auteur")
+        self.connecter()
+        response = self.client.post(
+            reverse("entreprises:changer_statut", args=[prospection.pk]),
+            {"nouveau_statut": Statut.A_RELANCER, "date_associee": "2026-11-15"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Notification.objects.filter(
+            destinataire=self.eleve, type=TypeNotification.STATUT_CHANGE,
+        ).exists())
 
     def test_changement_a_relancer_sans_date_est_rejete(self):
         prospection = self.creer_prospection()

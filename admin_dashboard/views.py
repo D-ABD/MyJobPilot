@@ -17,8 +17,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from comptes.models import Centre, JournalAction, ScopeSuperviseur
-from comptes.models import TypeNotification
-from comptes.notifications import creer_notification
+from comptes.notifications import notifier_changement_statut
 from comptes.utils import invalidate_user_sessions, log_action
 from .import_csv import importer_eleves_csv
 from documents.models import Document
@@ -637,12 +636,9 @@ def admin_prospection_changer_statut(request, pk):
             },
             request=request,
         )
-        if ancien_statut != nouveau_statut and prospection.eleve.is_active:
-            creer_notification(
-                prospection.eleve,
-                TypeNotification.STATUT_CHANGE,
-                f"Votre prospection {prospection.entreprise.nom} est passée à {prospection.get_statut_display()}",
-                f"/entreprises/{prospection.pk}/",
+        if ancien_statut != nouveau_statut:
+            notifier_changement_statut(
+                prospection, request.user, ancien_statut, nouveau_statut,
             )
     messages.success(request, "Le statut de la prospection a été modifié.")
     return redirect("admin_dashboard:prospection_detail", pk=pk)
