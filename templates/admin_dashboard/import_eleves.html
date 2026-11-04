@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Importer des élèves — MyJobPilot{% endblock %}
+{% block content %}
+<h1>Importer des élèves</h1>
+<p>Format attendu : username,email,first_name,last_name,centre,formation. Les comptes importés restent en attente de validation.</p>
+<form method="post" enctype="multipart/form-data" class="vstack gap-3">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-primary" type="submit">Importer le CSV</button>
+</form>
+{% if rapport %}
+<section class="mt-4" aria-labelledby="rapport-import">
+  <h2 id="rapport-import">Rapport d'import</h2>
+  <p>{{ rapport.total }} lignes traitées, {{ rapport.crees }} élèves créés, {{ rapport.rejetes }} lignes rejetées.</p>
+  {% if rapport.erreurs %}<ul>{% for erreur in rapport.erreurs %}<li>Ligne {{ erreur.ligne }} : {{ erreur.message }}</li>{% endfor %}</ul>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

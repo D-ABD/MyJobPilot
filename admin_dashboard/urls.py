@@ -6,6 +6,7 @@ app_name = "admin_dashboard"
 
 urlpatterns = [
     path("", views.dashboard_admin, name="dashboard"),
+    path("import-eleves/", views.admin_import_eleves_csv, name="import_eleves"),
     path("eleves/", views.admin_eleves_list, name="eleves"),
     path("eleves/<int:pk>/", views.admin_eleve_detail, name="eleve_detail"),
     path("eleves/<int:pk>/valider/", views.admin_eleve_valider, name="eleve_valider"),

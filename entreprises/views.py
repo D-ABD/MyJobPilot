@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from comptes.models import JournalAction, Utilisateur
+from comptes.notifications import notifier_ajout_prospection
 from comptes.utils import log_action
 from core.filters import FiltreMixin
 
@@ -186,6 +187,7 @@ def entreprise_create(request):
                 return _rendre_formulaire_prospection(
                     request, form, entreprise_form, "Nouvelle prospection"
                 )
+            notifier_ajout_prospection(prospection, request.user)
             return redirect("entreprises:detail", pk=prospection.pk)
     else:
         form = ProspectionForm()

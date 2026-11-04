@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from comptes.models import Centre, JournalAction, Utilisateur
+from comptes.notifications import notifier_ajout_prospection
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
 from entreprises.forms import EntrepriseForm
@@ -287,6 +288,7 @@ def ajouter_entreprise_staff(request, pk):
             except IntegrityError:
                 form.add_error("entreprise_nom", "Cette entreprise fait déjà l'objet d'une prospection pour cet élève.")
                 return _rendre_detail_eleve(request, eleve, form, entreprise_form)
+            notifier_ajout_prospection(prospection, request.user)
             return redirect("staff:detail_eleve", pk=eleve.pk)
     else:
         form = AjoutProspectionStaffForm()

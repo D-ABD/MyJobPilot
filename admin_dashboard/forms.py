@@ -110,3 +110,17 @@ class MotDePasseSuperviseurForm(forms.Form):
             except ValidationError as exc:
                 self.add_error("nouveau_mot_de_passe", exc)
         return cleaned
+
+
+class ImportElevesCSVForm(forms.Form):
+    fichier = forms.FileField(label="Fichier CSV")
+
+    def clean_fichier(self):
+        fichier = self.cleaned_data["fichier"]
+        if not fichier.name.lower().endswith(".csv"):
+            raise forms.ValidationError("Le fichier doit être au format CSV.")
+        debut = fichier.read(5)
+        fichier.seek(0)
+        if debut.startswith(b"%PDF-"):
+            raise forms.ValidationError("Le fichier transmis est un PDF, pas un CSV.")
+        return fichier

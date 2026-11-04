@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from django.contrib.sessions.models import Session
-from comptes.models import Centre, Formation, JournalAction, Utilisateur
+from comptes.models import Centre, ConsentementRGPD, Formation, JournalAction, Notification, TypeNotification, Utilisateur
 from entreprises.models import Commentaire, Entreprise, HistoriqueStatut, Prospection, Statut
 from rgpd.models import DemandeRGPD, StatutDemande
 
@@ -72,6 +72,64 @@ class AdminDashboardViewsTests(TestCase):
         response = self.client.get(reverse("admin_dashboard:dashboard"))
         self.assertEqual(response.context["stats"]["prospections_totales"], 1)
         self.assertEqual(response.context["stats"]["demandes_rgpd_attente"], 1)
+
+    def _importer(self, contenu, nom="eleves.csv"):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_login(self.admin)
+        return self.client.post(reverse("admin_dashboard:import_eleves"), {
+            "fichier": SimpleUploadedFile(nom, contenu.encode("utf-8"), content_type="text/csv"),
+        })
+
+    def test_import_csv_valide(self):
+        response = self._importer(
+            "username,email,first_name,last_name,centre,formation\n"
+            "import1,i1@example.com,A,Un,Centre Paris,BTS Test\n"
+            "import2,i2@example.com,B,Deux,Centre Paris,BTS Test\n"
+            "import3,i3@example.com,C,Trois,Centre Paris,BTS Test\n"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["rapport"]["crees"], 3)
+        self.assertEqual(ConsentementRGPD.objects.filter(utilisateur__username__startswith="import").count(), 3)
+        self.assertTrue(JournalAction.objects.filter(action=JournalAction.Action.IMPORT_CSV).exists())
+
+    def test_import_csv_centre_inexistant(self):
+        response = self._importer("username,email,first_name,last_name,centre,formation\nx,x@example.com,X,X,Inconnu,BTS Test\n")
+        self.assertEqual(response.context["rapport"]["crees"], 0)
+        self.assertEqual(response.context["rapport"]["rejetes"], 1)
+        self.assertIn("Centre inexistant", response.content.decode())
+
+    def test_import_csv_username_existant(self):
+        response = self._importer(f"username,email,first_name,last_name,centre,formation\n{self.eleve.username},x2@example.com,X,X,Centre Paris,BTS Test\n")
+        self.assertEqual(response.context["rapport"]["rejetes"], 1)
+
+    def test_import_csv_email_invalide(self):
+        response = self._importer("username,email,first_name,last_name,centre,formation\nbad_email,nope,X,X,Centre Paris,BTS Test\n")
+        self.assertEqual(response.context["rapport"]["rejetes"], 1)
+        self.assertIn("email invalide", response.content.decode())
+
+    def test_import_csv_non_admin(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.force_login(self.eleve)
+        response = self.client.post(reverse("admin_dashboard:import_eleves"), {
+            "fichier": SimpleUploadedFile("x.csv", b"username,email,first_name,last_name,centre,formation\n"),
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_import_csv_fichier_invalide(self):
+        response = self._importer("%PDF-1.7\n", "document.pdf")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["form"].is_valid())
+
+    def test_changement_statut_cree_notification(self):
+        prospection = self._creer_prospection()
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("admin_dashboard:prospection_changer_statut", args=[prospection.pk]), {
+            "nouveau_statut": Statut.REFUS,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Notification.objects.filter(
+            destinataire=self.eleve, type=TypeNotification.STATUT_CHANGE,
+        ).exists())
 
 
     def _creer_prospection(self):

@@ -263,6 +263,7 @@ class TypeNotification(models.TextChoices):
     STATUT_CHANGE = "statut_change", "Statut de prospection modifié"
     COMMENTAIRE = "commentaire", "Nouveau commentaire"
     DOCUMENT = "document", "Nouveau document"
+    AJOUT_PROSPECTION = "ajout_prospection", "Nouvelle prospection"
 
 
 class Notification(models.Model):

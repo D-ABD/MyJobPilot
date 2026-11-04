@@ -2,7 +2,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from comptes.models import Centre, Formation, JournalAction, ScopeSuperviseur, Utilisateur
+from comptes.models import Centre, Formation, JournalAction, Notification, ScopeSuperviseur, TypeNotification, Utilisateur
 from entreprises.models import Entreprise, Prospection, Statut
 
 
@@ -133,6 +133,9 @@ class ActionsStaffEleveTests(TestCase):
         )
         self.assertEqual(journal.cible_type, "entreprises.Prospection")
         self.assertEqual(journal.cible_id, str(prospection.pk))
+        self.assertTrue(Notification.objects.filter(
+            destinataire=self.eleve_paris, type=TypeNotification.AJOUT_PROSPECTION,
+        ).exists())
 
     def test_superviseur_peut_creer_une_entreprise_et_sa_prospection(self):
         ScopeSuperviseur.objects.create(superviseur=self.superviseur, centre=self.centre_paris)
@@ -181,6 +184,9 @@ class ActionsStaffEleveTests(TestCase):
         )
         self.assertRedirects(response, reverse("staff:detail_eleve", args=[self.eleve_lyon.pk]))
         self.assertTrue(Prospection.objects.filter(eleve=self.eleve_lyon, entreprise=entreprise).exists())
+        self.assertTrue(Notification.objects.filter(
+            destinataire=self.eleve_lyon, type=TypeNotification.AJOUT_PROSPECTION,
+        ).exists())
 
     def test_detail_staff_est_accessible_a_ladmin(self):
         self.connecter(self.admin)

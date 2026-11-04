@@ -17,7 +17,10 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from comptes.models import Centre, JournalAction, ScopeSuperviseur
+from comptes.models import TypeNotification
+from comptes.notifications import creer_notification
 from comptes.utils import invalidate_user_sessions, log_action
+from .import_csv import importer_eleves_csv
 from documents.models import Document
 from entreprises.forms import ChangementStatutForm, CommentaireForm
 from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut
@@ -25,7 +28,7 @@ from rgpd.models import DemandeRGPD, StatutDemande, TypeDemande
 from .forms import (
     AdminEleveCentreForm, AdminEleveFormationForm, AdminSuperviseurUpdateForm,
     MotDePasseSuperviseurForm, RefusCompteForm, ScopeCreateForm,
-    SuperviseurCreateForm,
+    SuperviseurCreateForm, ImportElevesCSVForm,
 )
 
 Utilisateur = get_user_model()
@@ -634,6 +637,13 @@ def admin_prospection_changer_statut(request, pk):
             },
             request=request,
         )
+        if ancien_statut != nouveau_statut and prospection.eleve.is_active:
+            creer_notification(
+                prospection.eleve,
+                TypeNotification.STATUT_CHANGE,
+                f"Votre prospection {prospection.entreprise.nom} est passée à {prospection.get_statut_display()}",
+                f"/entreprises/{prospection.pk}/",
+            )
     messages.success(request, "Le statut de la prospection a été modifié.")
     return redirect("admin_dashboard:prospection_detail", pk=pk)
 
@@ -660,3 +670,24 @@ def admin_prospection_ajouter_commentaire(request, pk):
         request=request,
     )
     return redirect("admin_dashboard:prospection_detail", pk=pk)
+
+
+@administrateur_requis
+def admin_import_eleves_csv(request):
+    rapport = None
+    form = ImportElevesCSVForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        fichier = form.cleaned_data["fichier"]
+        rapport = importer_eleves_csv(fichier)
+        log_action(
+            JournalAction.Action.IMPORT_CSV,
+            utilisateur=request.user,
+            details={
+                "fichier": fichier.name,
+                "total": rapport["total"],
+                "crees": rapport["crees"],
+                "rejetes": rapport["rejetes"],
+            },
+            request=request,
+        )
+    return render(request, "admin_dashboard/import_eleves.html", {"form": form, "rapport": rapport})

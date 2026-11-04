@@ -169,3 +169,12 @@ Les routes suivantes sont réservées au rôle `admin` ; tout autre rôle authen
 | GET | /admin-dashboard/prospections/<id>/ | Détail d'une prospection et historique complet. |
 | POST | /admin-dashboard/prospections/<id>/statut/ | Change le statut, ajoute une entrée d'historique et journalise `CHANGEMENT_STATUT`. |
 | POST | /admin-dashboard/prospections/<id>/commentaire/ | Ajoute un commentaire et journalise `COMMENTAIRE_CREE`. |
+
+
+### Lot 8b — Import CSV et application installable
+
+`POST /admin-dashboard/import-eleves/` importe un fichier CSV contenant `username,email,first_name,last_name,centre,formation`. Chaque ligne est validée séparément ; les comptes créés restent en attente de validation et reçoivent un consentement de politique version 1.0. Le rapport indique les lignes créées et rejetées. L'action est journalisée avec `IMPORT_CSV`.
+
+La PWA expose son manifeste sur `/static/manifest.json`, son service worker sur `/sw.js` et la page de repli hors ligne sur `/offline/`. Le service worker met en cache les ressources publiques et ne met jamais en cache les espaces authentifiés.
+
+L'ajout d'une prospection crée des notifications pour les superviseurs actifs du scope et, selon l'auteur, pour l'élève ou un administrateur actif de repli. Une modification de statut par l'administrateur notifie l'élève ; l'élève ne reçoit pas de notification pour son propre changement.

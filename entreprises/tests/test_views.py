@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.utils import timezone
 from django.urls import reverse
 
-from comptes.models import Centre, Formation, JournalAction, Utilisateur
+from comptes.models import Centre, Formation, JournalAction, Notification, ScopeSuperviseur, TypeNotification, Utilisateur
 from entreprises.models import Entreprise, HistoriqueStatut, Prospection, Statut
 
 
@@ -150,6 +150,21 @@ class VuesEntreprisesTests(TestCase):
         prospection = Prospection.objects.get(eleve=self.eleve, entreprise=entreprise)
         self.assertRedirects(response, reverse("entreprises:detail", args=[prospection.pk]))
 
+    def test_ajout_prospection_eleve_notifie_superviseurs(self):
+        superviseur = Utilisateur.objects.create_user(
+            username="sup_notif_creation", password="p", role=Utilisateur.Role.SUPERVISEUR,
+            centre=self.centre, is_valide=True,
+        )
+        ScopeSuperviseur.objects.create(superviseur=superviseur, centre=self.centre, is_active=True)
+        self.connecter()
+        self.client.post(reverse("entreprises:create"), {
+            "entreprise_nom": "Prospection notif élève", "nom": "Prospection notif élève",
+            "statut": Statut.A_CONTACTER,
+        })
+        self.assertTrue(Notification.objects.filter(
+            destinataire=superviseur, type=TypeNotification.AJOUT_PROSPECTION,
+        ).exists())
+
     def test_post_creation_sans_entreprise_est_refuse(self):
         self.connecter()
         response = self.client.post(reverse("entreprises:create"), {"statut": Statut.A_CONTACTER})
@@ -243,6 +258,16 @@ class VuesEntreprisesTests(TestCase):
         self.assertEqual(journal.details["prospection_id"], prospection.pk)
         self.assertEqual(journal.cible_type, "entreprises.Prospection")
         self.assertEqual(journal.cible_id, str(prospection.pk))
+
+    def test_changement_statut_par_eleve_ne_notifie_pas(self):
+        prospection = self.creer_prospection(nom="Sans notification")
+        self.connecter()
+        response = self.client.post(
+            reverse("entreprises:changer_statut", args=[prospection.pk]),
+            {"nouveau_statut": Statut.A_RELANCER, "date_associee": "2026-11-15"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Notification.objects.filter(destinataire=self.eleve, type=TypeNotification.STATUT_CHANGE).exists())
 
     def test_changement_a_relancer_sans_date_est_rejete(self):
         prospection = self.creer_prospection()

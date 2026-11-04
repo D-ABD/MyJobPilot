@@ -1,8 +1,10 @@
 from django.test import TestCase
+from django.test import RequestFactory
 from django.urls import reverse
 
-from comptes.models import Centre, Formation, Notification, TypeNotification, Utilisateur
-from comptes.notifications import creer_notification
+from comptes.models import Centre, Formation, Notification, ScopeSuperviseur, TypeNotification, Utilisateur
+from comptes.notifications import creer_notification, notifier_ajout_prospection
+from entreprises.models import Entreprise, Prospection
 
 
 class NotificationTests(TestCase):
@@ -118,3 +120,65 @@ class NotificationTests(TestCase):
         )
         autre.refresh_from_db()
         self.assertFalse(autre.lu)
+
+    def _prospection(self):
+        entreprise = Entreprise.objects.create(nom="Prospection notifications")
+        return Prospection.objects.create(eleve=self.user, entreprise=entreprise)
+
+    def _superviseur(self, username):
+        user = Utilisateur.objects.create_user(
+            username=username, password="test-password", role=Utilisateur.Role.SUPERVISEUR,
+            centre=self.centre, is_valide=True,
+        )
+        ScopeSuperviseur.objects.create(superviseur=user, centre=self.centre, is_active=True)
+        return user
+
+    def test_ajout_prospection_eleve_notifie_superviseurs(self):
+        superviseur = self._superviseur("sup_notif_eleve")
+        prospection = self._prospection()
+        notifier_ajout_prospection(prospection, self.user)
+        self.assertTrue(Notification.objects.filter(destinataire=superviseur, type=TypeNotification.AJOUT_PROSPECTION).exists())
+        self.assertFalse(Notification.objects.filter(destinataire=self.user).exists())
+
+    def test_ajout_prospection_superviseur_notifie_eleve(self):
+        superviseur = self._superviseur("sup_notif_auteur")
+        autre = self._superviseur("sup_notif_autre")
+        prospection = self._prospection()
+        notifier_ajout_prospection(prospection, superviseur)
+        self.assertTrue(Notification.objects.filter(destinataire=self.user, type=TypeNotification.AJOUT_PROSPECTION).exists())
+        self.assertTrue(Notification.objects.filter(destinataire=autre, type=TypeNotification.AJOUT_PROSPECTION).exists())
+        self.assertFalse(Notification.objects.filter(destinataire=superviseur).exists())
+
+    def test_ajout_prospection_admin_notifie_eleve_et_superviseurs(self):
+        admin = Utilisateur.objects.create_user(username="admin_notif", password="p", role=Utilisateur.Role.ADMIN)
+        superviseur = self._superviseur("sup_notif_admin")
+        prospection = self._prospection()
+        notifier_ajout_prospection(prospection, admin)
+        self.assertTrue(Notification.objects.filter(destinataire=self.user, type=TypeNotification.AJOUT_PROSPECTION).exists())
+        self.assertTrue(Notification.objects.filter(destinataire=superviseur, type=TypeNotification.AJOUT_PROSPECTION).exists())
+
+    def test_ajout_prospection_eleve_sans_superviseur_notifie_admin(self):
+        admin = Utilisateur.objects.create_user(username="admin_fallback", password="p", role=Utilisateur.Role.ADMIN)
+        prospection = self._prospection()
+        notifier_ajout_prospection(prospection, self.user)
+        self.assertTrue(Notification.objects.filter(destinataire=admin, type=TypeNotification.AJOUT_PROSPECTION).exists())
+
+    def test_validation_compte_cree_notification(self):
+        from django.contrib import admin
+        from comptes.admin import UtilisateurAdmin
+        administrateur = Utilisateur.objects.create_user(username="admin_action", password="p", role="admin")
+        request = RequestFactory().post("/admin/")
+        request.user = administrateur
+        UtilisateurAdmin(Utilisateur, admin.site).valider_comptes(request, Utilisateur.objects.filter(pk=self.user.pk))
+        self.assertTrue(Notification.objects.filter(destinataire=self.user, type=TypeNotification.COMPTE_VALIDE).exists())
+
+    def test_refus_compte_cree_notification(self):
+        from django.contrib import admin
+        from comptes.admin import UtilisateurAdmin
+        administrateur = Utilisateur.objects.create_user(username="admin_refus_action", password="p", role="admin")
+        self.user.motif_refus = "Dossier incomplet"
+        self.user.save(update_fields=["motif_refus"])
+        request = RequestFactory().post("/admin/")
+        request.user = administrateur
+        UtilisateurAdmin(Utilisateur, admin.site).refuser_comptes(request, Utilisateur.objects.filter(pk=self.user.pk))
+        self.assertTrue(Notification.objects.filter(destinataire=self.user, type=TypeNotification.COMPTE_REFUSE).exists())

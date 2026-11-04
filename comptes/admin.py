@@ -4,7 +4,8 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import Centre, ConsentementRGPD, Formation, JournalAction, Notification, ScopeSuperviseur, Utilisateur
+from .models import Centre, ConsentementRGPD, Formation, JournalAction, Notification, ScopeSuperviseur, TypeNotification, Utilisateur
+from .notifications import creer_notification
 from .utils import invalidate_user_sessions, log_action
 
 
@@ -61,6 +62,10 @@ class UtilisateurAdmin(UserAdmin):
                 cible=utilisateur,
                 request=request,
             )
+            creer_notification(
+                utilisateur, TypeNotification.COMPTE_VALIDE,
+                "Votre compte a été validé", "/dashboard/",
+            )
 
     @admin.action(description="Refuser les comptes sélectionnés")
     def refuser_comptes(self, request, queryset):
@@ -77,6 +82,10 @@ class UtilisateurAdmin(UserAdmin):
                 cible=utilisateur,
                 details={"motif_refus": utilisateur.motif_refus},
                 request=request,
+            )
+            creer_notification(
+                utilisateur, TypeNotification.COMPTE_REFUSE,
+                "Votre compte a été refusé", "/en-attente/",
             )
             nombre_refuses += 1
         nombre_sans_motif = queryset.count() - nombre_refuses

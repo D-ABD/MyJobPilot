@@ -156,3 +156,10 @@ La page des exports produit quatre fichiers CSV pour les élèves, les prospecti
 
 
 Les fiches administrateur du Lot 8a permettent de consulter les données liées à un élève, gérer les comptes élèves et superviseurs, et intervenir sur les statuts et commentaires des prospections. La désactivation invalide les sessions actives ; la suppression d'un superviseur exige une confirmation et supprime aussi ses scopes.
+
+
+## Lot 8b — Import CSV et PWA
+
+Les administrateurs peuvent importer des élèves depuis un CSV avec les colonnes `username,email,first_name,last_name,centre,formation`. Chaque ligne est traitée indépendamment ; les élèves créés restent en attente de validation, et les erreurs sont listées dans le rapport. Un mot de passe aléatoire de 12 caractères est créé sans être affiché. Chaque compte importé reçoit un consentement RGPD version 1.0 marqué `import_csv`.
+
+L'application fournit un manifeste PWA, un service worker servi à `/sw.js` et une page `/offline/`. Les pages authentifiées ne sont pas mises en cache. Les icônes PNG sont des placeholders à remplacer avant production.
