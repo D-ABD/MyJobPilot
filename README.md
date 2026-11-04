@@ -153,3 +153,6 @@ Avant d'activer ces tâches, valider les durées, la politique et le calendrier 
 Le dashboard administrateur affiche les principaux volumes du service et signale les demandes RGPD ouvertes depuis plus de 25 jours. Les pages d'élèves, superviseurs, scopes et demandes RGPD sont paginées à 25 lignes. La gestion des superviseurs permet de créer un compte avec son premier scope, puis d'ajouter ou de désactiver des scopes.
 
 La page des exports produit quatre fichiers CSV pour les élèves, les prospections, l'historique des statuts et les demandes RGPD. Ils sont encodés en UTF-8 avec BOM pour une ouverture correcte dans Excel. Chaque téléchargement est inscrit dans le journal par `EXPORT_CSV`.
+
+
+Les fiches administrateur du Lot 8a permettent de consulter les données liées à un élève, gérer les comptes élèves et superviseurs, et intervenir sur les statuts et commentaires des prospections. La désactivation invalide les sessions actives ; la suppression d'un superviseur exige une confirmation et supprime aussi ses scopes.

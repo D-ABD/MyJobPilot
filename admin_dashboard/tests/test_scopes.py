@@ -1,7 +1,8 @@
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from django.contrib.sessions.models import Session
 from comptes.models import Centre, JournalAction, ScopeSuperviseur, Utilisateur
 
 
@@ -53,3 +54,39 @@ class AdminScopesTests(TestCase):
         self.client.force_login(self.superviseur)
         response = self.client.post(reverse("admin_dashboard:scope_create", args=[self.superviseur.pk]), {"centre": self.centre2.pk})
         self.assertEqual(response.status_code, 403)
+
+
+    def test_admin_superviseur_detail_accede(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse(
+            "admin_dashboard:superviseur_detail", args=[self.superviseur.pk],
+        ))
+        self.assertEqual(response.status_code, 200)
+
+    def test_admin_superviseur_modifier(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("admin_dashboard:superviseur_modifier", args=[self.superviseur.pk]),
+            {
+                "username": "superviseur_renomme", "email": "sup-modifie@example.com",
+                "first_name": "Sam", "last_name": "Superviseur",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.superviseur.refresh_from_db()
+        self.assertEqual(self.superviseur.username, "superviseur_renomme")
+        self.assertEqual(self.superviseur.email, "sup-modifie@example.com")
+
+    def test_admin_superviseur_supprimer(self):
+        client_superviseur = Client()
+        client_superviseur.force_login(self.superviseur)
+        session_key = client_superviseur.cookies["sessionid"].value
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("admin_dashboard:superviseur_supprimer", args=[self.superviseur.pk]),
+            {"confirmation": "oui"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Utilisateur.objects.filter(pk=self.superviseur.pk).exists())
+        self.assertFalse(ScopeSuperviseur.objects.filter(pk=self.scope.pk).exists())
+        self.assertFalse(Session.objects.filter(session_key=session_key).exists())

@@ -1,6 +1,6 @@
 import csv
 import io
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from functools import wraps
 
 from django.contrib import messages
@@ -12,13 +12,21 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from comptes.models import Centre, JournalAction, ScopeSuperviseur
-from comptes.utils import log_action
-from entreprises.models import HistoriqueStatut, Prospection
+from comptes.utils import invalidate_user_sessions, log_action
+from documents.models import Document
+from entreprises.forms import ChangementStatutForm, CommentaireForm
+from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut
 from rgpd.models import DemandeRGPD, StatutDemande, TypeDemande
-from .forms import ScopeCreateForm, SuperviseurCreateForm
+from .forms import (
+    AdminEleveCentreForm, AdminEleveFormationForm, AdminSuperviseurUpdateForm,
+    MotDePasseSuperviseurForm, RefusCompteForm, ScopeCreateForm,
+    SuperviseurCreateForm,
+)
 
 Utilisateur = get_user_model()
 PAGE_SIZE = 25
@@ -328,3 +336,327 @@ def admin_export_demandes_rgpd_csv(request):
         d.motif_refus, d.description,
     ] for d in demandes)
     return _csv_response(request, "demandes-rgpd", headers, rows)
+
+
+
+def _contexte_eleve_detail(eleve):
+    prospections = Prospection.objects.filter(eleve=eleve).select_related(
+        "entreprise",
+    ).prefetch_related("historique__auteur")
+    return {
+        "eleve": eleve,
+        "prospections": prospections,
+        "documents": Document.objects.listing().filter(eleve=eleve),
+        "commentaires": Commentaire.objects.filter(
+            prospection__eleve=eleve,
+        ).select_related("auteur", "prospection__entreprise").order_by("-date"),
+        "demandes_rgpd": DemandeRGPD.objects.filter(utilisateur=eleve),
+    }
+
+
+@administrateur_requis
+def admin_eleve_detail(request, pk):
+    eleve = get_object_or_404(
+        Utilisateur.objects.select_related("centre", "formation", "valide_par"),
+        pk=pk, role=Utilisateur.Role.ELEVE,
+    )
+    return render(request, "admin_dashboard/eleve_detail.html", _contexte_eleve_detail(eleve))
+
+
+@administrateur_requis
+@require_POST
+def admin_eleve_valider(request, pk):
+    eleve = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.ELEVE)
+    if not eleve.is_valide:
+        eleve.is_valide = True
+        eleve.date_validation = timezone.now()
+        eleve.valide_par = request.user
+        eleve.motif_refus = ""
+        eleve.save(update_fields=["is_valide", "date_validation", "valide_par", "motif_refus"])
+        log_action(
+            JournalAction.Action.COMPTE_VALIDE, utilisateur=request.user, cible=eleve,
+            details={"eleve_id": eleve.pk}, request=request,
+        )
+        messages.success(request, "Le compte élève a été validé.")
+    return redirect("admin_dashboard:eleve_detail", pk=eleve.pk)
+
+
+@administrateur_requis
+@require_POST
+def admin_eleve_refuser(request, pk):
+    eleve = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.ELEVE)
+    form = RefusCompteForm(request.POST)
+    if eleve.is_valide or not form.is_valid():
+        messages.error(request, "Le refus exige un compte en attente et un motif.")
+        return redirect("admin_dashboard:eleve_detail", pk=eleve.pk)
+    eleve.motif_refus = form.cleaned_data["motif_refus"]
+    eleve.date_validation = None
+    eleve.valide_par = None
+    eleve.save(update_fields=["motif_refus", "date_validation", "valide_par"])
+    log_action(
+        JournalAction.Action.COMPTE_REFUSE, utilisateur=request.user, cible=eleve,
+        details={"eleve_id": eleve.pk, "motif_refus": eleve.motif_refus},
+        request=request,
+    )
+    messages.success(request, "Le compte élève a été refusé.")
+    return redirect("admin_dashboard:eleve_detail", pk=eleve.pk)
+
+
+@administrateur_requis
+@require_POST
+def admin_eleve_desactiver(request, pk):
+    eleve = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.ELEVE)
+    if eleve.is_active:
+        eleve.is_active = False
+        eleve.save(update_fields=["is_active"])
+        invalidate_user_sessions(eleve)
+        log_action(
+            JournalAction.Action.COMPTE_DESACTIVE, utilisateur=request.user, cible=eleve,
+            details={"eleve_id": eleve.pk}, request=request,
+        )
+        messages.success(request, "Le compte élève a été désactivé.")
+    return redirect("admin_dashboard:eleve_detail", pk=eleve.pk)
+
+
+@administrateur_requis
+@require_POST
+def admin_eleve_reactiver(request, pk):
+    eleve = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.ELEVE)
+    if not eleve.is_active:
+        eleve.is_active = True
+        eleve.save(update_fields=["is_active"])
+        messages.success(request, "Le compte élève a été réactivé.")
+    return redirect("admin_dashboard:eleve_detail", pk=eleve.pk)
+
+
+@administrateur_requis
+def admin_eleve_changer_centre(request, pk):
+    eleve = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.ELEVE)
+    ancien_centre_id = eleve.centre_id
+    form = AdminEleveCentreForm(request.POST or None, instance=eleve)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        if ancien_centre_id != eleve.centre_id:
+            log_action(
+                JournalAction.Action.CHANGEMENT_CENTRE, utilisateur=request.user,
+                cible=eleve,
+                details={
+                    "ancien_centre_id": ancien_centre_id,
+                    "nouveau_centre_id": eleve.centre_id,
+                    "eleve_id": eleve.pk,
+                },
+                request=request,
+            )
+        messages.success(request, "Le centre et la formation de l'élève ont été modifiés.")
+        return redirect("admin_dashboard:eleve_detail", pk=eleve.pk)
+    contexte = _contexte_eleve_detail(eleve)
+    contexte.update({
+        "action_form": form,
+        "action_url": reverse("admin_dashboard:eleve_changer_centre", args=[pk]),
+        "action_title": "Modifier le centre et la formation",
+    })
+    return render(request, "admin_dashboard/eleve_detail.html", contexte, status=200)
+
+
+@administrateur_requis
+def admin_eleve_changer_formation(request, pk):
+    eleve = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.ELEVE)
+    form = AdminEleveFormationForm(request.POST or None, instance=eleve)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "La formation de l'élève a été modifiée.")
+        return redirect("admin_dashboard:eleve_detail", pk=eleve.pk)
+    contexte = _contexte_eleve_detail(eleve)
+    contexte.update({
+        "action_form": form,
+        "action_url": reverse("admin_dashboard:eleve_changer_formation", args=[pk]),
+        "action_title": "Modifier la formation",
+    })
+    return render(request, "admin_dashboard/eleve_detail.html", contexte, status=200)
+
+
+@administrateur_requis
+def admin_superviseur_detail(request, pk):
+    superviseur = get_object_or_404(
+        Utilisateur.objects.prefetch_related("scopes__centre"),
+        pk=pk, role=Utilisateur.Role.SUPERVISEUR,
+    )
+    return render(request, "admin_dashboard/superviseur_detail.html", {
+        "superviseur": superviseur,
+        "scopes": superviseur.scopes.all(),
+    })
+
+
+@administrateur_requis
+def admin_superviseur_modifier(request, pk):
+    superviseur = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.SUPERVISEUR)
+    form = AdminSuperviseurUpdateForm(request.POST or None, instance=superviseur)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Les informations du superviseur ont été modifiées.")
+        return redirect("admin_dashboard:superviseur_detail", pk=superviseur.pk)
+    return render(request, "admin_dashboard/superviseur_detail.html", {
+        "superviseur": superviseur,
+        "scopes": superviseur.scopes.select_related("centre"),
+        "action_form": form,
+        "action_url": reverse("admin_dashboard:superviseur_modifier", args=[pk]),
+        "action_title": "Modifier le superviseur",
+    })
+
+
+@administrateur_requis
+def admin_superviseur_mot_de_passe(request, pk):
+    superviseur = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.SUPERVISEUR)
+    form = MotDePasseSuperviseurForm(request.POST or None, user=superviseur)
+    if request.method == "POST" and form.is_valid():
+        superviseur.set_password(form.cleaned_data["nouveau_mot_de_passe"])
+        superviseur.save(update_fields=["password"])
+        messages.success(request, "Le mot de passe du superviseur a été modifié.")
+        return redirect("admin_dashboard:superviseur_detail", pk=superviseur.pk)
+    return render(request, "admin_dashboard/superviseur_detail.html", {
+        "superviseur": superviseur,
+        "scopes": superviseur.scopes.select_related("centre"),
+        "action_form": form,
+        "action_url": reverse("admin_dashboard:superviseur_mot_de_passe", args=[pk]),
+        "action_title": "Changer le mot de passe",
+    })
+
+
+@administrateur_requis
+@require_POST
+def admin_superviseur_desactiver(request, pk):
+    superviseur = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.SUPERVISEUR)
+    if superviseur.is_active:
+        superviseur.is_active = False
+        superviseur.save(update_fields=["is_active"])
+        invalidate_user_sessions(superviseur)
+        log_action(
+            JournalAction.Action.COMPTE_DESACTIVE, utilisateur=request.user, cible=superviseur,
+            details={"action": "desactivation_superviseur", "superviseur_id": superviseur.pk},
+            request=request,
+        )
+        messages.success(request, "Le compte superviseur a été désactivé.")
+    return redirect("admin_dashboard:superviseur_detail", pk=superviseur.pk)
+
+
+@administrateur_requis
+@require_POST
+def admin_superviseur_reactiver(request, pk):
+    superviseur = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.SUPERVISEUR)
+    if not superviseur.is_active:
+        superviseur.is_active = True
+        superviseur.save(update_fields=["is_active"])
+        messages.success(request, "Le compte superviseur a été réactivé.")
+    return redirect("admin_dashboard:superviseur_detail", pk=superviseur.pk)
+
+
+@administrateur_requis
+@require_POST
+def admin_superviseur_supprimer(request, pk):
+    superviseur = get_object_or_404(Utilisateur, pk=pk, role=Utilisateur.Role.SUPERVISEUR)
+    if request.POST.get("confirmation") != "oui":
+        messages.error(request, "Cochez la confirmation pour supprimer ce superviseur.")
+        return redirect("admin_dashboard:superviseur_detail", pk=superviseur.pk)
+    superviseur_id = superviseur.pk
+    invalidate_user_sessions(superviseur)
+    log_action(
+        JournalAction.Action.COMPTE_DESACTIVE, utilisateur=request.user, cible=superviseur,
+        details={"action": "suppression_superviseur", "superviseur_id": superviseur_id},
+        request=request,
+    )
+    superviseur.delete()
+    messages.success(request, "Le superviseur et ses scopes ont été supprimés.")
+    return redirect("admin_dashboard:superviseurs")
+
+
+@administrateur_requis
+def admin_prospection_detail(request, pk):
+    prospection = get_object_or_404(
+        Prospection.objects.select_related("eleve", "entreprise"),
+        pk=pk,
+    )
+    return render(request, "admin_dashboard/prospection_detail.html", {
+        "prospection": prospection,
+        "historique": prospection.historique.select_related("auteur"),
+        "commentaires": prospection.commentaires.select_related("auteur"),
+        "statut_form": ChangementStatutForm(initial={"nouveau_statut": prospection.statut}),
+        "commentaire_form": CommentaireForm(),
+    })
+
+
+@administrateur_requis
+@require_POST
+def admin_prospection_changer_statut(request, pk):
+    prospection = get_object_or_404(Prospection.objects.select_related("entreprise"), pk=pk)
+    form = ChangementStatutForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Le formulaire de changement de statut est invalide.")
+        return redirect("admin_dashboard:prospection_detail", pk=pk)
+    ancien_statut = prospection.statut
+    nouveau_statut = form.cleaned_data["nouveau_statut"]
+    date_associee = form.cleaned_data.get("date_associee")
+    date_fields = {
+        Statut.A_RELANCER: "date_relance",
+        Statut.CANDIDATURE_ENVOYEE: "date_candidature",
+        Statut.EN_ATTENTE: "date_mise_en_attente",
+        Statut.ENTRETIEN_PROGRAMME: "date_entretien",
+        Statut.REFUS: "date_refus",
+        Statut.ACCEPTE: "date_acceptation",
+    }
+    with transaction.atomic():
+        prospection.statut = nouveau_statut
+        champ_date = date_fields.get(nouveau_statut)
+        if champ_date:
+            valeur_date = date_associee
+            if champ_date == "date_entretien" and date_associee:
+                valeur_date = timezone.make_aware(
+                    datetime.combine(date_associee, time.min),
+                    timezone.get_current_timezone(),
+                )
+            setattr(prospection, champ_date, valeur_date)
+        prospection.save()
+        HistoriqueStatut.objects.create(
+            prospection=prospection,
+            ancien_statut=ancien_statut,
+            nouveau_statut=nouveau_statut,
+            auteur=request.user,
+            commentaire=form.cleaned_data.get("commentaire", ""),
+            date_associee=date_associee,
+        )
+        log_action(
+            JournalAction.Action.CHANGEMENT_STATUT,
+            utilisateur=request.user,
+            cible=prospection,
+            details={
+                "prospection_id": prospection.pk,
+                "ancien_statut": ancien_statut,
+                "nouveau_statut": nouveau_statut,
+            },
+            request=request,
+        )
+    messages.success(request, "Le statut de la prospection a été modifié.")
+    return redirect("admin_dashboard:prospection_detail", pk=pk)
+
+
+@administrateur_requis
+@require_POST
+def admin_prospection_ajouter_commentaire(request, pk):
+    prospection = get_object_or_404(
+        Prospection.objects.select_related("eleve", "entreprise"), pk=pk,
+    )
+    form = CommentaireForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Le commentaire ne peut pas être vide.")
+        return redirect("admin_dashboard:prospection_detail", pk=pk)
+    commentaire = form.save(commit=False)
+    commentaire.auteur = request.user
+    commentaire.prospection = prospection
+    commentaire.save()
+    log_action(
+        JournalAction.Action.COMMENTAIRE_CREE,
+        utilisateur=request.user,
+        cible=commentaire,
+        details={"prospection_id": prospection.pk},
+        request=request,
+    )
+    return redirect("admin_dashboard:prospection_detail", pk=pk)

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Élève {{ eleve.username }} — administration{% endblock %}
+{% block content %}
+<h1>Fiche élève : {{ eleve.get_full_name|default:eleve.username }}</h1>
+<div class="mb-3 d-flex flex-wrap gap-2">
+{% if not eleve.is_valide %}<form method="post" action="{% url 'admin_dashboard:eleve_valider' eleve.pk %}">{% csrf_token %}<button class="btn btn-success" type="submit">Valider le compte</button></form>
+<form method="post" action="{% url 'admin_dashboard:eleve_refuser' eleve.pk %}" class="d-flex gap-2">{% csrf_token %}<input class="form-control" name="motif_refus" placeholder="Motif du refus" required><button class="btn btn-outline-danger" type="submit">Refuser</button></form>{% endif %}
+{% if eleve.is_active %}<form method="post" action="{% url 'admin_dashboard:eleve_desactiver' eleve.pk %}">{% csrf_token %}<button class="btn btn-outline-danger" type="submit">Désactiver</button></form>
+{% else %}<form method="post" action="{% url 'admin_dashboard:eleve_reactiver' eleve.pk %}">{% csrf_token %}<button class="btn btn-outline-success" type="submit">Réactiver</button></form>{% endif %}
+<a class="btn btn-outline-primary" href="{% url 'admin_dashboard:eleve_changer_centre' eleve.pk %}">Modifier le centre</a>
+<a class="btn btn-outline-primary" href="{% url 'admin_dashboard:eleve_changer_formation' eleve.pk %}">Modifier la formation</a>
+</div>
+{% if action_form %}<section class="card mb-4"><div class="card-body"><h2 class="h5">{{ action_title }}</h2><form method="post" action="{{ action_url }}">{% csrf_token %}{{ action_form.as_p }}<button class="btn btn-primary" type="submit">Enregistrer</button></form></div></section>{% endif %}
+<section class="mb-4"><h2 class="h4">Informations</h2><dl class="row">
+<dt class="col-sm-3">Identifiant</dt><dd class="col-sm-9">{{ eleve.username }}</dd>
+<dt class="col-sm-3">Nom</dt><dd class="col-sm-9">{{ eleve.first_name }} {{ eleve.last_name }}</dd>
+<dt class="col-sm-3">Courriel</dt><dd class="col-sm-9">{{ eleve.email }}</dd>
+<dt class="col-sm-3">Centre</dt><dd class="col-sm-9">{{ eleve.centre|default:"—" }}</dd>
+<dt class="col-sm-3">Formation</dt><dd class="col-sm-9">{{ eleve.formation|default:"—" }}</dd>
+<dt class="col-sm-3">Compte validé</dt><dd class="col-sm-9">{{ eleve.is_valide|yesno:"Oui,Non" }}</dd>
+<dt class="col-sm-3">Date de validation</dt><dd class="col-sm-9">{{ eleve.date_validation|date:"d/m/Y H:i"|default:"—" }}</dd>
+<dt class="col-sm-3">Motif du refus</dt><dd class="col-sm-9">{{ eleve.motif_refus|default:"—" }}</dd>
+</dl></section>
+<section class="mb-4"><h2 class="h4">Prospections</h2><ul>{% for prospection in prospections %}
+<li><a href="{% url 'admin_dashboard:prospection_detail' prospection.pk %}">{{ prospection.entreprise.nom }}</a> — {{ prospection.get_statut_display }} — créée {{ prospection.date_creation|date:"d/m/Y" }} — modifiée {{ prospection.date_modification|date:"d/m/Y" }} — relance {{ prospection.date_relance|date:"d/m/Y"|default:"—" }} — candidature {{ prospection.date_candidature|date:"d/m/Y"|default:"—" }} — attente {{ prospection.date_mise_en_attente|date:"d/m/Y"|default:"—" }} — entretien {{ prospection.date_entretien|date:"d/m/Y H:i"|default:"—" }} — refus {{ prospection.date_refus|date:"d/m/Y"|default:"—" }} — acceptation {{ prospection.date_acceptation|date:"d/m/Y"|default:"—" }}</li>
+{% empty %}<li>Aucune prospection.</li>{% endfor %}</ul></section>
+<section class="mb-4"><h2 class="h4">Documents</h2><ul>{% for document in documents %}<li>{{ document.nom }} — {{ document.get_type_display }} — {{ document.taille }} octets — {{ document.date_upload|date:"d/m/Y H:i" }}</li>{% empty %}<li>Aucun document.</li>{% endfor %}</ul></section>
+<section class="mb-4"><h2 class="h4">Commentaires</h2><ul>{% for commentaire in commentaires %}<li>{{ commentaire.date|date:"d/m/Y H:i" }} — {{ commentaire.auteur.username }} sur {{ commentaire.prospection.entreprise.nom }} : {{ commentaire.contenu|linebreaksbr }}</li>{% empty %}<li>Aucun commentaire.</li>{% endfor %}</ul></section>
+<section class="mb-4"><h2 class="h4">Demandes RGPD</h2><ul>{% for demande in demandes_rgpd %}<li>{{ demande.get_type_display }} — {{ demande.get_statut_display }} — {{ demande.date_demande|date:"d/m/Y H:i" }}{% if demande.date_traitement %}, traitée le {{ demande.date_traitement|date:"d/m/Y H:i" }}{% endif %}</li>{% empty %}<li>Aucune demande.</li>{% endfor %}</ul></section>
+<a href="{% url 'admin_dashboard:eleves' %}">Retour à la liste</a>
+{% endblock %}

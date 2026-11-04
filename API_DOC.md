@@ -145,3 +145,27 @@ Toutes les routes du lot sont réservées aux comptes dont le rôle est `admin`.
 | GET | /admin-dashboard/exports/demandes-rgpd.csv | Exporte les demandes RGPD. |
 
 Chaque CSV est encodé en UTF-8 avec BOM pour Excel. Chaque téléchargement est journalisé avec `EXPORT_CSV`, son type et son nombre de lignes.
+
+
+### Lot 8a — Fiches et actions d'administration
+
+Les routes suivantes sont réservées au rôle `admin` ; tout autre rôle authentifié reçoit HTTP 403.
+
+| Méthode | Chemin | Comportement |
+| --- | --- | --- |
+| GET | /admin-dashboard/eleves/<id>/ | Fiche élève : prospections, métadonnées des documents, commentaires, demandes RGPD et actions administratives. |
+| POST | /admin-dashboard/eleves/<id>/valider/ | Valide l'élève et journalise `COMPTE_VALIDE`. |
+| POST | /admin-dashboard/eleves/<id>/refuser/ | Enregistre le motif de refus et journalise `COMPTE_REFUSE`. |
+| POST | /admin-dashboard/eleves/<id>/desactiver/ | Désactive le compte, invalide ses sessions et journalise `COMPTE_DESACTIVE`. |
+| POST | /admin-dashboard/eleves/<id>/reactiver/ | Réactive le compte. |
+| GET, POST | /admin-dashboard/eleves/<id>/centre/ | Modifie le centre avec une formation rattachée au centre choisi et journalise `CHANGEMENT_CENTRE`. |
+| GET, POST | /admin-dashboard/eleves/<id>/formation/ | Modifie la formation de l'élève. |
+| GET | /admin-dashboard/superviseurs/<id>/ | Fiche superviseur et scopes. |
+| GET, POST | /admin-dashboard/superviseurs/<id>/modifier/ | Modifie identifiant, courriel, prénom et nom. |
+| GET, POST | /admin-dashboard/superviseurs/<id>/mot-de-passe/ | Définit un nouveau mot de passe validé par les règles Django. |
+| POST | /admin-dashboard/superviseurs/<id>/desactiver/ | Désactive le compte, invalide ses sessions et journalise `COMPTE_DESACTIVE`. |
+| POST | /admin-dashboard/superviseurs/<id>/reactiver/ | Réactive le compte. |
+| POST | /admin-dashboard/superviseurs/<id>/supprimer/ | Après confirmation, invalide les sessions et supprime le compte et ses scopes. |
+| GET | /admin-dashboard/prospections/<id>/ | Détail d'une prospection et historique complet. |
+| POST | /admin-dashboard/prospections/<id>/statut/ | Change le statut, ajoute une entrée d'historique et journalise `CHANGEMENT_STATUT`. |
+| POST | /admin-dashboard/prospections/<id>/commentaire/ | Ajoute un commentaire et journalise `COMMENTAIRE_CREE`. |
