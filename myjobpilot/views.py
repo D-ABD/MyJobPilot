@@ -24,3 +24,7 @@ def manifest_json(request):
 
 def offline_view(request):
     return render(request, "offline.html")
+
+
+def page_404(request, exception=None):
+    return render(request, "404.html", status=404)

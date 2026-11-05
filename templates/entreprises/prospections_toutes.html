@@ -52,6 +52,7 @@
       </div>
     </div>
   </form>
+  <p class="text-body-secondary" aria-live="polite">{{ total_count }} prospection{{ total_count|pluralize:"s" }}</p>
   {% if prospections %}
     <div class="table-responsive">
       <table class="table table-hover align-middle">
@@ -74,14 +75,17 @@
     {% if page_obj.paginator.num_pages > 1 %}
       <nav aria-label="Pagination des prospections">
         <ul class="pagination">
+          {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page=1">Première</a></li>{% endif %}
           {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a></li>{% endif %}
-          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
-          {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li>{% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li><li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.paginator.num_pages }}">Dernière</a></li>{% endif %}
         </ul>
       </nav>
     {% endif %}
+  {% elif total_count %}
+    <p class="alert alert-info" role="status">Aucun résultat pour ces filtres.</p>
   {% else %}
-    <p class="alert alert-info" role="status">{% if total_count %}Aucun résultat pour ces filtres.{% else %}Aucune prospection à afficher.{% endif %}</p>
+    {% include "partials/_empty_state.html" with message="Aucune prospection trouvée." action_url="/prospections/nouvelle/" action_label="Créer une prospection" %}
   {% endif %}
 </section>
 {% endblock %}

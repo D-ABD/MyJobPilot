@@ -3,6 +3,9 @@ from django.contrib import admin
 from django.urls import include, path
 from . import views as project_views
 
+handler404 = "myjobpilot.views.page_404"
+
+
 urlpatterns = [
     path("sw.js", project_views.sw_js, name="service_worker"),
     path("offline/", project_views.offline_view, name="offline"),

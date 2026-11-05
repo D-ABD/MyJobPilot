@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Ajouter un document — MyJobPilot{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <section class="mx-auto" style="max-width: 680px" aria-labelledby="titre-ajout-document">
   <a class="btn btn-link px-0" href="{% url 'documents:list' %}">Retour à mes documents</a>
   <h1 class="h2 mb-3" id="titre-ajout-document">Ajouter un document</h1>

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Détail de {{ eleve.username }} — MyJobPilot{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <section aria-labelledby="titre-eleve">
   {% if request.user.role == "admin" %}
     <a class="btn btn-link px-0 mb-3" href="{% url 'admin:comptes_utilisateur_changelist' %}">Retour à l'administration</a>

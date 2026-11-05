@@ -24,6 +24,7 @@
     </div>
   {% endif %}
 
+  <p class="text-body-secondary" aria-live="polite">{{ documents|length }} document{{ documents|length|pluralize:"s" }}</p>
   {% if documents %}
     <div class="table-responsive">
       <table class="table table-striped align-middle">
@@ -53,7 +54,7 @@
       </table>
     </div>
   {% else %}
-    <p class="alert alert-info" role="status">Aucun document enregistré.</p>
+    {% include "partials/_empty_state.html" with message="Vous n’avez pas encore de document." action_url="/documents/ajouter/" action_label="Ajouter mon premier document" %}
   {% endif %}
 </section>
 {% endblock %}

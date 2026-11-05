@@ -178,3 +178,8 @@ La page /prospections/ rassemble les prospections visibles pour l'utilisateur co
 ### Lot 8e — Hub superviseur et administrateur
 
 Le hub « /hub/ » donne aux superviseurs et aux administrateurs des liens rapides vers les espaces associés à leur rôle. Les élèves n'y ont pas accès. La liste « /prospections/ » prend en charge les segments « mes prospections », « prospections des élèves » et, pour l'administrateur seulement, « prospections des superviseurs ». Ces paramètres conservent les filtres de recherche, statut, type de contrat, tri et pagination.
+
+
+## Lot UX — Navigation et accessibilité
+
+La navigation comprend une page Mon profil en lecture seule, un menu adapté au rôle, les notifications et le lien vers les prospections. Les listes indiquent le nombre de résultats, présentent un état vide avec une action adaptée et proposent une pagination avec accès direct à la première et à la dernière page. Les pages concernées disposent d’un fil d’Ariane et d’un bouton retour. Le site fournit une page 404 personnalisée lorsque `DEBUG=False`. Le pied de page indique la version v0.8.4 et le contact adiattalud@gmail.com.

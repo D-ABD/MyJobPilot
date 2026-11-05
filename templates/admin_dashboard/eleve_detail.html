@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Élève {{ eleve.username }} — administration{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <h1>Fiche élève : {{ eleve.get_full_name|default:eleve.username }}</h1>
 <div class="mb-3 d-flex flex-wrap gap-2">
 {% if not eleve.is_valide %}<form method="post" action="{% url 'admin_dashboard:eleve_valider' eleve.pk %}">{% csrf_token %}<button class="btn btn-success" type="submit">Valider le compte</button></form>
-<form method="post" action="{% url 'admin_dashboard:eleve_refuser' eleve.pk %}" class="d-flex gap-2">{% csrf_token %}<input class="form-control" name="motif_refus" placeholder="Motif du refus" required><button class="btn btn-outline-danger" type="submit">Refuser</button></form>{% endif %}
+<form method="post" action="{% url 'admin_dashboard:eleve_refuser' eleve.pk %}" class="d-flex gap-2">{% csrf_token %}<label class="form-label" for="motif-refus">Motif du refus</label><input class="form-control" id="motif-refus" name="motif_refus" placeholder="Motif du refus" required><button class="btn btn-outline-danger" type="submit">Refuser</button></form>{% endif %}
 {% if eleve.is_active %}<form method="post" action="{% url 'admin_dashboard:eleve_desactiver' eleve.pk %}">{% csrf_token %}<button class="btn btn-outline-danger" type="submit">Désactiver</button></form>
 {% else %}<form method="post" action="{% url 'admin_dashboard:eleve_reactiver' eleve.pk %}">{% csrf_token %}<button class="btn btn-outline-success" type="submit">Réactiver</button></form>{% endif %}
 <a class="btn btn-outline-primary" href="{% url 'admin_dashboard:eleve_changer_centre' eleve.pk %}">Modifier le centre</a>

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Importer des élèves — MyJobPilot{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <h1>Importer des élèves</h1>
 <p>Format attendu : username,email,first_name,last_name,centre,formation. Les comptes importés restent en attente de validation.</p>
 <form method="post" enctype="multipart/form-data" class="vstack gap-3">

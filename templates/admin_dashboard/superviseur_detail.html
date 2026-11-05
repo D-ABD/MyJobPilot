@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Superviseur {{ superviseur.username }} — administration{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <h1>Fiche superviseur : {{ superviseur.username }}</h1>
 <div class="d-flex flex-wrap gap-2 mb-3">
 <a class="btn btn-outline-primary" href="{% url 'admin_dashboard:superviseur_modifier' superviseur.pk %}">Modifier</a>
 <a class="btn btn-outline-primary" href="{% url 'admin_dashboard:superviseur_mot_de_passe' superviseur.pk %}">Changer le mot de passe</a>
 {% if superviseur.is_active %}<form method="post" action="{% url 'admin_dashboard:superviseur_desactiver' superviseur.pk %}">{% csrf_token %}<button class="btn btn-outline-danger" type="submit">Désactiver</button></form>
 {% else %}<form method="post" action="{% url 'admin_dashboard:superviseur_reactiver' superviseur.pk %}">{% csrf_token %}<button class="btn btn-outline-success" type="submit">Réactiver</button></form>{% endif %}
-<form method="post" action="{% url 'admin_dashboard:superviseur_supprimer' superviseur.pk %}">{% csrf_token %}<label><input type="checkbox" name="confirmation" value="oui" required> Confirmer la suppression</label><button class="btn btn-danger ms-2" type="submit">Supprimer le compte</button></form>
+<form method="post" action="{% url 'admin_dashboard:superviseur_supprimer' superviseur.pk %}">{% csrf_token %}<label><input type="checkbox" id="confirmation-suppression" name="confirmation" value="oui" required><label for="confirmation-suppression">Confirmer la suppression du superviseur</label> Confirmer la suppression</label><button class="btn btn-danger ms-2" type="submit">Supprimer le compte</button></form>
 </div>
 {% if action_form %}<section class="card mb-4"><div class="card-body"><h2 class="h5">{{ action_title }}</h2><form method="post" action="{{ action_url }}">{% csrf_token %}{{ action_form.as_p }}<button class="btn btn-primary" type="submit">Enregistrer</button></form></div></section>{% endif %}
 <dl class="row"><dt class="col-sm-3">Nom complet</dt><dd class="col-sm-9">{{ superviseur.first_name }} {{ superviseur.last_name }}</dd>

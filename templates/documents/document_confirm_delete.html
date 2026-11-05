@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Supprimer un document — MyJobPilot{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <section class="mx-auto" style="max-width: 640px" aria-labelledby="titre-suppression-document">
   <h1 class="h2" id="titre-suppression-document">Supprimer le document</h1>
   <p>Confirmez-vous la suppression de « {{ document.nom }} » ?</p>

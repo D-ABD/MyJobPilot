@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ titre }} — MyJobPilot{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <section class="row justify-content-center" aria-labelledby="titre-formulaire">
   <div class="col-12 col-lg-8">
     <h1 class="h2 mb-4" id="titre-formulaire">{{ titre }}</h1>

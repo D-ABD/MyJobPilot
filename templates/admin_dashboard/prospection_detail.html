@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Prospection — administration{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <h1>Prospection : {{ prospection.entreprise.nom }}</h1>
 <dl class="row"><dt class="col-sm-3">Élève</dt><dd class="col-sm-9"><a href="{% url 'admin_dashboard:eleve_detail' prospection.eleve_id %}">{{ prospection.eleve.username }}</a></dd>
 <dt class="col-sm-3">Entreprise</dt><dd class="col-sm-9">{{ prospection.entreprise.nom }} — {{ prospection.entreprise.ville }}</dd>

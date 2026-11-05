@@ -127,7 +127,15 @@ def admin_superviseur_create(request):
         superviseur = form.save(auteur=request.user)
         messages.success(request, f"Le superviseur {superviseur.username} a été créé avec son premier scope.")
         return redirect("admin_dashboard:superviseurs")
-    return render(request, "admin_dashboard/superviseur_form.html", {"form": form})
+    return render(request, "admin_dashboard/superviseur_form.html", {
+        "form": form,
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard admin", "/admin-dashboard/"),
+            ("Superviseurs", "/admin-dashboard/superviseurs/"),
+            ("Créer un superviseur", ""),
+        ],
+    })
 
 
 @administrateur_requis
@@ -348,6 +356,12 @@ def _contexte_eleve_detail(eleve, type_contrat="tous"):
     if type_contrat in {choix for choix, _ in TypeContrat.choices}:
         prospections = prospections.filter(type_contrat=type_contrat)
     return {
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard admin", "/admin-dashboard/"),
+            ("Élèves", "/admin-dashboard/eleves/"),
+            (eleve.get_full_name() or eleve.username, ""),
+        ],
         "eleve": eleve,
         "prospections": prospections,
         "types_contrat": TypeContrat.choices,
@@ -491,6 +505,12 @@ def admin_superviseur_detail(request, pk):
     return render(request, "admin_dashboard/superviseur_detail.html", {
         "superviseur": superviseur,
         "scopes": superviseur.scopes.all(),
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard admin", "/admin-dashboard/"),
+            ("Superviseurs", "/admin-dashboard/superviseurs/"),
+            (superviseur.username, ""),
+        ],
     })
 
 
@@ -508,6 +528,12 @@ def admin_superviseur_modifier(request, pk):
         "action_form": form,
         "action_url": reverse("admin_dashboard:superviseur_modifier", args=[pk]),
         "action_title": "Modifier le superviseur",
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard admin", "/admin-dashboard/"),
+            ("Superviseurs", "/admin-dashboard/superviseurs/"),
+            (superviseur.username, ""),
+        ],
     })
 
 
@@ -526,6 +552,12 @@ def admin_superviseur_mot_de_passe(request, pk):
         "action_form": form,
         "action_url": reverse("admin_dashboard:superviseur_mot_de_passe", args=[pk]),
         "action_title": "Changer le mot de passe",
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard admin", "/admin-dashboard/"),
+            ("Superviseurs", "/admin-dashboard/superviseurs/"),
+            (superviseur.username, ""),
+        ],
     })
 
 
@@ -588,6 +620,12 @@ def admin_prospection_detail(request, pk):
         "commentaires": prospection.commentaires.select_related("auteur"),
         "statut_form": ChangementStatutForm(initial={"nouveau_statut": prospection.statut}),
         "commentaire_form": CommentaireForm(),
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard admin", "/admin-dashboard/"),
+            ("Prospections", "/prospections/"),
+            (prospection.entreprise.nom, ""),
+        ],
     })
 
 
@@ -691,4 +729,12 @@ def admin_import_eleves_csv(request):
             },
             request=request,
         )
-    return render(request, "admin_dashboard/import_eleves.html", {"form": form, "rapport": rapport})
+    return render(request, "admin_dashboard/import_eleves.html", {
+        "form": form,
+        "rapport": rapport,
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard admin", "/admin-dashboard/"),
+            ("Import CSV élèves", ""),
+        ],
+    })

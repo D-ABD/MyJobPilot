@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Changer le centre de {{ eleve.username }} — MyJobPilot{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <section aria-labelledby="titre-changement-centre">
   <a class="btn btn-link px-0 mb-3" href="{% url 'staff:detail_eleve' eleve.pk %}">Retour à la fiche de l'élève</a>
   <h1 class="h2 mb-4" id="titre-changement-centre">Changer le centre de {{ eleve.username }}</h1>

@@ -1,0 +1,7 @@
+<div class="empty-state text-center p-4 p-md-5" role="status">
+  <i class="bi bi-inbox fs-1 text-body-secondary" aria-hidden="true"></i>
+  <p class="h5 mt-2">{{ message }}</p>
+  {% if action_url and action_label %}
+    <a class="btn btn-primary mt-2" href="{{ action_url }}">{{ action_label }}</a>
+  {% endif %}
+</div>

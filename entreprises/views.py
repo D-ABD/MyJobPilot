@@ -48,6 +48,19 @@ def _prospection_eleve(request, pk):
 
 
 def _rendre_formulaire_prospection(request, form, entreprise_form, titre, prospection=None):
+    if prospection is None:
+        breadcrumb_items = [
+            ("Accueil", "/"),
+            ("Dashboard", "/dashboard/"),
+            ("Nouvelle prospection", ""),
+        ]
+    else:
+        breadcrumb_items = [
+            ("Accueil", "/"),
+            ("Dashboard", "/dashboard/"),
+            (prospection.entreprise.nom, f"/entreprises/{prospection.pk}/"),
+            ("Modifier", ""),
+        ]
     return render(
         request,
         "entreprises/entreprise_form.html",
@@ -57,6 +70,7 @@ def _rendre_formulaire_prospection(request, form, entreprise_form, titre, prospe
             "titre": titre,
             "prospection": prospection,
             "allow_new_entreprise": prospection is None,
+            "breadcrumb_items": breadcrumb_items,
         },
     )
 
@@ -370,7 +384,15 @@ def entreprise_delete(request, pk):
     if request.method == "POST":
         prospection.delete()
         return redirect("entreprises:dashboard")
-    return render(request, "entreprises/entreprise_confirm_delete.html", {"prospection": prospection})
+    return render(request, "entreprises/entreprise_confirm_delete.html", {
+        "prospection": prospection,
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard", "/dashboard/"),
+            (prospection.entreprise.nom, f"/entreprises/{prospection.pk}/"),
+            ("Supprimer", ""),
+        ],
+    })
 
 
 @login_required
@@ -461,7 +483,15 @@ def entreprise_detail(request, pk):
     return render(
         request,
         "entreprises/entreprise_detail.html",
-        {"prospection": prospection, "historique": historique},
+        {
+            "prospection": prospection,
+            "historique": historique,
+            "breadcrumb_items": [
+                ("Accueil", "/"),
+                ("Dashboard", "/dashboard/"),
+                (prospection.entreprise.nom, ""),
+            ],
+        },
     )
 
 
@@ -520,5 +550,11 @@ def entreprise_changer_statut(request, pk):
             "prospection": prospection,
             "allow_new_entreprise": False,
             "changement_statut": True,
+            "breadcrumb_items": [
+                ("Accueil", "/"),
+                ("Dashboard", "/dashboard/"),
+                (prospection.entreprise.nom, f"/entreprises/{prospection.pk}/"),
+                ("Changer le statut", ""),
+            ],
         },
     )

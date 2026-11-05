@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ prospection.entreprise.nom }} — MyJobPilot{% endblock %}
 {% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
 <section aria-labelledby="titre-entreprise">
   <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
     <div>

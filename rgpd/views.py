@@ -47,14 +47,28 @@ def demande_rgpd_create(request):
         )
         messages.success(request, "Votre demande RGPD a été enregistrée.")
         return redirect("rgpd:demandes_rgpd_list")
-    return render(request, "rgpd/demande_rgpd_form.html", {"form": form}, status=200)
+    return render(request, "rgpd/demande_rgpd_form.html", {
+        "form": form,
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Mes demandes RGPD", "/mon-compte/demandes-rgpd/"),
+            ("Nouvelle demande", ""),
+        ],
+    }, status=200)
 
 
 @login_required
 def demande_rgpd_detail(request, pk):
     _eleve(request)
     demande = get_object_or_404(DemandeRGPD, pk=pk, utilisateur=request.user)
-    return render(request, "rgpd/demande_rgpd_detail.html", {"demande": demande})
+    return render(request, "rgpd/demande_rgpd_detail.html", {
+        "demande": demande,
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Mes demandes RGPD", "/mon-compte/demandes-rgpd/"),
+            (demande.get_type_display(), ""),
+        ],
+    })
 
 
 @login_required
@@ -86,7 +100,13 @@ def admin_demande_rgpd_traiter(request, pk):
         messages.success(request, "La demande a été mise à jour.")
         return redirect("rgpd:admin_demandes_rgpd_list")
     return render(request, "rgpd/admin_demande_rgpd_traiter.html", {
-        "form": form, "demande": demande,
+        "form": form,
+        "demande": demande,
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Demandes RGPD", "/admin-dashboard/demandes-rgpd/"),
+            (demande.utilisateur.username, ""),
+        ],
     }, status=200)
 
 

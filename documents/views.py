@@ -73,7 +73,14 @@ def document_upload(request):
             )
         messages.success(request, "Le document a été ajouté.")
         return redirect("documents:list")
-    return render(request, "documents/document_upload.html", {"form": form})
+    return render(request, "documents/document_upload.html", {
+        "form": form,
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Mes documents", "/documents/"),
+            ("Ajouter un document", ""),
+        ],
+    })
 
 
 @login_required
@@ -135,7 +142,15 @@ def document_delete(request, pk):
     return render(
         request,
         "documents/document_confirm_delete.html",
-        {"document": document},
+        {
+            "document": document,
+            "breadcrumb_items": [
+                ("Accueil", "/"),
+                ("Mes documents", "/documents/"),
+                (document.nom, f"/documents/{document.pk}/telecharger/"),
+                ("Supprimer", ""),
+            ],
+        },
     )
 
 

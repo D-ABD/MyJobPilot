@@ -27,6 +27,7 @@
   </form>
   {% include "staff/_tableau_filtres.html" %}
 
+  <p class="text-body-secondary" aria-live="polite">{{ page_obj.paginator.count }} élève{{ page_obj.paginator.count|pluralize:"s" }}</p>
   {% if eleves %}
     <div class="table-responsive dashboard-table-wrap">
       <table class="table table-hover align-middle dashboard-table">
@@ -67,7 +68,7 @@
     </div>
     {% include "staff/_pagination.html" %}
   {% else %}
-    <p class="alert alert-info" role="status">Aucun élève dans votre périmètre.</p>
+    {% include "partials/_empty_state.html" with message="Aucun élève dans votre périmètre." action_url="/hub/" action_label="Retour au hub" %}
   {% endif %}
 </section>
 {% endblock %}

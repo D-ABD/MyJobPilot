@@ -170,6 +170,11 @@ def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=
             "filtre_type_contrat": type_contrat_selectionne,
             "prospection_form": prospection_form if prospection_form is not None else AjoutProspectionStaffForm(),
             "entreprise_form": entreprise_form if entreprise_form is not None else EntrepriseForm(),
+            "breadcrumb_items": [
+                ("Accueil", "/"),
+                ("Mon staff", "/staff/"),
+                (eleve.get_full_name() or eleve.username, ""),
+            ],
         },
     )
 
@@ -219,7 +224,16 @@ def changer_centre_eleve_staff(request, pk):
     return render(
         request,
         "staff/eleve_changer_centre.html",
-        {"eleve": eleve, "form": form},
+        {
+            "eleve": eleve,
+            "form": form,
+            "breadcrumb_items": [
+                ("Accueil", "/"),
+                ("Mon staff", "/staff/"),
+                (eleve.get_full_name() or eleve.username, f"/staff/eleves/{eleve.pk}/"),
+                ("Changer de centre", ""),
+            ],
+        },
     )
 
 

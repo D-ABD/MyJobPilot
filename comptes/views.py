@@ -52,5 +52,14 @@ def redirection_apres_login(request):
 
 
 @login_required
+def mon_compte(request):
+    """Affiche en lecture seule les informations du compte connecté."""
+    return render(request, "comptes/mon_compte.html", {
+        "utilisateur": request.user,
+        "breadcrumb_items": [("Accueil", "/"), ("Mon profil", "")],
+    })
+
+
+@login_required
 def en_attente(request):
     return render(request, "comptes/en_attente.html")

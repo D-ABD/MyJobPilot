@@ -30,19 +30,14 @@
 
   {% include "entreprises/_tableau_filtres.html" %}
 
+  <p class="text-body-secondary" aria-live="polite">{{ total_count }} prospection{{ total_count|pluralize:"s" }}</p>
   {% if prospections %}
     {% include "entreprises/_tableau_resultats.html" %}
     {% include "entreprises/_pagination.html" %}
   {% elif total_count %}
     <p class="alert alert-info" role="status">Aucun résultat ne correspond à ces filtres.</p>
   {% else %}
-    <div class="empty-state text-center p-4 p-md-5">
-      <h2 class="h4">Aucune prospection pour le moment</h2>
-      <p>Créez votre première prospection.</p>
-      <a class="btn btn-primary" href="{% url 'entreprises:create' %}" aria-label="Créer ma première prospection">
-        Nouvelle prospection
-      </a>
-    </div>
+    {% include "partials/_empty_state.html" with message="Vous n’avez pas encore de prospection." action_url="/entreprises/nouvelle/" action_label="Créer ma première prospection" %}
   {% endif %}
 </section>
 {% endblock %}

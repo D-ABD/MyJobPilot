@@ -200,3 +200,8 @@ La page /prospections/ liste les prospections selon le rôle : un élève voit l
 | GET | /prospections/?superviseurs=1 | Admin | Affiche uniquement les prospections appartenant aux superviseurs. Les superviseurs reçoivent HTTP 403. |
 
 Les paramètres de périmètre sont exclusifs selon la priorité `mine`, puis `eleves`, puis `superviseurs`. Ils s'ajoutent aux filtres existants de recherche, statut, type de contrat, tri et pagination. Le lien Hub de la navigation est réservé aux superviseurs et aux admins.
+
+
+## Lot UX — Navigation et affichage
+
+La navigation propose une page Mon profil en lecture seule sur `/mon-compte/`, les liens correspondant au rôle, le compteur de notifications et l’accès aux prospections. Les listes affichent un compteur de résultats, des états vides explicites et une pagination avec les liens première/dernière page. Les pages de détail et formulaires concernés comportent un fil d’Ariane et un bouton retour. Une page 404 personnalisée s’affiche lorsque `DEBUG=False`.

@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Créer un superviseur{% endblock %}
-{% block content %}<h1>Créer un superviseur</h1>
+{% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}<h1>Créer un superviseur</h1>
 <form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary" type="submit">Créer</button></form>
 {% endblock %}

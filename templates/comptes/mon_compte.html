@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Mon profil — MyJobPilot{% endblock %}
+{% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+{% include "partials/_bouton_retour.html" %}
+<section aria-labelledby="titre-mon-compte">
+  <h1 class="h2 mb-4" id="titre-mon-compte">Mon profil</h1>
+  <div class="card mb-4">
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Identifiant</dt><dd class="col-sm-8">{{ utilisateur.username }}</dd>
+        <dt class="col-sm-4">Courriel</dt><dd class="col-sm-8">{{ utilisateur.email|default:"—" }}</dd>
+        <dt class="col-sm-4">Prénom</dt><dd class="col-sm-8">{{ utilisateur.first_name|default:"—" }}</dd>
+        <dt class="col-sm-4">Nom</dt><dd class="col-sm-8">{{ utilisateur.last_name|default:"—" }}</dd>
+        <dt class="col-sm-4">Rôle</dt><dd class="col-sm-8">{{ utilisateur.get_role_display }}</dd>
+        <dt class="col-sm-4">Centre</dt><dd class="col-sm-8">{{ utilisateur.centre.nom|default:"—" }}</dd>
+        <dt class="col-sm-4">Formation</dt><dd class="col-sm-8">{{ utilisateur.formation.nom|default:"—" }}</dd>
+        <dt class="col-sm-4">Compte créé le</dt><dd class="col-sm-8">{{ utilisateur.date_joined|date:"d/m/Y H:i" }}</dd>
+      </dl>
+    </div>
+  </div>
+  <nav aria-label="Liens du compte" class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-primary" href="{% url 'comptes:notifications' %}">Mes notifications</a>
+    {% if utilisateur.role == "eleve" %}
+      <a class="btn btn-outline-primary" href="{% url 'documents:list' %}">Mes documents</a>
+      <a class="btn btn-outline-primary" href="{% url 'rgpd:demandes_rgpd_list' %}">Mes demandes RGPD</a>
+      <a class="btn btn-outline-primary" href="{% url 'entreprises:dashboard' %}">Mon dashboard</a>
+      <a class="btn btn-outline-primary" href="{% url 'rgpd:export_rgpd' %}">Exporter mes données RGPD</a>
+    {% elif utilisateur.role == "superviseur" %}
+      <a class="btn btn-outline-primary" href="{% url 'entreprises:hub' %}">Mon hub</a>
+      <a class="btn btn-outline-primary" href="{% url 'staff:dashboard' %}">Mes élèves</a>
+    {% elif utilisateur.role == "admin" %}
+      <a class="btn btn-outline-primary" href="{% url 'entreprises:hub' %}">Mon hub</a>
+      <a class="btn btn-outline-primary" href="{% url 'admin_dashboard:dashboard' %}">Dashboard admin</a>
+    {% endif %}
+  </nav>
+  <a class="btn btn-primary" href="/admin/">Modifier mes informations</a>
+</section>
+{% endblock %}
