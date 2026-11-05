@@ -48,7 +48,7 @@ class AdminExportsTests(TestCase):
 
     def test_export_prospections_colonnes(self):
         rows = self._csv("admin_dashboard:export_prospections", [
-            "eleve_username", "entreprise_nom", "entreprise_ville", "statut",
+            "eleve_username", "entreprise_nom", "entreprise_ville", "statut", "type_contrat",
             "date_creation", "date_modification", "date_relance", "date_candidature",
             "date_entretien", "date_refus", "date_acceptation",
         ])

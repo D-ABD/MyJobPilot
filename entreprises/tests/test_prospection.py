@@ -28,6 +28,7 @@ class ProspectionTests(TestCase):
                 "entreprise_id": self.entreprise.pk,
                 "entreprise_nom": self.entreprise.nom,
                 "statut": Statut.A_CONTACTER,
+                "type_contrat": "alternance",
             }
         )
         self.assertTrue(form.is_valid(), form.errors)

@@ -126,7 +126,7 @@ class VuesEntreprisesTests(TestCase):
         entreprise = self.creer_entreprise("Form obligatoire")
         form = ProspectionForm(data={
             "entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom,
-            "statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.ALTERNANCE,
+            "statut": Statut.A_CONTACTER,
         })
         self.assertFalse(form.is_valid())
         self.assertIsNone(ProspectionForm().fields["type_contrat"].initial)
