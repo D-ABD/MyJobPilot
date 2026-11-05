@@ -30,6 +30,9 @@
                 <li class="nav-item"><span class="navbar-text me-lg-3">Bonjour {{ user.first_name|default:user.username }}</span></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}" aria-label="Notifications">Notifications <span id="notifications-count" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
+                {% if user.role == "superviseur" or user.role == "admin" %}
+                  <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:hub' %}">Hub</a></li>
+                {% endif %}
                 {% if user.role == "eleve" and user.is_valide %}
                   <li class="nav-item"><a class="nav-link" href="{% url 'rgpd:demandes_rgpd_list' %}">Mes demandes RGPD</a></li>
                   <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:dashboard' %}">Mon dashboard</a></li>

@@ -212,3 +212,84 @@ class ProspectionsTousRolesTests(TestCase):
             destinataire=self.autre_superviseur,
             type=TypeNotification.AJOUT_PROSPECTION,
         ).exists())
+
+
+    def test_mode_mine_superviseur_affiche_uniquement_ses_prospections(self):
+        propre = self.creer_prospection(self.superviseur, "Mine superviseur")
+        self.creer_prospection(self.eleve_scope, "Élève du scope")
+        self.client.force_login(self.superviseur)
+        response = self.client.get(reverse("entreprises:prospections_toutes"), {"mine": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["prospections"]), [propre])
+        self.assertEqual(response.context["titre_prospections"], "Mes prospections")
+
+    def test_mode_eleves_superviseur_limite_aux_eleves_de_son_scope(self):
+        dans_scope = self.creer_prospection(self.eleve_scope, "Élève du scope ciblé")
+        self.creer_prospection(self.eleve_hors_scope, "Élève hors scope ciblé")
+        self.creer_prospection(self.superviseur, "Superviseur ciblé")
+        self.client.force_login(self.superviseur)
+        response = self.client.get(
+            reverse("entreprises:prospections_toutes"),
+            {"eleves": "1", "statut": Statut.A_CONTACTER},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["prospections"]), [dans_scope])
+        self.assertEqual(response.context["titre_prospections"], "Prospections des élèves")
+
+    def test_mode_superviseurs_refuse_a_un_superviseur(self):
+        self.client.force_login(self.superviseur)
+        response = self.client.get(
+            reverse("entreprises:prospections_toutes"),
+            {"superviseurs": "1"},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_mode_mine_admin_affiche_uniquement_ses_prospections(self):
+        propre = self.creer_prospection(self.admin, "Mine admin")
+        self.creer_prospection(self.eleve, "Élève hors mine admin")
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("entreprises:prospections_toutes"), {"mine": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["prospections"]), [propre])
+        self.assertEqual(response.context["titre_prospections"], "Mes prospections")
+
+    def test_mode_eleves_admin_affiche_uniquement_les_eleves(self):
+        eleve = self.creer_prospection(self.eleve, "Élève admin")
+        self.creer_prospection(self.superviseur, "Superviseur exclu admin")
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("entreprises:prospections_toutes"), {"eleves": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["prospections"]), [eleve])
+        self.assertEqual(response.context["titre_prospections"], "Prospections des élèves")
+
+    def test_mode_superviseurs_admin_affiche_uniquement_les_superviseurs(self):
+        superviseur = self.creer_prospection(self.superviseur, "Prospection superviseur admin")
+        self.creer_prospection(self.eleve, "Élève exclu superviseur admin")
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse("entreprises:prospections_toutes"),
+            {"superviseurs": "1"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["prospections"]), [superviseur])
+        self.assertEqual(response.context["titre_prospections"], "Prospections des superviseurs")
+
+    def test_priorite_mine_sur_eleves_et_superviseurs(self):
+        propre = self.creer_prospection(self.admin, "Priorité mine")
+        self.creer_prospection(self.eleve, "Élève hors mode prioritaire")
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse("entreprises:prospections_toutes"),
+            {"mine": "1", "eleves": "1", "superviseurs": "1"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["prospections"]), [propre])
+        self.assertEqual(response.context["titre_prospections"], "Mes prospections")
+
+    def test_le_formulaire_conserve_le_segment_actif(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse("entreprises:prospections_toutes"),
+            {"eleves": "1"},
+        )
+        self.assertContains(response, 'name="eleves" value="1"')

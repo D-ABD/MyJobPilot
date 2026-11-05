@@ -4,12 +4,13 @@
 <section aria-labelledby="titre-prospections">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-      <h1 class="h2 mb-1" id="titre-prospections">Prospections</h1>
+      <h1 class="h2 mb-1" id="titre-prospections">{{ titre_prospections }}</h1>
       <p class="text-body-secondary mb-0">Prospections accessibles selon votre rôle et votre périmètre.</p>
     </div>
     <a class="btn btn-primary" href="{% url 'entreprises:prospection_create_tout_role' %}">Nouvelle prospection</a>
   </div>
   <form method="get" class="card card-body mb-4" aria-label="Filtres des prospections">
+    {% if mode_prospections %}<input type="hidden" name="{{ mode_prospections }}" value="1">{% endif %}
     <div class="row g-3 align-items-end">
       <div class="col-12 col-md-6 col-lg-3">
         <label class="form-label" for="filtre-statut-toutes">Statut</label>

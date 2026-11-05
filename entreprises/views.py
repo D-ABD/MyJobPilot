@@ -83,20 +83,71 @@ class FiltresDashboard(FiltreMixin):
 
 
 @login_required
+def hub(request):
+    """Hub d'accès rapide réservé aux superviseurs et aux admins."""
+    if request.user.role not in {Utilisateur.Role.SUPERVISEUR, Utilisateur.Role.ADMIN}:
+        raise PermissionDenied
+    return render(request, "entreprises/hub.html")
+
+
+@login_required
 def prospections_toutes(request):
-    """Liste les prospections visibles par l'utilisateur selon son rôle."""
+    """Liste les prospections visibles et filtrées selon le rôle."""
     role = request.user.role
+    if role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+
+    mode_demande = next(
+        (
+            mode for mode in ("mine", "eleves", "superviseurs")
+            if request.GET.get(mode) == "1"
+        ),
+        None,
+    )
+    if role == Utilisateur.Role.SUPERVISEUR and mode_demande == "superviseurs":
+        raise PermissionDenied
+    # Les élèves restent limités à leurs propres prospections.
+    mode_prospections = (
+        ("mine" if mode_demande == "mine" else None)
+        if role == Utilisateur.Role.ELEVE
+        else mode_demande
+    )
+
     queryset = Prospection.objects.all()
     if role == Utilisateur.Role.ELEVE:
         queryset = queryset.filter(eleve=request.user)
     elif role == Utilisateur.Role.SUPERVISEUR:
         centres_du_scope = centres_du_superviseur(request.user)
-        queryset = queryset.filter(
-            Q(eleve=request.user)
-            | Q(eleve__role=Utilisateur.Role.ELEVE, eleve__centre__in=centres_du_scope)
-        )
-    elif role != Utilisateur.Role.ADMIN:
-        raise PermissionDenied
+        if mode_prospections == "mine":
+            queryset = queryset.filter(eleve=request.user)
+        elif mode_prospections == "eleves":
+            queryset = queryset.filter(
+                eleve__role=Utilisateur.Role.ELEVE,
+                eleve__centre__in=centres_du_scope,
+            )
+        else:
+            queryset = queryset.filter(
+                Q(eleve=request.user)
+                | Q(eleve__role=Utilisateur.Role.ELEVE, eleve__centre__in=centres_du_scope)
+            )
+    else:
+        if mode_prospections == "mine":
+            queryset = queryset.filter(eleve=request.user)
+        elif mode_prospections == "eleves":
+            queryset = queryset.filter(eleve__role=Utilisateur.Role.ELEVE)
+        elif mode_prospections == "superviseurs":
+            queryset = queryset.filter(eleve__role=Utilisateur.Role.SUPERVISEUR)
+
+    titres = {
+        "mine": "Mes prospections",
+        "eleves": "Prospections des élèves",
+        "superviseurs": "Prospections des superviseurs",
+    }
+    titre_prospections = titres.get(mode_prospections, "Toutes les prospections")
 
     queryset = queryset.select_related("eleve", "entreprise")
     filtreur = FiltresDashboard()
@@ -104,6 +155,10 @@ def prospections_toutes(request):
     page_obj = Paginator(resultats, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
     parametres_pagination = request.GET.copy()
     parametres_pagination.pop("page", None)
+    url_reset = (
+        f"{request.path}?{mode_prospections}=1"
+        if mode_prospections else request.path
+    )
     return render(request, "entreprises/prospections_toutes.html", {
         **filtreur.get_contexte_filtres(request),
         "prospections": page_obj.object_list,
@@ -113,6 +168,9 @@ def prospections_toutes(request):
         "types_contrat": TypeContrat.choices,
         "pagination_query": parametres_pagination.urlencode(),
         "tri_urls": {},
+        "mode_prospections": mode_prospections,
+        "titre_prospections": titre_prospections,
+        "url_reset": url_reset,
     })
 
 

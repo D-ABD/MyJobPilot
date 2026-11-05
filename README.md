@@ -173,3 +173,8 @@ Chaque prospection précise le type de contrat : stage ou alternance. Le choix e
 ### Lot 8d — Prospections pour tous les rôles
 
 La page /prospections/ rassemble les prospections visibles pour l'utilisateur connecté. Les élèves voient les leurs, les superviseurs celles de leur scope ainsi que leurs propres prospections, et les admins voient l'ensemble. La création permet de choisir un propriétaire dans les limites du rôle ; une création pour autrui est journalisée et notifiée.
+
+
+### Lot 8e — Hub superviseur et administrateur
+
+Le hub « /hub/ » donne aux superviseurs et aux administrateurs des liens rapides vers les espaces associés à leur rôle. Les élèves n'y ont pas accès. La liste « /prospections/ » prend en charge les segments « mes prospections », « prospections des élèves » et, pour l'administrateur seulement, « prospections des superviseurs ». Ces paramètres conservent les filtres de recherche, statut, type de contrat, tri et pagination.

@@ -8,6 +8,7 @@ app_name = "entreprises"
 urlpatterns = [
     path("commentaires/ajouter/<int:prospection_pk>/", commentaires.commentaire_ajouter, name="commentaire_ajouter"),
     path("commentaires/<int:pk>/supprimer/", commentaires.commentaire_supprimer, name="commentaire_supprimer"),
+    path("hub/", views.hub, name="hub"),
     path("dashboard/", views.dashboard_eleve, name="dashboard"),
     path("prospections/", views.prospections_toutes, name="prospections_toutes"),
     path("prospections/nouvelle/", views.prospection_create_tout_role, name="prospection_create_tout_role"),
