@@ -19,7 +19,7 @@ class ExperienceUtilisateurTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertContains(response, "Page non trouvée (404)", status_code=404)
-        self.assertContains(response, "Retour à l'accueil")
+        self.assertContains(response, "Retour à l'accueil", status_code=404)
 
     def test_mon_compte_affiche_les_informations_et_liens_eleve(self):
         centre, _ = Centre.objects.get_or_create(
