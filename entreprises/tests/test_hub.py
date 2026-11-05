@@ -41,10 +41,10 @@ class HubTests(TestCase):
             ("Mes prospections", "/prospections/?mine=1"),
             ("Prospections de mes élèves", "/prospections/?eleves=1"),
             ("Mes élèves", "/staff/"),
-            ("Mes documents", "/documents/"),
         ):
             self.assertContains(response, libelle)
             self.assertContains(response, lien)
+        self.assertNotContains(response, "Mes documents")
 
     def test_hub_admin_affiche_cartes_attendues(self):
         self.client.force_login(self.admin)
@@ -61,6 +61,7 @@ class HubTests(TestCase):
         ):
             self.assertContains(response, libelle)
             self.assertContains(response, lien)
+        self.assertNotContains(response, "Mes documents")
 
     def test_hub_refuse_un_eleve(self):
         self.client.force_login(self.eleve)
