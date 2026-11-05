@@ -33,17 +33,19 @@
 
   <div class="card">
     <div class="card-header"><h2 class="h5 mb-0">Prospections de l'élève</h2></div>
+    <form method="get" class="card-body border-bottom"><label class="form-label" for="filtre-type-contrat-detail">Type de contrat</label><div class="d-flex gap-2"><select class="form-select" id="filtre-type-contrat-detail" name="type_contrat"><option value="tous" {% if filtre_type_contrat == "tous" %}selected{% endif %}>Tous</option>{% for code, libelle in types_contrat %}<option value="{{ code }}" {% if filtre_type_contrat == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}</select><button class="btn btn-primary" type="submit">Filtrer</button></div></form>
     {% if prospections %}
       <div class="table-responsive">
         <table class="table table-striped mb-0">
           <caption class="visually-hidden">Prospections de {{ eleve.username }}</caption>
-          <thead><tr><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Statut</th><th scope="col">Modifiée le</th></tr></thead>
+          <thead><tr><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Statut</th><th scope="col">Type de contrat</th><th scope="col">Modifiée le</th></tr></thead>
           <tbody>
             {% for prospection in prospections %}
               <tr>
                 <th scope="row">{{ prospection.entreprise.nom }}</th>
                 <td>{{ prospection.entreprise.ville|default:"—" }}</td>
                 <td>{{ prospection.get_statut_display }}</td>
+                <td>{{ prospection.get_type_contrat_display }}</td>
                 <td><time datetime="{{ prospection.date_modification|date:'c' }}">{{ prospection.date_modification|date:"d/m/Y H:i" }}</time></td>
               </tr>
             {% endfor %}
@@ -69,6 +71,9 @@
         {% if field.is_hidden %}
           {{ field }}
         {% else %}
+          {% if field.name == "type_contrat" %}
+            <fieldset class="mb-3"><legend class="form-label">{{ field.label }}</legend>{% for radio in field %}<div class="form-check">{{ radio.tag }}<label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label></div>{% endfor %}{% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</fieldset>
+          {% else %}
           <div class="mb-3">
             <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
             {{ field }}
@@ -76,6 +81,7 @@
             {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
             {% if field.name == "entreprise_nom" %}<div id="resultats-entreprises-staff" class="list-group mt-1" role="listbox" aria-label="Résultats d'entreprises"></div>{% endif %}
           </div>
+          {% endif %}
         {% endif %}
       {% endfor %}
       <button class="btn btn-outline-secondary mb-3" type="button" id="bouton-nouvelle-entreprise-staff" aria-expanded="false">Créer une nouvelle entreprise</button>

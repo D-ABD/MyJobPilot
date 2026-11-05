@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from comptes.models import Centre, Formation, JournalAction, Notification, ScopeSuperviseur, TypeNotification, Utilisateur
-from entreprises.models import Entreprise, Prospection, Statut
+from entreprises.models import Entreprise, Prospection, Statut, TypeContrat
 
 
 class ActionsStaffEleveTests(TestCase):
@@ -116,11 +116,12 @@ class ActionsStaffEleveTests(TestCase):
         self.connecter(self.superviseur)
         response = self.client.post(
             reverse("staff:ajouter_entreprise", args=[self.eleve_paris.pk]),
-            {"entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom, "statut": Statut.A_CONTACTER},
+            {"entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom, "statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.STAGE},
         )
         self.assertRedirects(response, reverse("staff:detail_eleve", args=[self.eleve_paris.pk]))
         prospection = Prospection.objects.get(eleve=self.eleve_paris, entreprise=entreprise)
         self.assertEqual(prospection.statut, Statut.A_CONTACTER)
+        self.assertEqual(prospection.type_contrat, TypeContrat.STAGE)
         self.assertTrue(
             prospection.historique.filter(
                 ancien_statut="", nouveau_statut=Statut.A_CONTACTER, auteur=self.superviseur
@@ -137,6 +138,27 @@ class ActionsStaffEleveTests(TestCase):
             destinataire=self.eleve_paris, type=TypeNotification.AJOUT_PROSPECTION,
         ).exists())
 
+    def test_dashboard_staff_filtre_par_type_contrat(self):
+        ScopeSuperviseur.objects.create(superviseur=self.superviseur, centre=self.centre_paris)
+        stage = Prospection.objects.create(eleve=self.eleve_paris, entreprise=self.creer_entreprise("Stage staff"), type_contrat=TypeContrat.STAGE)
+        Prospection.objects.create(eleve=self.eleve_paris, entreprise=self.creer_entreprise("Alternance staff"), type_contrat=TypeContrat.ALTERNANCE)
+        self.connecter(self.superviseur)
+        response = self.client.get(reverse("staff:dashboard"), {"type_contrat": TypeContrat.STAGE})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["eleves"]), [self.eleve_paris])
+        self.assertEqual(response.context["total_count"], 1)
+
+    def test_superviseur_choisit_le_type_de_contrat(self):
+        ScopeSuperviseur.objects.create(superviseur=self.superviseur, centre=self.centre_paris)
+        entreprise = self.creer_entreprise("Prospection stage staff")
+        self.connecter(self.superviseur)
+        response = self.client.post(reverse("staff:ajouter_entreprise", args=[self.eleve_paris.pk]), {
+            "entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom,
+            "statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.STAGE,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Prospection.objects.get(eleve=self.eleve_paris, entreprise=entreprise).type_contrat, TypeContrat.STAGE)
+
     def test_superviseur_peut_creer_une_entreprise_et_sa_prospection(self):
         ScopeSuperviseur.objects.create(superviseur=self.superviseur, centre=self.centre_paris)
         self.connecter(self.superviseur)
@@ -147,6 +169,7 @@ class ActionsStaffEleveTests(TestCase):
                 "nom": "Nouvelle entreprise staff",
                 "ville": "Paris",
                 "statut": Statut.A_CONTACTER,
+                "type_contrat": TypeContrat.ALTERNANCE,
             },
         )
         entreprise = Entreprise.objects.get(nom="Nouvelle entreprise staff")
@@ -170,7 +193,7 @@ class ActionsStaffEleveTests(TestCase):
         self.connecter(self.superviseur)
         response = self.client.post(
             reverse("staff:ajouter_entreprise", args=[self.eleve_paris.pk]),
-            {"entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom, "statut": Statut.A_CONTACTER},
+            {"entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom, "statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.ALTERNANCE},
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Prospection.objects.filter(eleve=self.eleve_paris).count(), 1)
@@ -180,7 +203,7 @@ class ActionsStaffEleveTests(TestCase):
         self.connecter(self.admin)
         response = self.client.post(
             reverse("staff:ajouter_entreprise", args=[self.eleve_lyon.pk]),
-            {"entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom, "statut": Statut.A_CONTACTER},
+            {"entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom, "statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.ALTERNANCE},
         )
         self.assertRedirects(response, reverse("staff:detail_eleve", args=[self.eleve_lyon.pk]))
         self.assertTrue(Prospection.objects.filter(eleve=self.eleve_lyon, entreprise=entreprise).exists())

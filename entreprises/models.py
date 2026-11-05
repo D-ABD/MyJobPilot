@@ -14,6 +14,11 @@ class Statut(models.TextChoices):
     ACCEPTE = "accepte", "Accepté"
 
 
+class TypeContrat(models.TextChoices):
+    STAGE = "stage", "Stage"
+    ALTERNANCE = "alternance", "Alternance"
+
+
 class Entreprise(models.Model):
     nom = models.CharField("nom", max_length=200)
     secteur = models.CharField("secteur", max_length=100, blank=True)
@@ -55,6 +60,10 @@ class Prospection(models.Model):
         max_length=30,
         choices=Statut.choices,
         default=Statut.A_CONTACTER,
+    )
+    type_contrat = models.CharField(
+        "type de contrat", max_length=20, choices=TypeContrat.choices,
+        default=TypeContrat.ALTERNANCE,
     )
     date_relance = models.DateField("date de relance", null=True, blank=True)
     date_candidature = models.DateField("date de candidature", null=True, blank=True)

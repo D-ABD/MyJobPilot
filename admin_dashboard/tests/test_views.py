@@ -221,6 +221,29 @@ class AdminDashboardViewsTests(TestCase):
             details__nouveau_centre_id=self.eleve.centre_id,
         ).exists())
 
+    def test_export_prospections_contient_type_contrat_apres_statut(self):
+        prospection = self._creer_prospection()
+        prospection.type_contrat = "stage"
+        prospection.save(update_fields=["type_contrat"])
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin_dashboard:export_prospections"))
+        self.assertEqual(response.status_code, 200)
+        contenu = response.content.decode("utf-8-sig")
+        lignes = contenu.strip().splitlines()
+        self.assertEqual(lignes[0].split(",")[3:6], ["statut", "type_contrat", "date_creation"])
+        self.assertIn(",stage,", lignes[1])
+
+    def test_admin_eleve_detail_filtre_type_contrat(self):
+        stage = self._creer_prospection()
+        stage.type_contrat = "stage"
+        stage.save(update_fields=["type_contrat"])
+        autre = Entreprise.objects.create(nom="Entreprise alternance admin")
+        Prospection.objects.create(eleve=self.eleve, entreprise=autre, type_contrat="alternance")
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin_dashboard:eleve_detail", args=[self.eleve.pk]), {"type_contrat": "stage"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["prospections"]), [stage])
+
     def test_admin_prospection_detail_accede(self):
         prospection = self._creer_prospection()
         self.client.force_login(self.admin)

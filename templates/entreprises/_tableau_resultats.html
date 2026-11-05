@@ -7,6 +7,7 @@
         <th scope="col"><a href="{{ tri_urls.entreprise__secteur }}" class="table-sort-link">Secteur <span aria-hidden="true">↕</span></a></th>
         <th scope="col"><a href="{{ tri_urls.entreprise__ville }}" class="table-sort-link">Ville <span aria-hidden="true">↕</span></a></th>
         <th scope="col"><a href="{{ tri_urls.statut }}" class="table-sort-link">Statut <span aria-hidden="true">↕</span></a></th>
+        <th scope="col">Type de contrat</th>
         <th scope="col"><a href="{{ tri_urls.date_modification }}" class="table-sort-link">Modifiée le <span aria-hidden="true">↕</span></a></th>
         <th scope="col"><span class="visually-hidden">Actions</span></th>
       </tr>
@@ -34,6 +35,7 @@
               <span class="badge text-bg-success badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
             {% endif %}
           </td>
+          <td>{{ prospection.get_type_contrat_display }}</td>
           <td><time datetime="{{ prospection.date_modification|date:'c' }}">{{ prospection.date_modification|date:"d/m/Y H:i" }}</time></td>
           <td>
             <div class="table-actions" role="group" aria-label="Actions pour {{ prospection.entreprise.nom }}">

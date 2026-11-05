@@ -21,6 +21,9 @@
           {% if field.is_hidden %}
             {{ field }}
           {% else %}
+            {% if field.name == "type_contrat" %}
+              <fieldset class="mb-3"><legend class="form-label">{{ field.label }}</legend>{% for radio in field %}<div class="form-check">{{ radio.tag }}<label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label></div>{% endfor %}{% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</fieldset>
+            {% else %}
             <div class="mb-3">
               <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
               {{ field }}
@@ -30,6 +33,7 @@
                 <div id="resultats-entreprises" class="list-group mt-1" role="listbox" aria-label="Résultats d'entreprises"></div>
               {% endif %}
             </div>
+            {% endif %}
           {% endif %}
         {% endfor %}
         {% if allow_new_entreprise %}

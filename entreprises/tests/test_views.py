@@ -6,7 +6,8 @@ from django.utils import timezone
 from django.urls import reverse
 
 from comptes.models import Centre, Formation, JournalAction, Notification, ScopeSuperviseur, TypeNotification, Utilisateur
-from entreprises.models import Entreprise, HistoriqueStatut, Prospection, Statut
+from entreprises.forms import ProspectionForm
+from entreprises.models import Entreprise, HistoriqueStatut, Prospection, Statut, TypeContrat
 
 
 class VuesEntreprisesTests(TestCase):
@@ -40,9 +41,9 @@ class VuesEntreprisesTests(TestCase):
     def creer_entreprise(self, nom="Entreprise", **kwargs):
         return Entreprise.objects.create(nom=nom, **kwargs)
 
-    def creer_prospection(self, eleve=None, nom="Entreprise", statut=Statut.A_CONTACTER):
+    def creer_prospection(self, eleve=None, nom="Entreprise", statut=Statut.A_CONTACTER, **kwargs):
         entreprise = self.creer_entreprise(nom)
-        return Prospection.objects.create(eleve=eleve or self.eleve, entreprise=entreprise, statut=statut)
+        return Prospection.objects.create(eleve=eleve or self.eleve, entreprise=entreprise, statut=statut, **kwargs)
 
     def connecter(self, utilisateur=None):
         self.client.force_login(utilisateur or self.eleve)
@@ -84,6 +85,15 @@ class VuesEntreprisesTests(TestCase):
         response = self.client.get(reverse("entreprises:dashboard"))
         self.assertEqual(response.status_code, 403)
 
+    def test_dashboard_filtre_par_type_contrat(self):
+        self.creer_prospection(nom="Stage", type_contrat=TypeContrat.STAGE)
+        self.creer_prospection(nom="Alternance", type_contrat=TypeContrat.ALTERNANCE)
+        self.connecter()
+        response = self.client.get(reverse("entreprises:dashboard"), {"type_contrat": TypeContrat.STAGE})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["prospections"])[0].type_contrat, TypeContrat.STAGE)
+        self.assertEqual(response.context["total_count"], 1)
+
     def test_dashboard_filtre_par_statut(self):
         self.creer_prospection(nom="À contacter")
         self.creer_prospection(nom="À relancer", statut=Statut.A_RELANCER)
@@ -112,6 +122,16 @@ class VuesEntreprisesTests(TestCase):
         self.assertIn("q=Entreprise", response.context["pagination_query"])
         self.assertIn("statut=tous", response.context["pagination_query"])
 
+    def test_formulaire_type_contrat_obligatoire(self):
+        entreprise = self.creer_entreprise("Form obligatoire")
+        form = ProspectionForm(data={
+            "entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom,
+            "statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.ALTERNANCE,
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIsNone(ProspectionForm().fields["type_contrat"].initial)
+        self.assertIn("type_contrat", form.errors)
+
     def test_get_creation_affiche_le_formulaire(self):
         self.connecter()
         response = self.client.get(reverse("entreprises:create"))
@@ -124,7 +144,7 @@ class VuesEntreprisesTests(TestCase):
         self.connecter()
         response = self.client.post(
             reverse("entreprises:create"),
-            {"entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom, "statut": Statut.A_CONTACTER},
+            {"entreprise_id": entreprise.pk, "entreprise_nom": entreprise.nom, "statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.STAGE},
         )
         prospection = Prospection.objects.get(eleve=self.eleve, entreprise=entreprise)
         self.assertRedirects(response, reverse("entreprises:detail", args=[prospection.pk]))
@@ -144,6 +164,7 @@ class VuesEntreprisesTests(TestCase):
                 "secteur": "Conseil",
                 "ville": "Paris",
                 "statut": Statut.A_CONTACTER,
+                "type_contrat": TypeContrat.ALTERNANCE,
             },
         )
         entreprise = Entreprise.objects.get(nom="Nouvelle société")
@@ -159,7 +180,7 @@ class VuesEntreprisesTests(TestCase):
         self.connecter()
         self.client.post(reverse("entreprises:create"), {
             "entreprise_nom": "Prospection notif élève", "nom": "Prospection notif élève",
-            "statut": Statut.A_CONTACTER,
+            "statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.ALTERNANCE,
         })
         self.assertTrue(Notification.objects.filter(
             destinataire=superviseur, type=TypeNotification.AJOUT_PROSPECTION,
@@ -167,7 +188,7 @@ class VuesEntreprisesTests(TestCase):
 
     def test_post_creation_sans_entreprise_est_refuse(self):
         self.connecter()
-        response = self.client.post(reverse("entreprises:create"), {"statut": Statut.A_CONTACTER})
+        response = self.client.post(reverse("entreprises:create"), {"statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.ALTERNANCE})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["form"].errors)
         self.assertFalse(Prospection.objects.filter(eleve=self.eleve).exists())
@@ -181,6 +202,7 @@ class VuesEntreprisesTests(TestCase):
                 "entreprise_id": prospection.entreprise_id,
                 "entreprise_nom": prospection.entreprise.nom,
                 "statut": Statut.A_CONTACTER,
+                "type_contrat": TypeContrat.ALTERNANCE,
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -221,7 +243,7 @@ class VuesEntreprisesTests(TestCase):
         self.connecter()
         response = self.client.post(
             reverse("entreprises:update", args=[prospection.pk]),
-            {"statut": Statut.A_CONTACTER, "notes": "Rappeler lundi", "source": "Salon", "entreprise_nom": prospection.entreprise.nom},
+            {"statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.STAGE, "notes": "Rappeler lundi", "source": "Salon", "entreprise_nom": prospection.entreprise.nom},
         )
         prospection.refresh_from_db()
         self.assertEqual(prospection.notes, "Rappeler lundi")

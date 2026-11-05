@@ -3,7 +3,7 @@ from django.contrib import admin
 
 from comptes.models import Utilisateur
 
-from .models import Commentaire, Entreprise, HistoriqueStatut, Prospection
+from .models import Commentaire, Entreprise, HistoriqueStatut, Prospection, TypeContrat
 
 
 @admin.register(Entreprise)
@@ -15,8 +15,14 @@ class EntrepriseAdmin(admin.ModelAdmin):
 
 @admin.register(Prospection)
 class ProspectionAdmin(admin.ModelAdmin):
-    list_display = ("eleve", "entreprise", "statut", "date_creation", "date_modification")
-    list_filter = ("statut", "date_modification")
+    list_display = ("eleve", "entreprise", "statut", "type_contrat", "date_creation", "date_modification")
+    list_filter = ("statut", "type_contrat", "date_modification")
+    fieldsets = (
+        (None, {"fields": ("eleve", "entreprise", "statut", "type_contrat")}),
+        ("Dates", {"fields": ("date_relance", "date_candidature", "date_mise_en_attente", "date_entretien", "date_refus", "date_acceptation")}),
+        ("Notes", {"fields": ("notes", "source")}),
+        ("Suivi", {"fields": ("date_creation", "date_modification")}),
+    )
     search_fields = ("eleve__username", "entreprise__nom", "entreprise__ville")
     readonly_fields = ("date_creation", "date_modification")
 

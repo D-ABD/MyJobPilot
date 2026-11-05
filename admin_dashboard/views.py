@@ -22,7 +22,7 @@ from comptes.utils import invalidate_user_sessions, log_action
 from .import_csv import importer_eleves_csv
 from documents.models import Document
 from entreprises.forms import ChangementStatutForm, CommentaireForm
-from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut
+from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut, TypeContrat
 from rgpd.models import DemandeRGPD, StatutDemande, TypeDemande
 from .forms import (
     AdminEleveCentreForm, AdminEleveFormationForm, AdminSuperviseurUpdateForm,
@@ -293,12 +293,12 @@ def admin_export_eleves_csv(request):
 def admin_export_prospections_csv(request):
     prospections = Prospection.objects.select_related("eleve", "entreprise").order_by("eleve__username", "entreprise__nom")
     headers = [
-        "eleve_username", "entreprise_nom", "entreprise_ville", "statut",
+        "eleve_username", "entreprise_nom", "entreprise_ville", "statut", "type_contrat",
         "date_creation", "date_modification", "date_relance", "date_candidature",
         "date_entretien", "date_refus", "date_acceptation",
     ]
     rows = ([
-        p.eleve.username, p.entreprise.nom, p.entreprise.ville, p.statut,
+        p.eleve.username, p.entreprise.nom, p.entreprise.ville, p.statut, p.type_contrat,
         _format_date(p.date_creation), _format_date(p.date_modification),
         _format_date(p.date_relance), _format_date(p.date_candidature),
         _format_date(p.date_entretien), _format_date(p.date_refus),
@@ -341,13 +341,17 @@ def admin_export_demandes_rgpd_csv(request):
 
 
 
-def _contexte_eleve_detail(eleve):
+def _contexte_eleve_detail(eleve, type_contrat="tous"):
     prospections = Prospection.objects.filter(eleve=eleve).select_related(
         "entreprise",
     ).prefetch_related("historique__auteur")
+    if type_contrat in {choix for choix, _ in TypeContrat.choices}:
+        prospections = prospections.filter(type_contrat=type_contrat)
     return {
         "eleve": eleve,
         "prospections": prospections,
+        "types_contrat": TypeContrat.choices,
+        "filtre_type_contrat": type_contrat,
         "documents": Document.objects.listing().filter(eleve=eleve),
         "commentaires": Commentaire.objects.filter(
             prospection__eleve=eleve,
@@ -362,7 +366,8 @@ def admin_eleve_detail(request, pk):
         Utilisateur.objects.select_related("centre", "formation", "valide_par"),
         pk=pk, role=Utilisateur.Role.ELEVE,
     )
-    return render(request, "admin_dashboard/eleve_detail.html", _contexte_eleve_detail(eleve))
+    type_contrat = request.GET.get("type_contrat", "tous")
+    return render(request, "admin_dashboard/eleve_detail.html", _contexte_eleve_detail(eleve, type_contrat))
 
 
 @administrateur_requis

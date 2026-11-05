@@ -14,7 +14,7 @@ from comptes.notifications import notifier_ajout_prospection
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
 from entreprises.forms import EntrepriseForm
-from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut
+from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut, TypeContrat
 
 from .forms import AjoutProspectionStaffForm, ChangementCentreFormStaff
 
@@ -60,6 +60,10 @@ def dashboard_staff(request):
         else:
             queryset = queryset.filter(centre_id=int(centre_selectionne))
 
+    type_contrat_selectionne = request.GET.get("type_contrat", "tous")
+    if type_contrat_selectionne in {choix for choix, _ in TypeContrat.choices}:
+        queryset = queryset.filter(prospections__type_contrat=type_contrat_selectionne).distinct()
+
     validation_selectionnee = request.GET.get("is_valide", "")
     if validation_selectionnee == "true":
         queryset = queryset.filter(is_valide=True)
@@ -104,6 +108,8 @@ def dashboard_staff(request):
         "filtre_q": recherche,
         "filtre_centre": centre_selectionne,
         "filtre_is_valide": validation_selectionnee,
+        "filtre_type_contrat": type_contrat_selectionne,
+        "types_contrat": TypeContrat.choices,
         "filtre_tri": tri,
         "filtre_ordre": ordre,
         "url_reset": request.path,
@@ -151,12 +157,17 @@ def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=
         )
         .order_by("-date_modification")
     )
+    type_contrat_selectionne = request.GET.get("type_contrat", "tous")
+    if type_contrat_selectionne in {choix for choix, _ in TypeContrat.choices}:
+        prospections = prospections.filter(type_contrat=type_contrat_selectionne)
     return render(
         request,
         "staff/detail_eleve.html",
         {
             "eleve": eleve,
             "prospections": prospections,
+            "types_contrat": TypeContrat.choices,
+            "filtre_type_contrat": type_contrat_selectionne,
             "prospection_form": prospection_form if prospection_form is not None else AjoutProspectionStaffForm(),
             "entreprise_form": entreprise_form if entreprise_form is not None else EntrepriseForm(),
         },
@@ -250,6 +261,7 @@ def ajouter_entreprise_staff(request, pk):
                         eleve=eleve,
                         entreprise=entreprise,
                         statut=donnees["statut"],
+                        type_contrat=donnees["type_contrat"],
                         notes=donnees.get("notes", ""),
                         source=donnees.get("source", ""),
                         date_relance=donnees.get("date_relance"),

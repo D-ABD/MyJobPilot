@@ -35,6 +35,7 @@
   <div class="card mb-4">
     <div class="card-header"><h2 class="h5 mb-0">Ma démarche</h2></div>
     <dl class="row card-body mb-0">
+      <dt class="col-sm-4">Type de contrat</dt><dd class="col-sm-8">{{ prospection.get_type_contrat_display }}</dd>
       <dt class="col-sm-4">Source</dt><dd class="col-sm-8">{{ prospection.source|default:"—" }}</dd>
       <dt class="col-sm-4">Notes</dt><dd class="col-sm-8">{{ prospection.notes|linebreaksbr|default:"—" }}</dd>
       <dt class="col-sm-4">Date de relance</dt><dd class="col-sm-8">{{ prospection.date_relance|date:"d/m/Y"|default:"—" }}</dd>

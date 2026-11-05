@@ -178,3 +178,8 @@ Les routes suivantes sont réservées au rôle `admin` ; tout autre rôle authen
 La PWA expose son manifeste sur `/static/manifest.json`, son service worker sur `/sw.js` et la page de repli hors ligne sur `/offline/`. Le service worker met en cache les ressources publiques et ne met jamais en cache les espaces authentifiés.
 
 L'ajout d'une prospection crée des notifications pour les superviseurs actifs du scope et, selon l'auteur, pour l'élève ou un administrateur actif de repli. Une modification de statut par l'administrateur notifie l'élève ; l'élève ne reçoit pas de notification pour son propre changement.
+
+
+## Lot 8c — Type de contrat
+
+Les prospections ont un type de contrat `stage` ou `alternance`. La création exige un choix explicite. Les tableaux élève et staff, ainsi que la fiche élève de l’administration, acceptent le filtre `type_contrat=stage|alternance|tous`. L’export CSV des prospections ajoute la colonne `type_contrat` après `statut`.

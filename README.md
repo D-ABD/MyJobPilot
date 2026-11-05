@@ -163,3 +163,8 @@ Les fiches administrateur du Lot 8a permettent de consulter les données liées 
 Les administrateurs peuvent importer des élèves depuis un CSV avec les colonnes `username,email,first_name,last_name,centre,formation`. Chaque ligne est traitée indépendamment ; les élèves créés restent en attente de validation, et les erreurs sont listées dans le rapport. Un mot de passe aléatoire de 12 caractères est créé sans être affiché. Chaque compte importé reçoit un consentement RGPD version 1.0 marqué `import_csv`.
 
 L'application fournit un manifeste PWA, un service worker servi à `/sw.js` et une page `/offline/`. Les pages authentifiées ne sont pas mises en cache. Les icônes PNG sont des placeholders à remplacer avant production.
+
+
+### Lot 8c — Type de contrat
+
+Chaque prospection précise le type de contrat : stage ou alternance. Le choix est obligatoire lors de la création. Les tableaux permettent de filtrer les prospections par type et l’export CSV des prospections inclut cette information.

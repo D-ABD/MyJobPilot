@@ -9,6 +9,13 @@
         {% endfor %}
       </select>
     </div>
+    <div class="col-12 col-md-6 col-lg-3">
+      <label class="form-label" for="filtre-type-contrat">Type de contrat</label>
+      <select class="form-select" id="filtre-type-contrat" name="type_contrat">
+        <option value="tous" {% if filtre_type_contrat == "tous" %}selected{% endif %}>Tous les types</option>
+        {% for code, libelle in types_contrat %}<option value="{{ code }}" {% if filtre_type_contrat == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
+      </select>
+    </div>
     <div class="col-6 col-md-3 col-lg-2">
       <label class="form-label" for="filtre-date-debut">Modification depuis</label>
       <input class="form-control" type="date" id="filtre-date-debut" name="date_debut" value="{{ filtre_date_debut }}" aria-label="Date de début">

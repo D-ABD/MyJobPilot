@@ -3,7 +3,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from comptes.models import Centre, Formation, Utilisateur
-from entreprises.models import Entreprise, HistoriqueStatut, Prospection, Statut
+from entreprises.models import Entreprise, HistoriqueStatut, Prospection, Statut, TypeContrat
 
 
 class ModelesEntreprisesTests(TestCase):
@@ -32,6 +32,10 @@ class ModelesEntreprisesTests(TestCase):
     def test_statut_prospection_par_defaut_est_a_contacter(self):
         prospection = self.creer_prospection()
         self.assertEqual(prospection.statut, Statut.A_CONTACTER)
+
+    def test_type_contrat_prospection_par_defaut_est_alternance(self):
+        prospection = self.creer_prospection()
+        self.assertEqual(prospection.type_contrat, TypeContrat.ALTERNANCE)
 
     def test_str_entreprise_retourne_son_nom(self):
         entreprise = self.creer_entreprise()

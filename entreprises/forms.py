@@ -1,7 +1,7 @@
 """Formulaires du référentiel, des prospections et de leurs statuts."""
 from django import forms
 
-from .models import Commentaire, Entreprise, Prospection, Statut
+from .models import Commentaire, Entreprise, Prospection, Statut, TypeContrat
 
 
 class ProspectionForm(forms.Form):
@@ -29,6 +29,13 @@ class ProspectionForm(forms.Form):
         choices=Statut.choices,
         initial=Statut.A_CONTACTER,
         widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    type_contrat = forms.ChoiceField(
+        choices=TypeContrat.choices,
+        widget=forms.RadioSelect,
+        required=True,
+        initial=None,
+        label="Type de contrat",
     )
     notes = forms.CharField(
         label="Notes",
@@ -62,7 +69,7 @@ class ProspectionForm(forms.Form):
             initial.setdefault("entreprise_id", prospection.entreprise_id)
             initial.setdefault("entreprise_nom", prospection.entreprise.nom)
             for champ in (
-                "statut", "notes", "source", "date_relance", "date_candidature",
+                "statut", "type_contrat", "notes", "source", "date_relance", "date_candidature",
                 "date_mise_en_attente", "date_refus", "date_acceptation",
             ):
                 initial.setdefault(champ, getattr(prospection, champ))
@@ -74,9 +81,10 @@ class ProspectionForm(forms.Form):
         if prospection is not None:
             self.fields["entreprise_id"].disabled = True
             self.fields["entreprise_nom"].disabled = True
-        for champ in self.fields.values():
+        for nom, champ in self.fields.items():
             if not isinstance(champ.widget, forms.HiddenInput):
-                champ.widget.attrs.setdefault("class", "form-control")
+                css_class = "form-check-input" if nom == "type_contrat" else "form-control"
+                champ.widget.attrs.setdefault("class", css_class)
 
     def clean(self):
         donnees = super().clean()

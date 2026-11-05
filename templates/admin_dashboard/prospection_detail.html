@@ -5,6 +5,7 @@
 <dl class="row"><dt class="col-sm-3">Élève</dt><dd class="col-sm-9"><a href="{% url 'admin_dashboard:eleve_detail' prospection.eleve_id %}">{{ prospection.eleve.username }}</a></dd>
 <dt class="col-sm-3">Entreprise</dt><dd class="col-sm-9">{{ prospection.entreprise.nom }} — {{ prospection.entreprise.ville }}</dd>
 <dt class="col-sm-3">Statut</dt><dd class="col-sm-9">{{ prospection.get_statut_display }}</dd>
+<dt class="col-sm-3">Type de contrat</dt><dd class="col-sm-9">{{ prospection.get_type_contrat_display }}</dd>
 <dt class="col-sm-3">Créée</dt><dd class="col-sm-9">{{ prospection.date_creation|date:"d/m/Y H:i" }}</dd><dt class="col-sm-3">Modifiée</dt><dd class="col-sm-9">{{ prospection.date_modification|date:"d/m/Y H:i" }}</dd>
 <dt class="col-sm-3">Relance</dt><dd class="col-sm-9">{{ prospection.date_relance|date:"d/m/Y"|default:"—" }}</dd><dt class="col-sm-3">Candidature</dt><dd class="col-sm-9">{{ prospection.date_candidature|date:"d/m/Y"|default:"—" }}</dd><dt class="col-sm-3">Mise en attente</dt><dd class="col-sm-9">{{ prospection.date_mise_en_attente|date:"d/m/Y"|default:"—" }}</dd>
 <dt class="col-sm-3">Entretien</dt><dd class="col-sm-9">{{ prospection.date_entretien|date:"d/m/Y H:i"|default:"—" }}</dd><dt class="col-sm-3">Refus</dt><dd class="col-sm-9">{{ prospection.date_refus|date:"d/m/Y"|default:"—" }}</dd><dt class="col-sm-3">Acceptation</dt><dd class="col-sm-9">{{ prospection.date_acceptation|date:"d/m/Y"|default:"—" }}</dd></dl>

@@ -3,6 +3,7 @@ from django import forms
 
 from comptes.models import Centre
 from entreprises.forms import ProspectionForm
+from entreprises.models import TypeContrat
 
 
 class ChangementCentreFormStaff(forms.Form):
@@ -21,6 +22,14 @@ class ChangementCentreFormStaff(forms.Form):
 
 class AjoutProspectionStaffForm(ProspectionForm):
     """Formulaire de prospection prérempli dans la fiche staff de l'élève."""
+
+    type_contrat = forms.ChoiceField(
+        choices=TypeContrat.choices,
+        widget=forms.RadioSelect,
+        required=True,
+        initial=None,
+        label="Type de contrat",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

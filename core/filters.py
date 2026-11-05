@@ -15,6 +15,10 @@ class FiltreMixin:
         if statut and statut != "tous":
             queryset = queryset.filter(statut=statut)
 
+        type_contrat = params.get("type_contrat")
+        if type_contrat in {"stage", "alternance"}:
+            queryset = queryset.filter(type_contrat=type_contrat)
+
         date_debut = params.get("date_debut")
         if date_debut:
             queryset = queryset.filter(date_modification__date__gte=date_debut)
@@ -51,6 +55,7 @@ class FiltreMixin:
         """Fournit aux templates les valeurs actuelles des filtres."""
         return {
             "filtre_statut": request.GET.get("statut", "tous"),
+            "filtre_type_contrat": request.GET.get("type_contrat", "tous"),
             "filtre_date_debut": request.GET.get("date_debut", ""),
             "filtre_date_fin": request.GET.get("date_fin", ""),
             "filtre_q": request.GET.get("q", ""),

@@ -16,7 +16,7 @@ from comptes.utils import log_action
 from core.filters import FiltreMixin
 
 from .forms import ChangementStatutForm, EntrepriseForm, ProspectionForm
-from .models import Entreprise, HistoriqueStatut, Prospection, Statut
+from .models import Entreprise, HistoriqueStatut, Prospection, Statut, TypeContrat
 
 
 NOMBRE_PAR_PAGE = 25
@@ -115,6 +115,7 @@ def dashboard_eleve(request):
         "total_count": resultats.count(),
         "stats_par_statut": stats_par_statut,
         "statuts": Statut.choices,
+        "types_contrat": TypeContrat.choices,
         "pagination_query": pagination_query,
         "tri_urls": tri_urls,
     }
@@ -199,7 +200,7 @@ def _creer_prospection(eleve, entreprise, donnees):
     valeurs = {
         champ: donnees.get(champ)
         for champ in (
-            "statut", "notes", "source", "date_relance", "date_candidature",
+            "statut", "type_contrat", "notes", "source", "date_relance", "date_candidature",
             "date_mise_en_attente", "date_refus", "date_acceptation",
         )
     }
@@ -211,6 +212,7 @@ def _enregistrer_formulaire_prospection(prospection, donnees, request):
     ancien_statut = prospection.statut
     nouveau_statut = donnees["statut"]
     prospection.statut = nouveau_statut
+    prospection.type_contrat = donnees["type_contrat"]
     for champ in (
         "notes", "source", "date_relance", "date_candidature", "date_mise_en_attente",
         "date_refus", "date_acceptation",

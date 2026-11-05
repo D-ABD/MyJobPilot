@@ -20,6 +20,11 @@
     {% endfor %}
   </div>
 
+  <form method="get" class="card card-body mb-3" aria-label="Filtrer par type de contrat">
+    <input type="hidden" name="q" value="{{ filtre_q }}"><input type="hidden" name="centre" value="{{ filtre_centre }}"><input type="hidden" name="is_valide" value="{{ filtre_is_valide }}"><input type="hidden" name="tri" value="{{ filtre_tri }}"><input type="hidden" name="ordre" value="{{ filtre_ordre }}">
+    <label class="form-label" for="filtre-type-contrat-staff">Prospections : type de contrat</label>
+    <div class="d-flex gap-2"><select class="form-select" id="filtre-type-contrat-staff" name="type_contrat"><option value="tous" {% if filtre_type_contrat == "tous" %}selected{% endif %}>Tous les types</option>{% for code, libelle in types_contrat %}<option value="{{ code }}" {% if filtre_type_contrat == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}</select><button class="btn btn-primary" type="submit">Filtrer</button></div>
+  </form>
   {% include "staff/_tableau_filtres.html" %}
 
   {% if eleves %}
