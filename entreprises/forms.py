@@ -1,5 +1,9 @@
 """Formulaires du référentiel, des prospections et de leurs statuts."""
 from django import forms
+from django.db.models import Q
+
+from comptes.models import Utilisateur
+from comptes.scope_utils import centres_du_superviseur
 
 from .models import Commentaire, Entreprise, Prospection, Statut, TypeContrat
 
@@ -110,6 +114,41 @@ class ProspectionForm(forms.Form):
             if doublon.exists():
                 self.add_error("entreprise_nom", "Vous avez déjà une prospection pour cette entreprise.")
         return donnees
+
+
+class ProspectionFormToutRole(ProspectionForm):
+    """Formulaire de création avec propriétaire limité par rôle."""
+
+    proprietaire = forms.ModelChoiceField(
+        label="Propriétaire de la prospection",
+        queryset=Utilisateur.objects.none(),
+        required=True,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, request=None, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+        if request is None or not getattr(request.user, "is_authenticated", False):
+            proprietaires = Utilisateur.objects.none()
+        elif request.user.role == Utilisateur.Role.ELEVE:
+            proprietaires = Utilisateur.objects.filter(pk=request.user.pk)
+            self.fields["proprietaire"].widget = forms.HiddenInput()
+            self.fields["proprietaire"].initial = request.user.pk
+        elif request.user.role == Utilisateur.Role.SUPERVISEUR:
+            centres_du_scope = centres_du_superviseur(request.user)
+            proprietaires = Utilisateur.objects.filter(
+                Q(pk=request.user.pk)
+                | Q(role=Utilisateur.Role.ELEVE, centre__in=centres_du_scope)
+            )
+        elif request.user.role == Utilisateur.Role.ADMIN:
+            proprietaires = Utilisateur.objects.filter(
+                Q(pk=request.user.pk)
+                | Q(role__in=[Utilisateur.Role.ELEVE, Utilisateur.Role.SUPERVISEUR])
+            )
+        else:
+            proprietaires = Utilisateur.objects.none()
+        self.fields["proprietaire"].queryset = proprietaires.order_by("username")
 
 
 class EntrepriseForm(forms.ModelForm):

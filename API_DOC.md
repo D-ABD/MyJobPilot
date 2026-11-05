@@ -183,3 +183,8 @@ L'ajout d'une prospection crée des notifications pour les superviseurs actifs d
 ## Lot 8c — Type de contrat
 
 Les prospections ont un type de contrat `stage` ou `alternance`. La création exige un choix explicite. Les tableaux élève et staff, ainsi que la fiche élève de l’administration, acceptent le filtre `type_contrat=stage|alternance|tous`. L’export CSV des prospections ajoute la colonne `type_contrat` après `statut`.
+
+
+## Lot 8d — Prospections par rôle
+
+La page /prospections/ liste les prospections selon le rôle : un élève voit les siennes, un superviseur voit les siennes et celles des élèves de son scope actif, et l'admin voit tout. La page /prospections/nouvelle/ permet de choisir un propriétaire autorisé ; un élève ne peut choisir que son propre compte. Les créations faites pour un autre utilisateur sont journalisées et déclenchent la notification prévue.

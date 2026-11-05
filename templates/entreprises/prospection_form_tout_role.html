@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle prospection — MyJobPilot{% endblock %}
+{% block content %}
+<section class="row justify-content-center" aria-labelledby="titre-formulaire-prospection">
+  <div class="col-12 col-lg-8">
+    <h1 class="h2 mb-4" id="titre-formulaire-prospection">Nouvelle prospection</h1>
+    <form method="post" class="card card-body" id="form-prospection-tous">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}
+        {% if field.is_hidden %}
+          {{ field }}
+        {% elif field.name == "type_contrat" %}
+          <fieldset class="mb-3">
+            <legend class="form-label">{{ field.label }}</legend>
+            {% for radio in field %}<div class="form-check">{{ radio.tag }}<label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label></div>{% endfor %}
+            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          </fieldset>
+        {% else %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+            {% if field.name == "entreprise_nom" %}<div id="resultats-entreprises-tout-role" class="list-group mt-1" role="listbox" aria-label="Résultats d'entreprises"></div>{% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+      <details class="border rounded p-3 mb-3">
+        <summary>Informations de l'entreprise si elle n'existe pas encore</summary>
+        <div class="pt-3">{{ entreprise_form.as_p }}</div>
+      </details>
+      {% for error in entreprise_form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-primary" type="submit">Créer la prospection</button>
+        <a class="btn btn-outline-secondary" href="{% url 'entreprises:prospections_toutes' %}">Annuler</a>
+      </div>
+    </form>
+  </div>
+</section>
+<script>
+  (() => {
+    const input = document.getElementById("id_entreprise_nom");
+    const idField = document.getElementById("id_entreprise_id");
+    const newName = document.getElementById("id_nom");
+    const results = document.getElementById("resultats-entreprises-tout-role");
+    let timer;
+    if (!input || !idField || !newName || !results) return;
+    input.addEventListener("input", () => {
+      idField.value = "";
+      newName.value = input.value.trim();
+      window.clearTimeout(timer);
+      const query = input.value.trim();
+      if (query.length < 2) { results.replaceChildren(); return; }
+      timer = window.setTimeout(async () => {
+        try {
+          const url = new URL("{% url 'entreprises:search' %}", window.location.origin);
+          url.searchParams.set("q", query);
+          const response = await fetch(url, {headers: {"Accept": "application/json"}});
+          if (!response.ok) return;
+          const companies = await response.json();
+          results.replaceChildren();
+          companies.forEach((company) => {
+            const option = document.createElement("button");
+            option.type = "button";
+            option.className = "list-group-item list-group-item-action";
+            option.setAttribute("role", "option");
+            option.textContent = company.ville ? company.nom + " — " + company.ville : company.nom;
+            option.addEventListener("click", () => {
+              input.value = company.nom;
+              newName.value = company.nom;
+              idField.value = company.id;
+              results.replaceChildren();
+            });
+            results.appendChild(option);
+          });
+        } catch (_) { results.replaceChildren(); }
+      }, 200);
+    });
+  })();
+</script>
+{% endblock %}

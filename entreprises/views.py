@@ -6,16 +6,20 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from comptes.models import JournalAction, Utilisateur
+from comptes.scope_utils import centres_du_superviseur
 from comptes.notifications import notifier_ajout_prospection, notifier_changement_statut
 from comptes.utils import log_action
 from core.filters import FiltreMixin
 
-from .forms import ChangementStatutForm, EntrepriseForm, ProspectionForm
+from .forms import (
+    ChangementStatutForm, EntrepriseForm, ProspectionForm, ProspectionFormToutRole,
+)
 from .models import Entreprise, HistoriqueStatut, Prospection, Statut, TypeContrat
 
 
@@ -76,6 +80,40 @@ def _valeur_date_associee(prospection, statut):
 
 class FiltresDashboard(FiltreMixin):
     """Expose le mixin commun au tableau de bord élève."""
+
+
+@login_required
+def prospections_toutes(request):
+    """Liste les prospections visibles par l'utilisateur selon son rôle."""
+    role = request.user.role
+    queryset = Prospection.objects.all()
+    if role == Utilisateur.Role.ELEVE:
+        queryset = queryset.filter(eleve=request.user)
+    elif role == Utilisateur.Role.SUPERVISEUR:
+        centres_du_scope = centres_du_superviseur(request.user)
+        queryset = queryset.filter(
+            Q(eleve=request.user)
+            | Q(eleve__role=Utilisateur.Role.ELEVE, eleve__centre__in=centres_du_scope)
+        )
+    elif role != Utilisateur.Role.ADMIN:
+        raise PermissionDenied
+
+    queryset = queryset.select_related("eleve", "entreprise")
+    filtreur = FiltresDashboard()
+    resultats = filtreur.apply_filters(queryset, request.GET)
+    page_obj = Paginator(resultats, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
+    parametres_pagination = request.GET.copy()
+    parametres_pagination.pop("page", None)
+    return render(request, "entreprises/prospections_toutes.html", {
+        **filtreur.get_contexte_filtres(request),
+        "prospections": page_obj.object_list,
+        "page_obj": page_obj,
+        "total_count": resultats.count(),
+        "statuts": Statut.choices,
+        "types_contrat": TypeContrat.choices,
+        "pagination_query": parametres_pagination.urlencode(),
+        "tri_urls": {},
+    })
 
 
 @login_required
@@ -275,6 +313,86 @@ def entreprise_delete(request, pk):
         prospection.delete()
         return redirect("entreprises:dashboard")
     return render(request, "entreprises/entreprise_confirm_delete.html", {"prospection": prospection})
+
+
+@login_required
+def prospection_create_tout_role(request):
+    """Crée une prospection pour un propriétaire autorisé par le rôle."""
+    if request.user.role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+
+    form = ProspectionFormToutRole(request.POST or None, request=request)
+    entreprise_form = EntrepriseForm(request.POST or None)
+
+    def rendre():
+        return render(request, "entreprises/prospection_form_tout_role.html", {
+            "form": form,
+            "entreprise_form": entreprise_form,
+            "allow_new_entreprise": True,
+        })
+
+    if request.method == "POST" and form.is_valid():
+        proprietaire = form.cleaned_data["proprietaire"]
+        entreprise = form.cleaned_data.get("entreprise_id")
+        if entreprise is None:
+            if not entreprise_form.is_valid():
+                return rendre()
+            nom_autocomplete = form.cleaned_data["entreprise_nom"].strip()
+            if entreprise_form.cleaned_data["nom"].strip().casefold() != nom_autocomplete.casefold():
+                form.add_error(
+                    "entreprise_nom",
+                    "Le nom doit correspondre aux informations de l'entreprise.",
+                )
+                return rendre()
+            entreprise = entreprise_form.save(commit=False)
+
+        if entreprise.pk and Prospection.objects.filter(
+            eleve=proprietaire, entreprise=entreprise,
+        ).exists():
+            messages.info(request, "Ce propriétaire a déjà une prospection pour cette entreprise.")
+            return redirect("entreprises:prospections_toutes")
+
+        try:
+            with transaction.atomic():
+                if entreprise.pk is None:
+                    entreprise.save()
+                prospection = _creer_prospection(proprietaire, entreprise, form.cleaned_data)
+                HistoriqueStatut.objects.create(
+                    prospection=prospection,
+                    ancien_statut="",
+                    nouveau_statut=prospection.statut,
+                    auteur=request.user,
+                    date_associee=_valeur_date_associee(prospection, prospection.statut),
+                )
+                if request.user != proprietaire:
+                    log_action(
+                        JournalAction.Action.ACTION_STAFF_ELEVE,
+                        utilisateur=request.user,
+                        cible=prospection,
+                        details={
+                            "prospection_id": prospection.pk,
+                            "proprietaire_id": proprietaire.pk,
+                            "action": "ajout_prospection",
+                        },
+                        request=request,
+                    )
+        except IntegrityError:
+            form.add_error(
+                "entreprise_nom",
+                "Ce propriétaire a déjà une prospection pour cette entreprise.",
+            )
+            return rendre()
+
+        if request.user != proprietaire:
+            notifier_ajout_prospection(prospection, request.user)
+        messages.success(request, "La prospection a été créée.")
+        return redirect("entreprises:prospections_toutes")
+
+    return rendre()
 
 
 @login_required

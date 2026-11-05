@@ -63,6 +63,9 @@ class VuesEntreprisesTests(TestCase):
         self.assertNotContains(response, "Beta")
         self.assertEqual(list(response.context["prospections"]), [ma_prospection])
         self.assertNotIn(autre_prospection, response.context["prospections"])
+        response_toutes = self.client.get(reverse("entreprises:prospections_toutes"))
+        self.assertEqual(response_toutes.status_code, 200)
+        self.assertEqual(list(response_toutes.context["prospections"]), [ma_prospection])
 
     def test_dashboard_refuse_un_superviseur(self):
         superviseur = Utilisateur.objects.create_user(

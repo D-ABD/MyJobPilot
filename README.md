@@ -168,3 +168,8 @@ L'application fournit un manifeste PWA, un service worker servi à `/sw.js` et u
 ### Lot 8c — Type de contrat
 
 Chaque prospection précise le type de contrat : stage ou alternance. Le choix est obligatoire lors de la création. Les tableaux permettent de filtrer les prospections par type et l’export CSV des prospections inclut cette information.
+
+
+### Lot 8d — Prospections pour tous les rôles
+
+La page /prospections/ rassemble les prospections visibles pour l'utilisateur connecté. Les élèves voient les leurs, les superviseurs celles de leur scope ainsi que leurs propres prospections, et les admins voient l'ensemble. La création permet de choisir un propriétaire dans les limites du rôle ; une création pour autrui est journalisée et notifiée.
