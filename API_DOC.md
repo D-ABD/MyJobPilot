@@ -188,3 +188,15 @@ Les prospections ont un type de contrat `stage` ou `alternance`. La création ex
 ## Lot 8d — Prospections par rôle
 
 La page /prospections/ liste les prospections selon le rôle : un élève voit les siennes, un superviseur voit les siennes et celles des élèves de son scope actif, et l'admin voit tout. La page /prospections/nouvelle/ permet de choisir un propriétaire autorisé ; un élève ne peut choisir que son propre compte. Les créations faites pour un autre utilisateur sont journalisées et déclenchent la notification prévue.
+
+
+## Lot 8e — Hub superviseur et administrateur
+
+| Méthode | Chemin | Accès | Comportement |
+| --- | --- | --- | --- |
+| GET | /hub/ | Superviseur, admin | Hub avec les liens rapides correspondant au rôle. Les élèves reçoivent HTTP 403. |
+| GET | /prospections/?mine=1 | Tout utilisateur authentifié | Affiche uniquement les prospections dont l'utilisateur est propriétaire. |
+| GET | /prospections/?eleves=1 | Tout utilisateur authentifié | Pour un superviseur, affiche les prospections des élèves de son scope actif ; pour un admin, celles de tous les élèves. |
+| GET | /prospections/?superviseurs=1 | Admin | Affiche uniquement les prospections appartenant aux superviseurs. Les superviseurs reçoivent HTTP 403. |
+
+Les paramètres de périmètre sont exclusifs selon la priorité `mine`, puis `eleves`, puis `superviseurs`. Ils s'ajoutent aux filtres existants de recherche, statut, type de contrat, tri et pagination. Le lien Hub de la navigation est réservé aux superviseurs et aux admins.
