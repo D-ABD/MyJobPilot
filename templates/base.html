@@ -17,45 +17,81 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary" aria-label="Navigation principale">
       <div class="container">
         <a class="navbar-brand" href="{% url 'comptes:accueil' %}">MyJobPilot</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-label="Ouvrir le menu">
+        <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuPrincipalMobile" aria-controls="menuPrincipalMobile" aria-label="Ouvrir le menu">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="offcanvas offcanvas-end text-bg-primary" tabindex="-1" id="menuPrincipal" aria-labelledby="titreMenu">
+
+        <div class="navbar-collapse d-none d-lg-flex" id="menuPrincipalDesktop">
+          <ul class="navbar-nav ms-auto align-items-lg-center">
+            {% if user.is_authenticated %}
+              <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}" aria-label="Notifications">Notifications <span id="notifications-count" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
+              {% if user.role == "superviseur" or user.role == "admin" %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:hub' %}">Hub</a></li>
+              {% elif user.role == "eleve" and user.is_valide %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:dashboard' %}">Mon dashboard</a></li>
+              {% endif %}
+              <li class="nav-item dropdown">
+                <button class="nav-link dropdown-toggle" type="button" id="menuUtilisateurDesktop" data-bs-toggle="dropdown" aria-expanded="false">
+                  {{ user.first_name|default:user.username }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuUtilisateurDesktop">
+                  <li><a class="dropdown-item" href="{% url 'comptes:mon_compte' %}">Mon profil</a></li>
+                  {% if user.role == "eleve" %}
+                    <li><a class="dropdown-item" href="{% url 'documents:list' %}">Mes documents</a></li>
+                    <li><a class="dropdown-item" href="{% url 'rgpd:demandes_rgpd_list' %}">Mes demandes RGPD</a></li>
+                  {% elif user.role == "superviseur" %}
+                    <li><a class="dropdown-item" href="{% url 'staff:dashboard' %}">Mes élèves</a></li>
+                  {% elif user.role == "admin" %}
+                    <li><a class="dropdown-item" href="{% url 'admin_dashboard:dashboard' %}">Dashboard admin</a></li>
+                    <li><a class="dropdown-item" href="{% url 'rgpd:admin_demandes_rgpd_list' %}">Demandes RGPD</a></li>
+                  {% endif %}
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <form method="post" action="{% url 'comptes:deconnexion' %}">
+                      {% csrf_token %}
+                      <button class="dropdown-item" type="submit" aria-label="Se déconnecter">Déconnexion</button>
+                    </form>
+                  </li>
+                </ul>
+              </li>
+            {% else %}
+              <li class="nav-item"><a class="nav-link" href="{% url 'comptes:connexion' %}">Connexion</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'comptes:inscription' %}">Inscription</a></li>
+            {% endif %}
+          </ul>
+        </div>
+
+        <div class="offcanvas offcanvas-end text-bg-primary d-lg-none" tabindex="-1" id="menuPrincipalMobile" aria-labelledby="titreMenuMobile">
           <div class="offcanvas-header">
-            <h2 class="offcanvas-title fs-5" id="titreMenu">Menu</h2>
+            <h2 class="offcanvas-title fs-5" id="titreMenuMobile">Menu</h2>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Fermer le menu"></button>
           </div>
           <div class="offcanvas-body">
-            <ul class="navbar-nav ms-auto align-items-lg-center">
+            <ul class="navbar-nav">
               {% if user.is_authenticated %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}" aria-label="Notifications">Notifications <span id="notifications-count" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}">Notifications <span id="notifications-count-mobile" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
-                <li class="nav-item dropdown">
-                  <button class="nav-link dropdown-toggle" type="button" id="menuUtilisateur" data-bs-toggle="dropdown" aria-expanded="false">
-                    {{ user.first_name|default:user.username }}
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuUtilisateur">
-                    <li><a class="dropdown-item" href="{% url 'comptes:mon_compte' %}">Mon profil</a></li>
-                    {% if user.role == "eleve" %}
-                      <li><a class="dropdown-item" href="{% url 'entreprises:dashboard' %}">Mon dashboard</a></li>
-                      <li><a class="dropdown-item" href="{% url 'documents:list' %}">Mes documents</a></li>
-                      <li><a class="dropdown-item" href="{% url 'rgpd:demandes_rgpd_list' %}">Mes demandes RGPD</a></li>
-                    {% elif user.role == "superviseur" %}
-                      <li><a class="dropdown-item" href="{% url 'entreprises:hub' %}">Mon hub</a></li>
-                      <li><a class="dropdown-item" href="{% url 'staff:dashboard' %}">Mes élèves</a></li>
-                    {% elif user.role == "admin" %}
-                      <li><a class="dropdown-item" href="{% url 'entreprises:hub' %}">Mon hub</a></li>
-                      <li><a class="dropdown-item" href="{% url 'admin_dashboard:dashboard' %}">Dashboard admin</a></li>
-                      <li><a class="dropdown-item" href="{% url 'rgpd:admin_demandes_rgpd_list' %}">Demandes RGPD</a></li>
-                    {% endif %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                      <form method="post" action="{% url 'comptes:deconnexion' %}" class="px-3">
-                        {% csrf_token %}
-                        <button class="btn btn-link dropdown-item" type="submit" aria-label="Se déconnecter">Déconnexion</button>
-                      </form>
-                    </li>
-                  </ul>
+                {% if user.role == "superviseur" or user.role == "admin" %}
+                  <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:hub' %}">Hub</a></li>
+                {% elif user.role == "eleve" and user.is_valide %}
+                  <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:dashboard' %}">Mon dashboard</a></li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:mon_compte' %}">Mon profil</a></li>
+                {% if user.role == "eleve" %}
+                  <li class="nav-item"><a class="nav-link" href="{% url 'documents:list' %}">Mes documents</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'rgpd:demandes_rgpd_list' %}">Mes demandes RGPD</a></li>
+                {% elif user.role == "superviseur" %}
+                  <li class="nav-item"><a class="nav-link" href="{% url 'staff:dashboard' %}">Mes élèves</a></li>
+                {% elif user.role == "admin" %}
+                  <li class="nav-item"><a class="nav-link" href="{% url 'admin_dashboard:dashboard' %}">Dashboard admin</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'rgpd:admin_demandes_rgpd_list' %}">Demandes RGPD</a></li>
+                {% endif %}
+                <li class="nav-item mt-2">
+                  <form method="post" action="{% url 'comptes:deconnexion' %}">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-light" type="submit" aria-label="Se déconnecter">Déconnexion</button>
+                  </form>
                 </li>
               {% else %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'comptes:connexion' %}">Connexion</a></li>
@@ -101,8 +137,11 @@
   {% if user.is_authenticated %}
   <script>
     (() => {
-      const badge = document.getElementById("notifications-count");
-      if (!badge) return;
+      const badges = [
+        document.getElementById("notifications-count"),
+        document.getElementById("notifications-count-mobile")
+      ].filter(Boolean);
+      if (!badges.length) return;
       const actualiserCompteur = async () => {
         try {
           const response = await fetch("{% url 'comptes:notifications_unread_count' %}", {
@@ -111,8 +150,10 @@
           });
           if (!response.ok) return;
           const donnees = await response.json();
-          badge.textContent = String(donnees.count);
-          badge.classList.toggle("d-none", donnees.count === 0);
+          badges.forEach((badge) => {
+            badge.textContent = String(donnees.count);
+            badge.classList.toggle("d-none", donnees.count === 0);
+          });
         } catch (_) {}
       };
       actualiserCompteur();
