@@ -1,0 +1,38 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # 1. Mettre à jour le code
+            sudo -u myjobpilot bash -c 'cd 
+/home/myjobpilot/MyJobPilot && git pull origin main'
+            
+            # 2. Installer les nouvelles dépendances
+            sudo -u myjobpilot bash -c 'cd 
+/home/myjobpilot/MyJobPilot && source venv/bin/activate && pip 
+install -r requirements.txt'
+            
+            # 3. Appliquer les migrations
+            sudo -u myjobpilot bash -c 'cd 
+/home/myjobpilot/MyJobPilot && source venv/bin/activate && python 
+manage.py migrate'
+            
+            # 4. Collecter les fichiers statiques
+            sudo -u myjobpilot bash -c 'cd 
+/home/myjobpilot/MyJobPilot && source venv/bin/activate && python 
+manage.py collectstatic --noinput'
+            
+            # 5. Redémarrer Gunicorn
+            sudo systemctl restart myjobpilot
