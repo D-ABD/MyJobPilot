@@ -26,6 +26,7 @@
             {% if user.is_authenticated %}
               <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}" aria-label="Notifications">Notifications <span id="notifications-count" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:reference' %}">Entreprises</a></li>
               {% if user.role == "superviseur" or user.role == "admin" %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:hub' %}">Hub</a></li>
               {% elif user.role == "eleve" and user.is_valide %}
@@ -64,6 +65,7 @@
               {% if user.is_authenticated %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}">Notifications <span id="notifications-count-mobile" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:reference' %}">Entreprises</a></li>
                 {% if user.role == "superviseur" or user.role == "admin" %}
                   <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:hub' %}">Hub</a></li>
                 {% elif user.role == "eleve" and user.is_valide %}

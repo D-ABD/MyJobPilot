@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ entreprise.nom }} — Entreprises{% endblock %}
+{% block content %}
+<nav aria-label="Fil d’Ariane" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">Accueil</a></li>
+    <li class="breadcrumb-item"><a href="/entreprises-reference/">Entreprises</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ entreprise.nom }}</li>
+  </ol>
+</nav>
+<a href="/entreprises-reference/" class="btn btn-outline-secondary btn-sm mb-3" aria-label="Retour à la liste des entreprises"><i class="bi bi-arrow-left" aria-hidden="true"></i> Retour aux entreprises</a>
+<section aria-labelledby="titre-entreprise-reference">
+  <h1 class="h2" id="titre-entreprise-reference">{{ entreprise.nom }}</h1>
+  <dl class="row">
+    <dt class="col-sm-3">Secteur</dt><dd class="col-sm-9">{{ entreprise.secteur|default:"—" }}</dd>
+    <dt class="col-sm-3">Ville</dt><dd class="col-sm-9">{{ entreprise.ville|default:"—" }}</dd>
+    <dt class="col-sm-3">Code postal</dt><dd class="col-sm-9">{{ entreprise.code_postal|default:"—" }}</dd>
+    <dt class="col-sm-3">Site web</dt><dd class="col-sm-9">{% if entreprise.site_web %}<a href="{{ entreprise.site_web }}" rel="noopener noreferrer">{{ entreprise.site_web }}</a>{% else %}—{% endif %}</dd>
+    <dt class="col-sm-3">Contact</dt><dd class="col-sm-9">{{ entreprise.contact_nom|default:"—" }}{% if entreprise.contact_email %} · {{ entreprise.contact_email }}{% endif %}{% if entreprise.contact_telephone %} · {{ entreprise.contact_telephone }}{% endif %}</dd>
+  </dl>
+</section>
+<section class="mt-4" aria-labelledby="titre-prospections-reference">
+  <h2 class="h4" id="titre-prospections-reference">Prospections visibles</h2>
+  {% if prospections %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light"><tr>{% if request.user.role != "eleve" %}<th scope="col">Propriétaire</th>{% endif %}<th scope="col">Statut</th><th scope="col">Type de contrat</th><th scope="col">Dernière modification</th></tr></thead>
+        <tbody>{% for prospection in prospections %}<tr>
+          {% if request.user.role != "eleve" %}<td>{{ prospection.eleve.get_full_name|default:prospection.eleve.username }}</td>{% endif %}
+          <td><span class="badge badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span></td>
+          <td>{{ prospection.get_type_contrat_display }}</td>
+          <td><time datetime="{{ prospection.date_modification|date:'c' }}">{{ prospection.date_modification|date:"d/m/Y H:i" }}</time></td>
+        </tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  {% else %}<p class="text-body-secondary">Aucune prospection visible.</p>{% endif %}
+</section>
+{% endblock %}

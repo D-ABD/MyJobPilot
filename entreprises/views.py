@@ -1,12 +1,13 @@
 """Tableau de bord élève et gestion isolée des prospections."""
 from datetime import datetime, time
+import unicodedata
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -90,6 +91,135 @@ def _valeur_date_associee(prospection, statut):
         return None
     valeur = getattr(prospection, champ)
     return valeur.date() if champ == "date_entretien" and valeur else valeur
+
+
+def _prospections_reference_visibles(user):
+    """Retourne les prospections que ce rôle peut consulter dans le référentiel."""
+    queryset = Prospection.objects.select_related("entreprise", "eleve")
+    if user.role == Utilisateur.Role.ELEVE:
+        return queryset.filter(eleve=user)
+    if user.role == Utilisateur.Role.SUPERVISEUR:
+        centres = centres_du_superviseur(user)
+        return queryset.filter(
+            Q(eleve=user)
+            | Q(eleve__role=Utilisateur.Role.ELEVE, eleve__centre__in=centres)
+        )
+    if user.role == Utilisateur.Role.ADMIN:
+        return queryset
+    raise PermissionDenied
+
+
+def _normaliser_recherche_entreprise(texte):
+    """Normalise casse et accents pour la recherche du référentiel partagé."""
+    texte = unicodedata.normalize("NFKD", texte or "")
+    return "".join(caractere for caractere in texte if not unicodedata.combining(caractere)).casefold()
+
+
+def _filtrer_entreprises_par_texte(entreprises, recherche):
+    """Filtre une liste de référentiels par nom, secteur ou ville sans accents."""
+    terme = _normaliser_recherche_entreprise(recherche)
+    if not terme:
+        return entreprises
+    return [
+        entreprise for entreprise in entreprises
+        if any(
+            terme in _normaliser_recherche_entreprise(valeur)
+            for valeur in (entreprise.nom, entreprise.secteur, entreprise.ville)
+        )
+    ]
+
+
+def entreprises_reference(request):
+    """Liste les entreprises auxquelles l'utilisateur a accès selon son rôle."""
+    user = request.user
+    if not user.is_authenticated or user.role not in {
+        Utilisateur.Role.ELEVE, Utilisateur.Role.SUPERVISEUR, Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+
+    prospections_visibles = _prospections_reference_visibles(user)
+    queryset = Entreprise.objects.all()
+    if user.role != Utilisateur.Role.ADMIN:
+        queryset = queryset.filter(pk__in=prospections_visibles.values("entreprise_id"))
+    queryset = queryset.annotate(
+        nb_prospections=Count(
+            "prospections",
+            filter=Q(prospections__in=prospections_visibles),
+        )
+    ).distinct()
+
+    secteurs = list(queryset.order_by("secteur").values_list("secteur", flat=True).distinct())
+    villes = list(queryset.order_by("ville").values_list("ville", flat=True).distinct())
+    secteur = request.GET.get("secteur", "").strip()
+    ville = request.GET.get("ville", "").strip()
+    if secteur:
+        queryset = queryset.filter(secteur=secteur)
+    if ville:
+        queryset = queryset.filter(ville=ville)
+
+    champs_triables = {"nom": "nom", "ville": "ville", "date_creation": "date_creation"}
+    tri = request.GET.get("tri", "nom")
+    if tri not in champs_triables:
+        tri = "nom"
+    ordre = request.GET.get("ordre", "asc")
+    if ordre not in {"asc", "desc"}:
+        ordre = "asc"
+    champ_tri = champs_triables[tri]
+    queryset = queryset.order_by(("-" if ordre == "desc" else "") + champ_tri, "pk")
+
+    entreprises = list(queryset)
+    recherche = request.GET.get("q", "").strip()
+    entreprises = _filtrer_entreprises_par_texte(entreprises, recherche)
+    page_obj = Paginator(entreprises, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
+
+    parametres_pagination = request.GET.copy()
+    parametres_pagination.pop("page", None)
+    pagination_query = parametres_pagination.urlencode()
+    tri_urls = {}
+    for champ in champs_triables:
+        params = request.GET.copy()
+        params.pop("page", None)
+        prochain_ordre = "desc" if tri == champ and ordre == "asc" else "asc"
+        params["tri"] = champ
+        params["ordre"] = prochain_ordre
+        tri_urls[champ] = f"{request.path}?{params.urlencode()}"
+
+    return render(request, "entreprises/entreprises_reference.html", {
+        "entreprises": page_obj.object_list,
+        "page_obj": page_obj,
+        "total_count": len(entreprises),
+        "filtre_q": recherche,
+        "filtre_secteur": secteur,
+        "filtre_ville": ville,
+        "secteurs": [valeur for valeur in secteurs if valeur],
+        "villes": [valeur for valeur in villes if valeur],
+        "tri": tri,
+        "ordre": ordre,
+        "pagination_query": pagination_query,
+        "tri_urls": tri_urls,
+    })
+
+
+def entreprise_reference_detail(request, pk):
+    """Affiche une entreprise et seulement les prospections visibles du rôle."""
+    user = request.user
+    if not user.is_authenticated or user.role not in {
+        Utilisateur.Role.ELEVE, Utilisateur.Role.SUPERVISEUR, Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+
+    prospections_visibles = _prospections_reference_visibles(user)
+    entreprises_visibles = Entreprise.objects.all()
+    if user.role != Utilisateur.Role.ADMIN:
+        entreprises_visibles = entreprises_visibles.filter(
+            pk__in=prospections_visibles.values("entreprise_id"),
+        )
+    entreprise = get_object_or_404(entreprises_visibles, pk=pk)
+    prospections = prospections_visibles.filter(entreprise=entreprise).order_by("eleve__username")
+    return render(request, "entreprises/entreprise_reference_detail.html", {
+        "entreprise": entreprise,
+        "prospections": prospections,
+    })
 
 
 class FiltresDashboard(FiltreMixin):

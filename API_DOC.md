@@ -150,3 +150,12 @@ Exemple :
       }
     ]
 
+
+## Référentiel des entreprises — Lot 10
+
+| Méthode | URL | Rôle | Description | Paramètres | Réponses |
+|---|---|---|---|---|---|
+| GET | /entreprises-reference/ | Élève, superviseur, admin | Liste les entreprises visibles, avec filtres et pagination de 25 résultats. L'élève voit les entreprises de ses prospections ; le superviseur voit celles de son scope actif et ses propres prospections ; l'admin voit tout le référentiel. | q (nom, secteur, ville, sans distinction de casse ni d'accent), secteur, ville, tri (nom, ville, date_creation), ordre (asc/desc), page | 200 HTML, 403 |
+| GET | /entreprises-reference/<pk>/ | Élève, superviseur, admin | Affiche les informations de l'entreprise et uniquement les prospections visibles pour le rôle courant. | pk | 200 HTML, 403, 404 |
+
+Les paramètres de filtre sont conservés lors du tri et de la pagination. Le lien « Réinitialiser les filtres » revient à /entreprises-reference/ sans paramètre.

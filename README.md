@@ -195,3 +195,10 @@ MyJobPilot reste une application Django rendue côté serveur. Le Lot 9 ajoute u
 Exemple depuis une session authentifiée :
 
     curl -H "Accept: application/json" -b "sessionid=<SESSIONID>" http://localhost:8000/api/prospections/
+
+
+## Lot 10 — Référentiel des entreprises
+
+La page `/entreprises-reference/` permet à tous les rôles connectés de consulter le référentiel partagé. Les élèves ne voient que les entreprises de leurs propres prospections ; un superviseur voit celles des élèves de son scope actif ainsi que celles de ses propres prospections ; l'administrateur voit tout le référentiel. La fiche entreprise applique la même isolation aux prospections affichées.
+
+La liste propose une recherche insensible à la casse et aux accents dans le nom, le secteur et la ville, des filtres exacts de secteur et de ville, un tri par nom, ville ou date d'ajout, et une pagination de 25 résultats. Les paramètres de filtre sont conservés dans les liens de tri et de pagination.

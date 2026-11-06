@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Entreprises — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-entreprises-reference">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h1 class="h2 mb-1" id="titre-entreprises-reference">Entreprises</h1>
+      <p class="text-body-secondary mb-0">Référentiel des entreprises liées aux prospections accessibles selon votre rôle.</p>
+    </div>
+  </div>
+
+  <form method="get" class="card card-body mb-4" aria-label="Filtres des entreprises">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="filtre-entreprise-q">Recherche</label>
+        <input class="form-control" id="filtre-entreprise-q" type="search" name="q" value="{{ filtre_q }}" placeholder="Nom, secteur ou ville">
+      </div>
+      <div class="col-12 col-md-6 col-lg-2">
+        <label class="form-label" for="filtre-entreprise-secteur">Secteur</label>
+        <select class="form-select" id="filtre-entreprise-secteur" name="secteur">
+          <option value="">Tous les secteurs</option>
+          {% for valeur in secteurs %}<option value="{{ valeur }}" {% if filtre_secteur == valeur %}selected{% endif %}>{{ valeur }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-6 col-lg-2">
+        <label class="form-label" for="filtre-entreprise-ville">Ville</label>
+        <select class="form-select" id="filtre-entreprise-ville" name="ville">
+          <option value="">Toutes les villes</option>
+          {% for valeur in villes %}<option value="{{ valeur }}" {% if filtre_ville == valeur %}selected{% endif %}>{{ valeur }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="filtre-entreprise-tri">Tri</label>
+        <select class="form-select" id="filtre-entreprise-tri" name="tri">
+          <option value="nom" {% if tri == "nom" %}selected{% endif %}>Nom</option>
+          <option value="ville" {% if tri == "ville" %}selected{% endif %}>Ville</option>
+          <option value="date_creation" {% if tri == "date_creation" %}selected{% endif %}>Date d'ajout</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label" for="filtre-entreprise-ordre">Ordre</label>
+        <select class="form-select" id="filtre-entreprise-ordre" name="ordre">
+          <option value="asc" {% if ordre == "asc" %}selected{% endif %}>Croissant</option>
+          <option value="desc" {% if ordre == "desc" %}selected{% endif %}>Décroissant</option>
+        </select>
+      </div>
+      <div class="col-12 d-flex flex-wrap gap-2">
+        <button class="btn btn-primary" type="submit">Filtrer</button>
+        <a class="btn btn-outline-secondary" href="/entreprises-reference/">Réinitialiser les filtres</a>
+      </div>
+    </div>
+  </form>
+
+  <p class="text-body-secondary" aria-live="polite">{{ total_count }} entreprise{{ total_count|pluralize:"s" }}</p>
+  {% if entreprises %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <caption class="visually-hidden">Entreprises visibles par {{ request.user.username }}</caption>
+        <thead class="table-light">
+          <tr>
+            <th scope="col"><a class="link-body-emphasis" href="{{ tri_urls.nom }}">Nom</a></th>
+            <th scope="col">Secteur</th>
+            <th scope="col"><a class="link-body-emphasis" href="{{ tri_urls.ville }}">Ville</a></th>
+            <th scope="col"><a class="link-body-emphasis" href="{{ tri_urls.date_creation }}">Date d'ajout</a></th>
+            <th scope="col">Nb prospections</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entreprise in entreprises %}
+            <tr>
+              <th scope="row">{{ entreprise.nom }}</th>
+              <td>{{ entreprise.secteur|default:"—" }}</td>
+              <td>{{ entreprise.ville|default:"—" }}</td>
+              <td><time datetime="{{ entreprise.date_creation|date:'c' }}">{{ entreprise.date_creation|date:"d/m/Y" }}</time></td>
+              <td>{{ entreprise.nb_prospections }}</td>
+              <td><a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:reference_detail' entreprise.pk %}">Voir détails</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav aria-label="Pagination des entreprises">
+        <ul class="pagination flex-wrap">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page=1">Première</a></li>
+            <li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédente</a></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivante</a></li>
+            <li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.paginator.num_pages }}">Dernière</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="text-center border rounded p-5" role="status">
+      <i class="bi bi-inbox fs-1 text-body-secondary" aria-hidden="true"></i>
+      <p class="mt-3 mb-0">Aucune entreprise trouvée pour ces filtres.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
