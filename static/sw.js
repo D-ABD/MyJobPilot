@@ -1,4 +1,4 @@
-const CACHE_NAME = "myjobpilot-shell-v2";
+const CACHE_NAME = "myjobpilot-shell-v3";
 const SHELL_ASSETS = [
   "/",
   "/offline/",
@@ -26,10 +26,22 @@ self.addEventListener("fetch", event => {
   }
   if (PRIVATE_PREFIXES.some(prefix => url.pathname.startsWith(prefix))) return;
   if (url.pathname.startsWith("/static/")) {
-    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
-      if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
+      if (cached) return cached;
+
+      const response = await fetch(request);
+      if (response.ok) {
+        const responseToCache = response.clone();
+        try {
+          await cache.put(request, responseToCache);
+        } catch (error) {
+          // Le chargement reste disponible même si l'écriture du cache échoue.
+        }
+      }
       return response;
-    })));
+    })());
     return;
   }
   if (request.mode === "navigate") {
