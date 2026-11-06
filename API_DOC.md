@@ -1,207 +1,152 @@
-# API_DOC.md — MyJobPilot
+# API et routes MyJobPilot
+
+Version 0.9 — application Django rendue côté serveur, avec une API JSON en lecture seule pour préparer une éventuelle intégration progressive. Aucun frontend React n'est inclus.
+
+## Conventions
+
+- Les pages HTML utilisent la session Django ; les formulaires POST sont protégés par CSRF.
+- L'API /api/prospections/ utilise Django REST Framework, SessionAuthentication et IsAuthenticated. Aucun JWT ni jeton API n'est configuré.
+- Les formulaires valides redirigent généralement en 302 ; un formulaire invalide est réaffiché en 200. Les accès interdits renvoient 403 et les ressources absentes 404.
+- Les routes listées ci-dessous sont les URL réellement déclarées dans les URLconfs.
+
+## Pages HTML — public, authentification et élève
+
+| Méthode | URL | Rôle | Description | Paramètres | Réponses |
+|---|---|---|---|---|---|
+| GET | / | Public | Page d'accueil. | — | 200 HTML |
+| GET, POST | /comptes/inscription/ | Public | Demande de création d'un compte élève avec consentement requis. | POST : username, first_name, last_name, email, centre, formation, password1, password2, consentement_rgpd | 200 HTML, 302 |
+| GET, POST | /comptes/connexion/ | Public | Formulaire et ouverture de session. | POST : identifiant, mot de passe | 200 HTML, 302 |
+| POST | /comptes/deconnexion/ | Connecté | Ferme la session. | CSRF | 302 |
+| GET | /comptes/apres-login/ | Connecté | Redirige selon rôle et validation. | — | 302 |
+| GET | /comptes/en-attente/ | Élève non validé | Affiche l'état de la demande de compte. | — | 200 HTML |
+| GET | /mon-compte/ | Connecté | Profil en lecture seule. | — | 200 HTML |
+| GET | /dashboard/ | Élève | Tableau de bord de ses prospections. | statut, type_contrat, date_debut, date_fin, q, tri, ordre, page | 200 HTML |
+| GET | /entreprises/nouvelle/ | Élève | Formulaire historique de création d'une prospection. | POST : entreprise, statut, type_contrat, dates, notes, source | 200 HTML, 302, 403 |
+| GET | /entreprises/<pk>/ | Élève propriétaire | Détail d'une prospection et de son historique/commentaires. | pk | 200 HTML, 403, 404 |
+| GET, POST | /entreprises/<pk>/modifier/ | Élève propriétaire | Modifie une prospection. | POST : champs de prospection | 200 HTML, 302, 403, 404 |
+| GET, POST | /entreprises/<pk>/supprimer/ | Élève propriétaire | Confirme puis supprime une prospection. | POST de confirmation | 200 HTML, 302, 403, 404 |
+| GET, POST | /entreprises/<pk>/statut/ | Élève propriétaire | Modifie statut et dates associées, ajoute à l'historique. | POST : statut, date associée, commentaire | 200 HTML, 302, 403, 404 |
+| GET, POST | /prospections/nouvelle/ | Élève, superviseur, admin | Crée une prospection pour un propriétaire permis selon le rôle. | POST : propriétaire, entreprise, type_contrat et autres champs | 200 HTML, 302, 403 |
+| GET | /prospections/ | Connecté | Liste les prospections visibles selon le rôle. | mine, eleves, superviseurs, statut, type_contrat, date_debut, date_fin, q, tri, ordre, page | 200 HTML, superviseur avec superviseurs=1 : 403 |
+| GET | /entreprises/search/ | Connecté | Autocomplete du référentiel ; au plus 10 résultats id/nom/ville, sans données de prospection. | q (facultatif) | 200 JSON, non connecté : 302 |
+| POST | /commentaires/ajouter/<prospection_pk>/ | Propriétaire, superviseur du scope, admin | Ajoute un commentaire et journalise l'action. | POST : contenu | 302, 403, 404 |
+| POST | /commentaires/<pk>/supprimer/ | Auteur ou admin | Supprime un commentaire. | CSRF | 302, 403, 404 |
+
+Les paramètres mine, eleves et superviseurs sont exclusifs (priorité mine, puis eleves, puis superviseurs). Un superviseur voit ses propres prospections et celles des élèves de son scope actif ; un administrateur voit tout. Les autres filtres s'appliquent en complément. La pagination des listes est de 25 lignes.
+
+## Documents et notifications
+
+| Méthode | URL | Rôle | Description | Paramètres | Réponses |
+|---|---|---|---|---|---|
+| GET | /documents/ | Élève, admin | Liste des documents propres à l'élève ou tous les documents pour l'admin. | — | 200 HTML, 403 |
+| GET, POST | /documents/ajouter/ | Élève | Téléverse un document (max. 5 Mo ; quota élève 20 Mo). | Multipart : fichier, nom, type | 200 HTML, 302 |
+| GET | /documents/<pk>/telecharger/ | Propriétaire, superviseur du scope, admin | Télécharge un document autorisé. | pk | 200 fichier, 403, 404 |
+| GET, POST | /documents/<pk>/supprimer/ | Propriétaire, admin | Confirme et supprime un document. | pk, POST de confirmation | 200 HTML, 302, 403, 404 |
+| GET | /staff/eleves/<pk>/documents/ | Superviseur du scope, admin | Consultation en lecture seule des documents d'un élève. | pk élève | 200 HTML, 403, 404 |
+| GET | /notifications/ | Connecté | Liste les notifications du destinataire. | — | 200 HTML |
+| POST | /notifications/<pk>/marquer-lu/ | Destinataire | Marque sa notification comme lue. | CSRF | 302, 404 |
+| POST | /notifications/marquer-tout-lu/ | Connecté | Marque ses notifications non lues comme lues. | CSRF | 302 |
+
+## Superviseur, hub et actions staff
+
+| Méthode | URL | Rôle | Description | Paramètres | Réponses |
+|---|---|---|---|---|---|
+| GET | /hub/ | Superviseur, admin | Hub avec raccourcis par rôle. | — | 200 HTML, élève : 403 |
+| GET | /staff/ | Superviseur | Liste les élèves des centres de son scope actif. | q, centre, is_valide, tri, ordre, page | 200 HTML, 403 |
+| GET | /staff/eleves/<pk>/ | Superviseur du scope, admin | Fiche staff d'un élève et prospections. | pk élève | 200 HTML, 403, 404 |
+| GET, POST | /staff/eleves/<pk>/centre/ | Superviseur du scope, admin | Change le centre d'un élève. Le superviseur est limité à son scope actif. | POST : centre | 200 HTML, 302, 403, 404 |
+| GET, POST | /staff/eleves/<pk>/entreprises/ajouter/ | Superviseur du scope, admin | Ajoute une prospection pour un élève autorisé. | POST : entreprise, type_contrat, autres champs | 200 HTML, 302, 403, 404 |
+
+## Administration
+
+Toutes les routes de cette section nécessitent le rôle admin ; les autres rôles authentifiés reçoivent 403.
+
+| Méthode | URL | Description | Paramètres | Réponses |
+|---|---|---|---|---|
+| GET | /admin-dashboard/ | Statistiques et raccourcis admin. | — | 200 HTML |
+| GET | /admin-dashboard/eleves/ | Liste filtrée et paginée des élèves. | q, centre, is_valide, tri, ordre, page | 200 HTML |
+| GET | /admin-dashboard/eleves/<pk>/ | Fiche élève. | pk | 200 HTML, 404 |
+| POST | /admin-dashboard/eleves/<pk>/valider/ | Valide un élève. | CSRF | 302, 404 |
+| POST | /admin-dashboard/eleves/<pk>/refuser/ | Refuse un élève avec motif. | motif | 302, 404 |
+| POST | /admin-dashboard/eleves/<pk>/desactiver/ | Désactive le compte et invalide ses sessions. | CSRF | 302, 404 |
+| POST | /admin-dashboard/eleves/<pk>/reactiver/ | Réactive le compte. | CSRF | 302, 404 |
+| GET, POST | /admin-dashboard/eleves/<pk>/centre/ | Change centre/formation de l'élève. | centre, formation | 200 HTML, 302, 404 |
+| GET, POST | /admin-dashboard/eleves/<pk>/formation/ | Change la formation. | formation | 200 HTML, 302, 404 |
+| GET | /admin-dashboard/superviseurs/ | Liste les superviseurs et leurs scopes. | page | 200 HTML |
+| GET, POST | /admin-dashboard/superviseurs/creer/ | Crée un superviseur avec scope initial. | username, email, password, centre | 200 HTML, 302 |
+| GET | /admin-dashboard/superviseurs/<pk>/ | Fiche superviseur. | pk | 200 HTML, 404 |
+| GET, POST | /admin-dashboard/superviseurs/<pk>/modifier/ | Modifie le profil. | username, email, first_name, last_name | 200 HTML, 302, 404 |
+| GET, POST | /admin-dashboard/superviseurs/<pk>/mot-de-passe/ | Change le mot de passe. | nouveau mot de passe et confirmation | 200 HTML, 302, 404 |
+| POST | /admin-dashboard/superviseurs/<pk>/desactiver/ | Désactive et invalide les sessions. | CSRF | 302, 404 |
+| POST | /admin-dashboard/superviseurs/<pk>/reactiver/ | Réactive le compte. | CSRF | 302, 404 |
+| POST | /admin-dashboard/superviseurs/<pk>/supprimer/ | Supprime après confirmation. | CSRF, confirmation | 302, 404 |
+| GET | /admin-dashboard/superviseurs/<pk>/scopes/ | Liste les scopes. | pk superviseur | 200 HTML, 404 |
+| GET, POST | /admin-dashboard/superviseurs/<pk>/scopes/creer/ | Ajoute un scope. | centre | 200 HTML, 302, 404 |
+| POST | /admin-dashboard/scopes/<pk>/desactiver/ | Désactive un scope. | CSRF | 302, 404 |
+| GET | /admin-dashboard/demandes-rgpd/ | Liste filtrée des demandes et retards. | statut, type, tri, ordre, page | 200 HTML |
+| GET, POST | /admin-dashboard/demandes-rgpd/<pk>/traiter/ | Traite ou refuse une demande RGPD. | statut, motif_refus | 200 HTML, 302, 404 |
+| GET | /admin-dashboard/prospections/<pk>/ | Détail et historique d'une prospection. | pk | 200 HTML, 404 |
+| POST | /admin-dashboard/prospections/<pk>/statut/ | Change le statut. | statut, dates, commentaire | 302, 404 |
+| POST | /admin-dashboard/prospections/<pk>/commentaire/ | Ajoute un commentaire. | contenu | 302, 404 |
+| GET | /admin-dashboard/exports/ | Page des téléchargements CSV. | — | 200 HTML |
+| GET | /admin-dashboard/exports/eleves.csv | Export CSV des élèves. | — | 200 CSV |
+| GET | /admin-dashboard/exports/prospections.csv | Export CSV des prospections. | — | 200 CSV |
+| GET | /admin-dashboard/exports/historique.csv | Export CSV de l'historique. | — | 200 CSV |
+| GET | /admin-dashboard/exports/demandes-rgpd.csv | Export CSV des demandes RGPD. | — | 200 CSV |
+| GET, POST | /admin-dashboard/import-eleves/ | Import CSV des élèves avec rapport de lignes rejetées. | Multipart CSV : username,email,first_name,last_name,centre,formation | 200 HTML |
+
+## RGPD et pages PWA
+
+| Méthode | URL | Rôle | Description | Paramètres | Réponses |
+|---|---|---|---|---|---|
+| GET | /mon-compte/demandes-rgpd/ | Élève | Liste ses demandes RGPD. | — | 200 HTML |
+| GET, POST | /mon-compte/demandes-rgpd/creer/ | Élève | Crée une demande. | type, description | 200 HTML, 302 |
+| GET | /mon-compte/demandes-rgpd/<pk>/ | Propriétaire | Détail de sa demande. | pk | 200 HTML, 404 |
+| GET | /mon-compte/export-rgpd/ | Élève | Télécharge un export JSON de ses données sans contenu binaire. | — | 200 JSON |
+| GET | /confidentialite/ | Public | Politique de confidentialité. | — | 200 HTML |
+| GET | /offline/ | Public | Page hors ligne. | — | 200 HTML |
+| GET | /static/manifest.json | Public | Manifeste PWA. | — | 200 JSON |
+| GET | /sw.js | Public | Service worker à la racine. | — | 200 JavaScript |
+
+## Endpoints JSON existants
+
+### GET /notifications/unread-count/
+
+- Rôle : utilisateur connecté.
+- Description : compte les notifications non lues du destinataire courant.
+- Paramètres : aucun.
+- Réponse : 200 JSON, objet {count: entier}. Sans session, la vue Django redirige vers la connexion (302).
+
+### GET /entreprises/search/
+
+- Rôle : utilisateur connecté.
+- Description : recherche le nom dans le référentiel partagé ; jusqu'à 10 résultats id/nom/ville, sans statut ni données de prospection.
+- Paramètres : q facultatif ; q vide retourne une liste vide.
+- Réponse : 200 JSON, tableau. Sans session : 302 vers connexion.
+
+## API JSON — Lot 9
+
+### GET /api/prospections/
+
+- Rôle : élève, superviseur ou admin connecté.
+- Description : l'élève voit ses propres prospections ; le superviseur voit les siennes et celles des élèves de ses centres avec scope actif ; l'admin voit toutes les prospections.
+- Paramètres : aucun.
+- Authentification : session Django via SessionAuthentication, cookie sessionid ; aucun JWT ni token.
+- Réponse : 200 application/json, tableau contenant id, entreprise (id, nom, ville), statut, statut_display, type_contrat, type_contrat_display, date_creation et date_modification. Les dates sont ISO 8601.
+- Erreur : 403 si non authentifié ou rôle non autorisé.
+
+Exemple :
+
+    [
+      {
+        "id": 1,
+        "entreprise": {"id": 1, "nom": "ACME Corp", "ville": "Paris"},
+        "statut": "a_contacter",
+        "statut_display": "À contacter",
+        "type_contrat": "alternance",
+        "type_contrat_display": "Alternance",
+        "date_creation": "2026-01-15T10:30:00Z",
+        "date_modification": "2026-01-15T10:30:00Z"
+      }
+    ]
 
-Version 0.5 — périmètres des Lots 1 à 4 et séparation du référentiel Entreprise des Prospections. Les routes ci-dessous sont des vues HTML Django, à l'exception de la recherche JSON ; elles ne constituent pas encore une API JSON complète.
-
-## Authentification et inscription
-
-| Méthode | Chemin | Accès | Comportement |
-| --- | --- | --- | --- |
-| GET | / | Public | Affiche la page d'accueil. |
-| GET, POST | /comptes/inscription/ | Public | Affiche et traite la demande d'inscription d'un élève. |
-| GET, POST | /comptes/connexion/ | Public | Affiche le formulaire et authentifie l'utilisateur. |
-| POST | /comptes/deconnexion/ | Authentifié | Termine la session et redirige vers la connexion. |
-| GET | /comptes/apres-login/ | Authentifié | Redirige selon le rôle et l'état de validation. |
-| GET | /comptes/en-attente/ | Authentifié | Affiche l'état de validation de l'élève. |
-| GET, POST | /admin/ | Staff autorisé | Administre les référentiels et traite les comptes. |
-
-## POST /comptes/inscription/
-
-Champs requis : username, first_name, last_name, email, centre, formation, password1, password2, consentement_rgpd.
-
-consentement_rgpd est un booléen requis qui indique l'acceptation de la politique de confidentialité. Si le champ est absent ou vaut False, la soumission est refusée et le formulaire est affiché avec une erreur (HTTP 200). Si la formation n'appartient pas au centre choisi, le formulaire est également refusé.
-
-En cas de succès, le compte est créé avec le rôle eleve et is_valide=False, le consentement version 1.0 est enregistré avec l'adresse IP et le user-agent disponibles, puis une action inscription_soumise est journalisée. Le navigateur est redirigé vers /comptes/connexion/.
-
-## Validation dans l'administration
-
-Un administrateur habilité peut sélectionner des comptes en attente depuis /admin/ et appliquer les actions suivantes :
-
-- Valider : active le champ is_valide, renseigne la date et l'administrateur validateur, puis journalise compte_valide.
-- Refuser : maintient is_valide=False et journalise compte_refuse. Le motif peut être renseigné dans la fiche utilisateur.
-- Désactiver : définit is_active=False, invalide les sessions encore actives et journalise compte_desactive.
-
-## Redirection après connexion
-
-/comptes/apres-login/ redirige un administrateur vers /admin/, un superviseur vers /staff/, un élève non validé vers /comptes/en-attente/ et un élève validé vers /dashboard/.
-
-## Lot 2 — Prospection élève
-
-Toutes ces routes exigent une connexion. Elles sont réservées à l'élève connecté et ne retournent que ses propres entreprises. Les accès d'un superviseur ou d'un administrateur à ces vues renvoient HTTP 403.
-
-| Méthode | Chemin | Comportement |
-| --- | --- | --- |
-| GET | /dashboard/ | Tableau de bord, filtres combinables, tri et pagination de 25 lignes. |
-| GET | /entreprises/search/?q=... | Recherche authentifiée dans le référentiel. Retourne au plus 10 objets JSON contenant uniquement `id`, `nom` et `ville`. |
-| GET, POST | /entreprises/nouvelle/ | Affiche et crée une Prospection liée à une entreprise existante ou à une nouvelle entrée du référentiel. |
-| GET | /entreprises/<id>/ | Détail de la prospection de l'élève connecté et son historique. |
-| GET, POST | /entreprises/<id>/modifier/ | Affiche et met à jour les données de prospection de l'élève. |
-| GET, POST | /entreprises/<id>/supprimer/ | Confirme puis supprime la prospection et son historique ; l'entreprise partagée est conservée. |
-| GET, POST | /entreprises/<id>/statut/ | Affiche et enregistre un changement de statut daté sur la prospection. |
-
-Les filtres du dashboard sont transmis par paramètres GET : statut, date_debut, date_fin, q, tri, ordre et page. Ils portent uniquement sur les prospections de l'élève connecté ; la recherche interroge les informations de l'entreprise liée. La recherche est insensible à la casse. Les dates filtrent la date de modification de la prospection.
-
-Le référentiel Entreprise est partagé et son nom est unique sans distinction de casse. Une Prospection relie un élève à une entreprise et porte son statut, ses dates, sa source et ses notes. Chaque élève ne peut avoir qu'une prospection par entreprise. L'endpoint de recherche ne renvoie aucune donnée de prospection.
-
-## Lot 3 — Tableau de bord superviseur
-
-Ces routes exigent une connexion et sont réservées aux superviseurs. Le dashboard ne liste que les élèves rattachés aux centres ayant un scope actif pour le superviseur. Un accès à la fiche d'un élève hors scope renvoie HTTP 403.
-
-| Méthode | Chemin | Comportement |
-| --- | --- | --- |
-| GET | /staff/ | Dashboard des élèves des centres du scope, avec recherche, filtres, tri par colonne et pagination de 25 lignes. |
-| GET | /staff/eleves/<id>/ | Fiche en lecture seule d'un élève du scope, avec la liste de ses entreprises. |
-
-Les paramètres du dashboard sont `q`, `centre`, `is_valide`, `tri`, `ordre` et `page`. Le tri accepte `username`, `last_name`, `centre__nom` et `is_valide`; par défaut, les élèves sont triés par identifiant croissant. Les filtres de centre ne peuvent sélectionner que les centres couverts par un scope actif.
-
-Les scopes sont gérés dans l'administration Django. Leur création est journalisée avec `SCOPE_CREE`; leur désactivation conserve l'enregistrement et journalise `ACCES_SCOPE_REFUSE`.
-
-Actions ajoutées au journal au Lot 3 : `scope_cree` (création d'un scope superviseur) et `acces_scope_refuse` (désactivation d'un scope).
-
-## Lot 4 — Actions staff sur les élèves
-
-Les actions ci-dessous nécessitent une connexion. Un administrateur peut agir sur tout élève. Un superviseur peut agir uniquement sur un élève de son scope actif.
-
-| Méthode | Chemin | Accès | Comportement |
-| --- | --- | --- | --- |
-| GET | /staff/eleves/<id>/ | Admin, superviseur du scope | Affiche la fiche élève et ses prospections ; cette fiche présente les actions autorisées. |
-| GET, POST | /staff/eleves/<id>/centre/ | Admin ou superviseur du scope | Affiche et enregistre le changement de centre. Un superviseur ne peut choisir qu'un centre de son scope actif ; sinon l'accès est refusé (HTTP 403). L'action est journalisée par `CHANGEMENT_CENTRE`. |
-| POST | /staff/eleves/<id>/entreprises/ajouter/ | Admin ou superviseur du scope | Crée une prospection pour l'élève, liée à une entreprise existante ou nouvellement créée, avec son historique initial. L'action est journalisée par `ACTION_STAFF_ELEVE` et cible la Prospection. |
-
-Le changement de centre conserve les prospections existantes, qui restent liées à l'élève. Les centres proposés sont tous les centres pour l'administrateur et uniquement les centres du scope actif pour le superviseur. Les élèves n'ont pas accès à ces actions.
-
-
-## Lot 5 — Documents
-
-Les routes ci-dessous nécessitent une authentification. Les fichiers sont stockés dans Document.contenu ; les listings n'exposent pas le binaire.
-
-| Méthode | Chemin | Accès | Comportement |
-| --- | --- | --- | --- |
-| GET | /documents/ | Élève, admin | Liste les documents propres à l'élève ; l'admin voit tous les documents. L'élève voit son quota utilisé sur 20 Mo. |
-| GET, POST | /documents/ajouter/ | Élève | Téléverse un document, limité à 5 Mo, sous réserve du quota de 20 Mo. L'action est journalisée par DOCUMENT_UPLOAD. |
-| GET | /documents/<id>/telecharger/ | Propriétaire, admin, superviseur du scope | Télécharge le document et journalise DOCUMENT_DOWNLOAD. |
-| GET, POST | /documents/<id>/supprimer/ | Propriétaire, admin | Confirme puis supprime le document ; l'action est journalisée par DOCUMENT_SUPPRIME. |
-| GET | /staff/eleves/<id>/documents/ | Admin, superviseur du scope actif | Consulte les documents de l'élève en lecture seule. L'accès hors scope est refusé (HTTP 403). |
-
-Les superviseurs ne peuvent pas téléverser ou supprimer les documents. Les vues élève filtrent strictement sur l'utilisateur connecté.
-
-
-## Lot 6 — Commentaires et notifications
-
-| Méthode | Chemin | Accès | Comportement |
-| --- | --- | --- | --- |
-| POST | /commentaires/ajouter/<prospection_pk>/ | Élève propriétaire, superviseur du scope actif, admin | Crée un commentaire sur une prospection et journalise COMMENTAIRE_CREE. |
-| POST | /commentaires/<pk>/supprimer/ | Auteur du commentaire, admin | Supprime le commentaire. |
-| GET | /notifications/ | Utilisateur connecté | Liste les notifications du destinataire, non lues en premier. |
-| GET | /notifications/unread-count/ | Utilisateur connecté | Retourne le nombre de notifications non lues sous la forme JSON {count: N}. |
-| POST | /notifications/<pk>/marquer-lu/ | Destinataire | Marque sa notification comme lue. |
-| POST | /notifications/marquer-tout-lu/ | Utilisateur connecté | Marque toutes ses notifications comme lues. |
-
-Les notifications de commentaires sont envoyées aux superviseurs actifs du centre de l'élève ; en l'absence de superviseur actif, au premier admin actif. Un commentaire de superviseur ou d'admin notifie l'élève propriétaire s'il est actif. Les hooks des Lots 1 à 5 ne sont pas activés dans ce lot.
-
-
-## Lot 7 — Droits RGPD
-
-| Méthode | Chemin | Accès | Comportement |
-| --- | --- | --- | --- |
-| GET | /mon-compte/demandes-rgpd/ | Élève | Liste ses demandes. |
-| GET, POST | /mon-compte/demandes-rgpd/creer/ | Élève | Affiche et crée une demande avec type et description facultative. |
-| GET | /mon-compte/demandes-rgpd/<id>/ | Propriétaire | Consulte le détail de sa demande. |
-| GET | /admin-dashboard/demandes-rgpd/ | Admin | Liste les demandes. |
-| GET, POST | /admin-dashboard/demandes-rgpd/<id>/traiter/ | Admin | Met à jour le statut, le motif, la date de traitement et le responsable. |
-| GET | /mon-compte/export-rgpd/ | Élève | Télécharge un JSON de ses données ; les fichiers binaires des documents sont exclus. |
-| GET | /confidentialite/ | Public | Affiche la politique de confidentialité version 1.0. |
-
-Les transitions de statut des demandes sont journalisées avec `DEMANDE_RGPD_MAJ`; les exports avec `EXPORT_RGPD`. `purge_rgpd --dry-run` liste les comptes concernés sans suppression. `purge_journal --dry-run` compte les entrées anciennes sans suppression.
-
-
-## Lot 8a — Dashboard administrateur et exports CSV
-
-Toutes les routes du lot sont réservées aux comptes dont le rôle est `admin`. Les autres rôles reçoivent HTTP 403.
-
-| Méthode | Chemin | Comportement |
-| --- | --- | --- |
-| GET | /admin-dashboard/ | Statistiques de validation, superviseurs, prospections et demandes RGPD, avec raccourcis. |
-| GET | /admin-dashboard/eleves/ | Liste paginée des élèves, filtres de recherche, centre, validation et tri. |
-| GET | /admin-dashboard/superviseurs/ | Liste paginée des superviseurs et de leurs scopes. |
-| GET, POST | /admin-dashboard/superviseurs/creer/ | Crée un superviseur et son scope initial. |
-| GET | /admin-dashboard/superviseurs/<id>/scopes/ | Liste paginée des scopes actifs et inactifs. |
-| GET, POST | /admin-dashboard/superviseurs/<id>/scopes/creer/ | Affiche le formulaire puis ajoute un scope. |
-| POST | /admin-dashboard/scopes/<id>/desactiver/ | Désactive un scope et journalise l'action. |
-| GET | /admin-dashboard/demandes-rgpd/ | Liste paginée et filtrable des demandes RGPD ; les demandes ouvertes de plus de 25 jours sont signalées. |
-| GET | /admin-dashboard/exports/ | Présente les quatre téléchargements CSV. |
-| GET | /admin-dashboard/exports/eleves.csv | Exporte les élèves et leur nombre de prospections. |
-| GET | /admin-dashboard/exports/prospections.csv | Exporte les prospections et leurs dates. |
-| GET | /admin-dashboard/exports/historique.csv | Exporte les transitions de statut. |
-| GET | /admin-dashboard/exports/demandes-rgpd.csv | Exporte les demandes RGPD. |
-
-Chaque CSV est encodé en UTF-8 avec BOM pour Excel. Chaque téléchargement est journalisé avec `EXPORT_CSV`, son type et son nombre de lignes.
-
-
-### Lot 8a — Fiches et actions d'administration
-
-Les routes suivantes sont réservées au rôle `admin` ; tout autre rôle authentifié reçoit HTTP 403.
-
-| Méthode | Chemin | Comportement |
-| --- | --- | --- |
-| GET | /admin-dashboard/eleves/<id>/ | Fiche élève : prospections, métadonnées des documents, commentaires, demandes RGPD et actions administratives. |
-| POST | /admin-dashboard/eleves/<id>/valider/ | Valide l'élève et journalise `COMPTE_VALIDE`. |
-| POST | /admin-dashboard/eleves/<id>/refuser/ | Enregistre le motif de refus et journalise `COMPTE_REFUSE`. |
-| POST | /admin-dashboard/eleves/<id>/desactiver/ | Désactive le compte, invalide ses sessions et journalise `COMPTE_DESACTIVE`. |
-| POST | /admin-dashboard/eleves/<id>/reactiver/ | Réactive le compte. |
-| GET, POST | /admin-dashboard/eleves/<id>/centre/ | Modifie le centre avec une formation rattachée au centre choisi et journalise `CHANGEMENT_CENTRE`. |
-| GET, POST | /admin-dashboard/eleves/<id>/formation/ | Modifie la formation de l'élève. |
-| GET | /admin-dashboard/superviseurs/<id>/ | Fiche superviseur et scopes. |
-| GET, POST | /admin-dashboard/superviseurs/<id>/modifier/ | Modifie identifiant, courriel, prénom et nom. |
-| GET, POST | /admin-dashboard/superviseurs/<id>/mot-de-passe/ | Définit un nouveau mot de passe validé par les règles Django. |
-| POST | /admin-dashboard/superviseurs/<id>/desactiver/ | Désactive le compte, invalide ses sessions et journalise `COMPTE_DESACTIVE`. |
-| POST | /admin-dashboard/superviseurs/<id>/reactiver/ | Réactive le compte. |
-| POST | /admin-dashboard/superviseurs/<id>/supprimer/ | Après confirmation, invalide les sessions et supprime le compte et ses scopes. |
-| GET | /admin-dashboard/prospections/<id>/ | Détail d'une prospection et historique complet. |
-| POST | /admin-dashboard/prospections/<id>/statut/ | Change le statut, ajoute une entrée d'historique et journalise `CHANGEMENT_STATUT`. |
-| POST | /admin-dashboard/prospections/<id>/commentaire/ | Ajoute un commentaire et journalise `COMMENTAIRE_CREE`. |
-
-
-### Lot 8b — Import CSV et application installable
-
-`POST /admin-dashboard/import-eleves/` importe un fichier CSV contenant `username,email,first_name,last_name,centre,formation`. Chaque ligne est validée séparément ; les comptes créés restent en attente de validation et reçoivent un consentement de politique version 1.0. Le rapport indique les lignes créées et rejetées. L'action est journalisée avec `IMPORT_CSV`.
-
-La PWA expose son manifeste sur `/static/manifest.json`, son service worker sur `/sw.js` et la page de repli hors ligne sur `/offline/`. Le service worker met en cache les ressources publiques et ne met jamais en cache les espaces authentifiés.
-
-L'ajout d'une prospection crée des notifications pour les superviseurs actifs du scope et, selon l'auteur, pour l'élève ou un administrateur actif de repli. Une modification de statut par l'administrateur notifie l'élève ; l'élève ne reçoit pas de notification pour son propre changement.
-
-
-## Lot 8c — Type de contrat
-
-Les prospections ont un type de contrat `stage` ou `alternance`. La création exige un choix explicite. Les tableaux élève et staff, ainsi que la fiche élève de l’administration, acceptent le filtre `type_contrat=stage|alternance|tous`. L’export CSV des prospections ajoute la colonne `type_contrat` après `statut`.
-
-
-## Lot 8d — Prospections par rôle
-
-La page /prospections/ liste les prospections selon le rôle : un élève voit les siennes, un superviseur voit les siennes et celles des élèves de son scope actif, et l'admin voit tout. La page /prospections/nouvelle/ permet de choisir un propriétaire autorisé ; un élève ne peut choisir que son propre compte. Les créations faites pour un autre utilisateur sont journalisées et déclenchent la notification prévue.
-
-
-## Lot 8e — Hub superviseur et administrateur
-
-| Méthode | Chemin | Accès | Comportement |
-| --- | --- | --- | --- |
-| GET | /hub/ | Superviseur, admin | Hub avec les liens rapides correspondant au rôle. Les élèves reçoivent HTTP 403. |
-| GET | /prospections/?mine=1 | Tout utilisateur authentifié | Affiche uniquement les prospections dont l'utilisateur est propriétaire. |
-| GET | /prospections/?eleves=1 | Tout utilisateur authentifié | Pour un superviseur, affiche les prospections des élèves de son scope actif ; pour un admin, celles de tous les élèves. |
-| GET | /prospections/?superviseurs=1 | Admin | Affiche uniquement les prospections appartenant aux superviseurs. Les superviseurs reçoivent HTTP 403. |
-
-Les paramètres de périmètre sont exclusifs selon la priorité `mine`, puis `eleves`, puis `superviseurs`. Ils s'ajoutent aux filtres existants de recherche, statut, type de contrat, tri et pagination. Le lien Hub de la navigation est réservé aux superviseurs et aux admins.
-
-
-## Lot UX — Navigation et affichage
-
-La navigation propose une page Mon profil en lecture seule sur `/mon-compte/`, les liens correspondant au rôle, le compteur de notifications et l’accès aux prospections. Les listes affichent un compteur de résultats, des états vides explicites et une pagination avec les liens première/dernière page. Les pages de détail et formulaires concernés comportent un fil d’Ariane et un bouton retour. Une page 404 personnalisée s’affiche lorsque `DEBUG=False`.

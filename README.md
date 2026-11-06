@@ -183,3 +183,15 @@ Le hub « /hub/ » donne aux superviseurs et aux administrateurs des liens rapid
 ## Lot UX — Navigation et accessibilité
 
 La navigation comprend une page Mon profil en lecture seule, un menu adapté au rôle, les notifications et le lien vers les prospections. Les listes indiquent le nombre de résultats, présentent un état vide avec une action adaptée et proposent une pagination avec accès direct à la première et à la dernière page. Les pages concernées disposent d’un fil d’Ariane et d’un bouton retour. Le site fournit une page 404 personnalisée lorsque `DEBUG=False`. Le pied de page indique la version v0.8.4 et le contact adiattalud@gmail.com.
+
+## API
+
+MyJobPilot reste une application Django rendue côté serveur. Le Lot 9 ajoute un endpoint JSON en lecture seule pour préparer une éventuelle intégration progressive ; aucun frontend React n'est inclus.
+
+- Routes et paramètres : [API_DOC.md](API_DOC.md)
+- Spécification OpenAPI 3.0.3 : [openapi.yaml](openapi.yaml)
+- Endpoint : GET /api/prospections/ — session Django requise, résultats filtrés selon le rôle.
+
+Exemple depuis une session authentifiée :
+
+    curl -H "Accept: application/json" -b "sessionid=<SESSIONID>" http://localhost:8000/api/prospections/

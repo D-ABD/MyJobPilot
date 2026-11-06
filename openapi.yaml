@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: MyJobPilot JSON API
+  version: 0.9.0
+  description: >
+    Endpoints JSON de MyJobPilot. L'API utilise les sessions Django et ne
+    fournit ni JWT ni jeton API.
+servers:
+  - url: /
+    description: Même origine que l'application
+security:
+  - DjangoSession: []
+paths:
+  /api/prospections/:
+    get:
+      tags: [Prospections]
+      summary: Lister les prospections accessibles
+      description: >
+        L'élève voit ses prospections ; le superviseur voit les siennes et celles
+        des élèves de son scope actif ; l'admin voit toutes les prospections.
+      operationId: listProspections
+      responses:
+        '200':
+          description: Liste JSON des prospections autorisées.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Prospection'
+        '403':
+          description: Session absente ou rôle non autorisé.
+  /notifications/unread-count/:
+    get:
+      tags: [Notifications]
+      summary: Compter les notifications non lues
+      operationId: unreadNotificationCount
+      responses:
+        '200':
+          description: Nombre de notifications non lues de l'utilisateur courant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCount'
+        '302':
+          description: Redirection vers la connexion sans session.
+  /entreprises/search/:
+    get:
+      tags: [Entreprises]
+      summary: Rechercher dans le référentiel des entreprises
+      description: Retourne au plus 10 éléments sans information de prospection.
+      operationId: searchEntreprises
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tableau d'entreprises id/nom/ville.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Entreprise'
+        '302':
+          description: Redirection vers la connexion sans session.
+components:
+  securitySchemes:
+    DjangoSession:
+      type: apiKey
+      in: cookie
+      name: sessionid
+      description: Cookie de session Django après connexion.
+  schemas:
+    Entreprise:
+      type: object
+      required: [id, nom, ville]
+      properties:
+        id:
+          type: integer
+          example: 1
+        nom:
+          type: string
+          example: ACME Corp
+        ville:
+          type: string
+          example: Paris
+    Prospection:
+      type: object
+      required: [id, entreprise, statut, statut_display, type_contrat, type_contrat_display, date_creation, date_modification]
+      properties:
+        id:
+          type: integer
+        entreprise:
+          $ref: '#/components/schemas/Entreprise'
+        statut:
+          type: string
+          enum: [a_contacter, a_relancer, candidature_envoyee, en_attente, entretien_programme, refus, accepte]
+        statut_display:
+          type: string
+        type_contrat:
+          type: string
+          enum: [stage, alternance]
+        type_contrat_display:
+          type: string
+        date_creation:
+          type: string
+          format: date-time
+        date_modification:
+          type: string
+          format: date-time
+    Notification:
+      type: object
+      description: La route documentée pour ce schéma expose le compteur des non lus.
+      required: [count]
+      properties:
+        count:
+          type: integer
+          minimum: 0
+          example: 3
+    UnreadCount:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
+          minimum: 0
+          example: 3

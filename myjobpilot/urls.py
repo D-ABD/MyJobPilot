@@ -2,11 +2,13 @@
 from django.contrib import admin
 from django.urls import include, path
 from . import views as project_views
+from entreprises.api import prospections_list
 
 handler404 = "myjobpilot.views.page_404"
 
 
 urlpatterns = [
+    path("api/prospections/", prospections_list, name="api_prospections"),
     path("sw.js", project_views.sw_js, name="service_worker"),
     path("offline/", project_views.offline_view, name="offline"),
     path("static/manifest.json", project_views.manifest_json, name="manifest"),
