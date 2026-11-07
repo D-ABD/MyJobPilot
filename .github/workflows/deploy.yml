@@ -18,25 +18,25 @@ jobs:
             set -e
 
             printf '\n=== 1. Mise à jour du code ===\n'
-            sudo -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && git pull origin main'
+            sudo -n -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && git pull origin main'
 
             printf '\n=== 2. Installation des dépendances ===\n'
-            sudo -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && pip install -r requirements.txt'
+            sudo -n -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && pip install -r requirements.txt'
 
             printf '\n=== 3. Vérification des dépendances ===\n'
-            sudo -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && pip check'
+            sudo -n -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && pip check'
 
             printf '\n=== 4. Vérification des migrations manquantes ===\n'
-            sudo -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && python manage.py makemigrations --check --dry-run'
+            sudo -n -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && python manage.py makemigrations --check --dry-run'
 
             printf '\n=== 5. Vérification de la sécurité ===\n'
-            sudo -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && python manage.py check --deploy'
+            sudo -n -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && python manage.py check --deploy'
 
             printf '\n=== 6. Application des migrations ===\n'
-            sudo -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && python manage.py migrate'
+            sudo -n -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && python manage.py migrate'
 
             printf '\n=== 7. Fichiers statiques ===\n'
-            sudo -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && python manage.py collectstatic --noinput'
+            sudo -n -u myjobpilot bash -c 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && python manage.py collectstatic --noinput'
 
             printf '\n=== 8. Redémarrage de Gunicorn ===\n'
             sudo systemctl restart myjobpilot
