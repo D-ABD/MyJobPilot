@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.views.decorators.http import require_POST
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.http import JsonResponse
@@ -219,6 +220,93 @@ def entreprises_reference(request):
         "pagination_query": pagination_query,
         "tri_urls": tri_urls,
     })
+
+
+@login_required
+def mes_relances(request):
+    """Liste les relances échues de l'élève connecté."""
+    _verifier_eleve(request)
+    aujourd_hui = timezone.localdate()
+    queryset = Prospection.objects.select_related("entreprise").filter(
+        eleve=request.user,
+        statut=Statut.A_RELANCER,
+        date_relance__lte=aujourd_hui,
+    ).order_by("date_relance", "pk")
+    total_count = queryset.count()
+    page_obj = Paginator(queryset, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
+    relances = [
+        {
+            "prospection": prospection,
+            "jours_retard": (aujourd_hui - prospection.date_relance).days,
+        }
+        for prospection in page_obj.object_list
+    ]
+    params = request.GET.copy()
+    params.pop("page", None)
+    return render(request, "entreprises/mes_relances.html", {
+        "relances": relances,
+        "page_obj": page_obj,
+        "total_count": total_count,
+        "pagination_query": params.urlencode(),
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard", "/dashboard/"),
+            ("Mes relances", ""),
+        ],
+    })
+
+
+@login_required
+def mes_relances_compteur(request):
+    """Retourne le nombre de relances échues pour l'élève connecté."""
+    _verifier_eleve(request)
+    count = Prospection.objects.filter(
+        eleve=request.user,
+        statut=Statut.A_RELANCER,
+        date_relance__lte=timezone.localdate(),
+    ).count()
+    return JsonResponse({"count": count})
+
+
+@login_required
+@require_POST
+def mes_relances_terminer(request, pk):
+    """Termine une relance et consigne la candidature envoyée."""
+    _verifier_eleve(request)
+    aujourd_hui = timezone.localdate()
+    prospection = get_object_or_404(
+        Prospection.objects.select_related("entreprise"),
+        pk=pk,
+        eleve=request.user,
+        statut=Statut.A_RELANCER,
+        date_relance__lte=aujourd_hui,
+    )
+    ancien_statut = prospection.statut
+    nouveau_statut = Statut.CANDIDATURE_ENVOYEE
+    with transaction.atomic():
+        prospection.statut = nouveau_statut
+        prospection.date_candidature = aujourd_hui
+        prospection.save(update_fields=["statut", "date_candidature", "date_modification"])
+        HistoriqueStatut.objects.create(
+            prospection=prospection,
+            ancien_statut=ancien_statut,
+            nouveau_statut=nouveau_statut,
+            auteur=request.user,
+            date_associee=aujourd_hui,
+        )
+        log_action(
+            JournalAction.Action.CHANGEMENT_STATUT,
+            utilisateur=request.user,
+            cible=prospection,
+            details={
+                "prospection_id": prospection.pk,
+                "ancien_statut": ancien_statut,
+                "nouveau_statut": nouveau_statut,
+            },
+            request=request,
+        )
+    messages.success(request, f"La relance pour {prospection.entreprise.nom} est terminée.")
+    return redirect("entreprises:mes_relances")
 
 
 def entreprises_reference_export_csv(request):

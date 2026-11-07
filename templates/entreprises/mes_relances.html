@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Mes relances — MyJobPilot{% endblock %}
+{% block content %}
+{% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
+<h1 class="h2 mb-3">Mes relances en retard</h1>
+<p class="text-body-secondary">{{ total_count }} relance{{ total_count|pluralize:"s" }} à traiter.</p>
+{% if relances %}
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <caption class="visually-hidden">Mes relances de prospection en retard</caption>
+      <thead><tr><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Date prévue</th><th scope="col">Retard</th><th scope="col">Actions</th></tr></thead>
+      <tbody>
+        {% for relance in relances %}
+          <tr>
+            <td>{{ relance.prospection.entreprise.nom }}</td>
+            <td>{{ relance.prospection.entreprise.ville|default:"—" }}</td>
+            <td>{{ relance.prospection.date_relance|date:"d/m/Y" }}</td>
+            <td>{{ relance.jours_retard }} jour{{ relance.jours_retard|pluralize:"s" }}</td>
+            <td class="d-flex flex-wrap gap-2">
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' relance.prospection.pk %}">Voir la prospection</a>
+              <form method="post" action="{% url 'entreprises:mes_relances_terminer' relance.prospection.pk %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-success" type="submit">Terminer la relance</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="Pagination des relances">
+      <ul class="pagination">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a></li>{% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li>{% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+{% else %}
+  <div class="alert alert-success" role="status">Aucune relance en retard. Vous êtes à jour.</div>
+{% endif %}
+{% endblock %}

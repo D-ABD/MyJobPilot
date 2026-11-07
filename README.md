@@ -234,3 +234,15 @@ Le bouton de thème dans la barre de navigation bascule entre les modes clair et
 ## Lot 17 — Tâches
 
 La todo list `/taches/` permet de créer et suivre des tâches, avec échéance, statut et prospection associée. Les élèves accèdent à leurs tâches ; les superviseurs à leurs tâches et à celles des élèves de leur scope actif ; les administrateurs à toutes les tâches. Le créateur et l'administrateur peuvent modifier ou supprimer une tâche ; l'assigné peut la terminer. Le badge de la navbar indique le nombre de tâches « à faire » visibles.
+
+## Lot 18 — Mes relances et emails automatiques
+
+La page `/mes-relances/`, réservée aux élèves, liste leurs prospections au statut « À relancer » dont la date de relance est échue ou correspond à aujourd'hui. Le compteur de la navbar affiche leur nombre. Le bouton « Terminer la relance » passe la prospection à « Candidature envoyée », renseigne la date du jour et journalise l'historique et l'action.
+
+La commande `python manage.py relancer_prospections` envoie un email une seule fois par prospection lorsque la relance est échue depuis le nombre de jours configuré. Une simulation sans effet de bord est disponible avec `python manage.py relancer_prospections --dry-run`. Les variables d'environnement `RELANCES_AUTO_JOURS` (7 par défaut) et `RELANCES_AUTO_EMAIL` (`True` par défaut) permettent de régler le délai ou de désactiver l'envoi.
+
+Pour planifier l'envoi quotidien à 9 h avec cron, ajouter une entrée adaptée au chemin du déploiement :
+
+    0 9 * * * cd /home/myjobpilot/MyJobPilot && /home/myjobpilot/MyJobPilot/venv/bin/python manage.py relancer_prospections >> /home/myjobpilot/MyJobPilot/logs/relances.log 2>&1
+
+Vérifier d'abord la simulation avec `--dry-run`. La commande n'envoie rien et ne modifie aucune donnée en mode simulation.

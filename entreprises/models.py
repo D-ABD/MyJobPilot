@@ -66,6 +66,9 @@ class Prospection(models.Model):
         default=TypeContrat.ALTERNANCE,
     )
     date_relance = models.DateField("date de relance", null=True, blank=True)
+    date_derniere_relance_email = models.DateTimeField(
+        "date du dernier email de relance", null=True, blank=True,
+    )
     date_candidature = models.DateField("date de candidature", null=True, blank=True)
     date_mise_en_attente = models.DateField("date de mise en attente", null=True, blank=True)
     date_entretien = models.DateTimeField("date d'entretien", null=True, blank=True)

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fr">
+<body>
+  <header><h1>MyJobPilot</h1></header>
+  <main>
+    <p>Bonjour {{ nom }},</p>
+    <p>Vous avez une relance en retard pour l'entreprise <strong>{{ entreprise.nom }}</strong>{% if entreprise.ville %}, à {{ entreprise.ville }}{% endif %}.</p>
+    <p>Date de relance prévue : {{ date_relance|date:"d/m/Y" }}.</p>
+    <p><a href="{{ lien_relances }}">Consulter mes relances</a></p>
+  </main>
+  <footer>
+    <p>© 2026 MyJobPilot</p>
+    <p><a href="https://myjobpilot.adserv.fr/confidentialite/">Politique de confidentialité</a></p>
+  </footer>
+</body>
+</html>

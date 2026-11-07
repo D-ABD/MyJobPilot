@@ -90,3 +90,20 @@ def envoyer_email_reponse_rgpd(demande):
         },
         "réponse RGPD",
     )
+
+
+def envoyer_email_relance(prospection):
+    """Envoie un email de rappel à l'élève pour une relance échue."""
+    entreprise = prospection.entreprise
+    return _envoyer(
+        prospection.eleve,
+        f"Rappel : relance à effectuer pour {entreprise.nom}",
+        "emails/relance.html",
+        {
+            "nom": prospection.eleve.first_name or prospection.eleve.username,
+            "entreprise": entreprise,
+            "date_relance": prospection.date_relance,
+            "lien_relances": f"{SITE_URL}/mes-relances/",
+        },
+        "relance de prospection",
+    )

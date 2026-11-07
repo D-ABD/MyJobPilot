@@ -210,3 +210,13 @@ Les validations utilisent les validateurs Django pour les adresses e-mail et URL
 ### Emails transactionnels — Lot 13
 
 Les événements suivants déclenchent un email à l'adresse du compte : validation ou refus d'un compte élève, réception d'une demande RGPD et réponse de traitement d'une demande RGPD. Si l'adresse est absente, l'envoi est ignoré. Une panne SMTP est journalisée sans annuler l'action correspondante.
+
+## Mes relances — Lot 18
+
+| Méthode | URL | Rôle | Description | Paramètres / corps | Réponses |
+|---|---|---|---|---|---|
+| GET | /mes-relances/ | Élève | Liste les prospections à relancer dont la date est échue ou aujourd'hui, triées des plus anciennes aux plus récentes, avec pagination de 25 résultats. | `page` | 200 HTML, 302 si non connecté, 403 pour les autres rôles |
+| GET | /mes-relances/compteur/ | Élève | Retourne le nombre de relances échues affiché dans la navbar. | — | 200 JSON `{"count": N}`, 302 si non connecté, 403 pour les autres rôles |
+| POST | /mes-relances/terminer/<pk>/ | Élève propriétaire | Passe la prospection à « Candidature envoyée », date la candidature du jour et journalise la transition. | POST avec CSRF | 302 vers la liste avec message de succès, 403 ou 404 si la prospection n'est pas accessible |
+
+La commande `python manage.py relancer_prospections` envoie un email pour les prospections « À relancer » échues depuis au moins le délai configuré. Elle ne renvoie pas un email si `date_derniere_relance_email` est déjà renseignée. `--dry-run` affiche les emails prévus sans envoi, mise à jour ni journalisation. Les variables d'environnement `RELANCES_AUTO_JOURS` (7 par défaut) et `RELANCES_AUTO_EMAIL` (`True` par défaut) contrôlent le délai et l'activation de l'envoi.

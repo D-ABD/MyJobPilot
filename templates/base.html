@@ -43,6 +43,7 @@
               <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:reference' %}">Entreprises</a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'core:taches_liste' %}">Mes tâches <span id="taches-count" class="badge rounded-pill text-bg-warning d-none" aria-live="polite">0</span></a></li>
+              {% if user.role == "eleve" %}<li class="nav-item"><a class="nav-link" href="{% url 'entreprises:mes_relances' %}">Mes relances <span id="relances-count" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>{% endif %}
               {% if user.role == "superviseur" or user.role == "admin" %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:hub' %}">Hub</a></li>
               {% elif user.role == "eleve" and user.is_valide %}
@@ -94,6 +95,7 @@
                 <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:reference' %}">Entreprises</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'core:taches_liste' %}">Mes tâches <span id="taches-count-mobile" class="badge rounded-pill text-bg-warning d-none" aria-live="polite">0</span></a></li>
+                {% if user.role == "eleve" %}<li class="nav-item"><a class="nav-link" href="{% url 'entreprises:mes_relances' %}">Mes relances <span id="relances-count-mobile" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>{% endif %}
                 {% if user.role == "superviseur" or user.role == "admin" %}
                   <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:hub' %}">Hub</a></li>
                 {% elif user.role == "eleve" and user.is_valide %}
@@ -173,6 +175,33 @@
       const actualiserCompteur = async () => {
         try {
           const response = await fetch("{% url 'core:taches_compteur' %}", {
+            headers: {"Accept": "application/json"},
+            credentials: "same-origin"
+          });
+          if (!response.ok) return;
+          const donnees = await response.json();
+          badges.forEach((badge) => {
+            badge.textContent = String(donnees.count);
+            badge.classList.toggle("d-none", donnees.count === 0);
+          });
+        } catch (_) {}
+      };
+      actualiserCompteur();
+      window.setInterval(actualiserCompteur, 60000);
+    })();
+  </script>
+  {% endif %}
+  {% if user.is_authenticated and user.role == "eleve" %}
+  <script>
+    (() => {
+      const badges = [
+        document.getElementById("relances-count"),
+        document.getElementById("relances-count-mobile")
+      ].filter(Boolean);
+      if (!badges.length) return;
+      const actualiserCompteur = async () => {
+        try {
+          const response = await fetch("{% url 'entreprises:mes_relances_compteur' %}", {
             headers: {"Accept": "application/json"},
             credentials: "same-origin"
           });
