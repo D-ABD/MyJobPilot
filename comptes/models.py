@@ -153,6 +153,9 @@ class JournalAction(models.Model):
         DEMANDE_RGPD_MAJ = "demande_rgpd_maj", "Demande RGPD mise à jour"
         EXPORT_CSV = "export_csv", "Export CSV"
         IMPORT_CSV = "import_csv", "Import CSV"
+        TACHE_CREE = "tache_cree", "Tâche créée"
+        TACHE_TERMINEE = "tache_terminee", "Tâche terminée"
+        TACHE_SUPPRIMEE = "tache_supprimee", "Tâche supprimée"
 
     utilisateur = models.ForeignKey(
         "comptes.Utilisateur",

@@ -230,3 +230,7 @@ Les dashboards élève, superviseur et admin présentent des KPI calculés côt�
 ## Lot 16 — Mode clair/sombre
 
 Le bouton de thème dans la barre de navigation bascule entre les modes clair et sombre. Le choix est mémorisé dans le navigateur et restauré au prochain chargement.
+
+## Lot 17 — Tâches
+
+La todo list `/taches/` permet de créer et suivre des tâches, avec échéance, statut et prospection associée. Les élèves accèdent à leurs tâches ; les superviseurs à leurs tâches et à celles des élèves de leur scope actif ; les administrateurs à toutes les tâches. Le créateur et l'administrateur peuvent modifier ou supprimer une tâche ; l'assigné peut la terminer. Le badge de la navbar indique le nombre de tâches « à faire » visibles.

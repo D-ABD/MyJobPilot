@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ titre }} — MyJobPilot{% endblock %}
+{% block content %}
+<section class="mx-auto" style="max-width: 48rem" aria-labelledby="titre-form-tache">
+  {% include "partials/_bouton_retour.html" with url_retour="/taches/" %}
+  <h1 class="h2 mb-4" id="titre-form-tache">{{ titre }}</h1>
+  <form method="post" class="card card-body">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Enregistrer</button><a class="btn btn-outline-secondary" href="{% url 'core:taches_liste' %}">Annuler</a></div>
+  </form>
+</section>
+{% endblock %}

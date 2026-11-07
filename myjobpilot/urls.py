@@ -1,7 +1,6 @@
 """Routes du projet."""
 from django.contrib import admin
 from django.urls import include, path
-from core import views as core_views
 from . import views as project_views
 from entreprises.api import entreprises_list, prospections_list
 
@@ -9,7 +8,7 @@ handler404 = "myjobpilot.views.page_404"
 
 
 urlpatterns = [
-    path("", include(([path("recherche/", core_views.recherche, name="recherche")], "core"), namespace="core")),
+    path("", include("core.urls", namespace="core")),
     path("api/prospections/", prospections_list, name="api_prospections"),
     path("api/entreprises/", entreprises_list, name="api_entreprises"),
     path("sw.js", project_views.sw_js, name="service_worker"),

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Mes tâches — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-taches">
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+    <div>
+      <h1 class="h2 mb-1" id="titre-taches">Mes tâches</h1>
+      <p class="text-body-secondary mb-0">{{ total_count }} tâche{{ total_count|pluralize:"s" }} visible{{ total_count|pluralize:"s" }}.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'core:tache_nouvelle' %}">Nouvelle tâche</a>
+  </div>
+  <form method="get" class="card card-body mb-3" aria-label="Filtrer les tâches">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="filtre-statut-tache">Statut</label>
+        <select class="form-select" name="statut" id="filtre-statut-tache">
+          <option value="tous" {% if filtre_statut == "tous" %}selected{% endif %}>Tous</option>
+          {% for code, libelle in statuts %}<option value="{{ code }}" {% if filtre_statut == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="tri-taches">Trier par</label>
+        <select class="form-select" name="tri" id="tri-taches">
+          <option value="date_echeance" {% if filtre_tri == "date_echeance" %}selected{% endif %}>Échéance</option>
+          <option value="titre" {% if filtre_tri == "titre" %}selected{% endif %}>Titre</option>
+          <option value="statut" {% if filtre_tri == "statut" %}selected{% endif %}>Statut</option>
+          <option value="date_creation" {% if filtre_tri == "date_creation" %}selected{% endif %}>Date de création</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2">
+        <label class="form-label" for="ordre-taches">Ordre</label>
+        <select class="form-select" name="ordre" id="ordre-taches">
+          <option value="asc" {% if filtre_ordre == "asc" %}selected{% endif %}>Croissant</option>
+          <option value="desc" {% if filtre_ordre == "desc" %}selected{% endif %}>Décroissant</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Filtrer</button></div>
+    </div>
+  </form>
+  {% if taches %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <caption class="visually-hidden">Tâches accessibles selon votre rôle</caption>
+        <thead><tr><th scope="col">Tâche</th><th scope="col">Assignée à</th><th scope="col">Échéance</th><th scope="col">Statut</th><th scope="col">Prospection</th><th scope="col">Actions</th></tr></thead>
+        <tbody>
+        {% for tache in taches %}
+          <tr>
+            <th scope="row">{{ tache.titre }}{% if tache.description %}<div class="small text-body-secondary fw-normal">{{ tache.description|truncatechars:100 }}</div>{% endif %}</th>
+            <td>{{ tache.assigne_a.get_full_name|default:tache.assigne_a.username }}</td>
+            <td>{% if tache.date_echeance %}<time datetime="{{ tache.date_echeance|date:'Y-m-d' }}">{{ tache.date_echeance|date:"d/m/Y" }}</time>{% else %}—{% endif %}</td>
+            <td>{{ tache.get_statut_display }}</td>
+            <td>{% if tache.prospection %}{{ tache.prospection.entreprise.nom }}{% else %}—{% endif %}</td>
+            <td><div class="table-actions">
+              {% if tache.statut != "terminee" and request.user == tache.createur or tache.statut != "terminee" and request.user == tache.assigne_a or request.user.role == "admin" and tache.statut != "terminee" %}
+                <form method="post" action="{% url 'core:tache_terminer' tache.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-success" type="submit">Terminer</button></form>
+              {% endif %}
+              {% if request.user == tache.createur or request.user.role == "admin" %}
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'core:tache_modifier' tache.pk %}">Modifier</a>
+                <a class="btn btn-sm btn-outline-danger" href="{% url 'core:tache_supprimer' tache.pk %}">Supprimer</a>
+              {% endif %}
+            </div></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav aria-label="Pagination des tâches"><ul class="pagination">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a></li>{% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li>{% endif %}
+      </ul></nav>
+    {% endif %}
+  {% else %}
+    <div class="empty-state p-4 text-center"><i class="bi bi-inbox fs-2" aria-hidden="true"></i><p class="mb-0 mt-2">Aucune tâche à afficher.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

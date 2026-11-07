@@ -183,6 +183,19 @@ Les dashboards HTML `/dashboard/` (élève), `/staff/` (superviseur) et `/admin-
 
 Le bouton « Changer de thème » de la navbar alterne entre le thème clair et le thème sombre. Le choix est enregistré localement dans le navigateur (`localStorage`) et s'applique à toutes les pages de l'application.
 
+## Tâches — Lot 17
+
+| Méthode | URL | Rôle | Description | Paramètres / corps | Réponses |
+|---|---|---|---|---|---|
+| GET | /taches/ | Élève, superviseur, admin | Liste les tâches visibles, avec filtre de statut, tri et pagination. | `statut`, `tri`, `ordre`, `page` | 200 HTML, 302 si non connecté |
+| GET, POST | /taches/nouvelle/ | Élève, superviseur, admin | Crée une tâche ; l'assignation est limitée au rôle et au scope actif. | Formulaire tâche | 200 HTML, 302 après création, 403 hors périmètre |
+| GET, POST | /taches/<pk>/modifier/ | Créateur, admin | Affiche ou modifie une tâche. L'assigné seul ne peut pas la modifier. | Formulaire tâche | 200 HTML, 302 après modification, 403 interdit, 404 non visible |
+| POST | /taches/<pk>/terminer/ | Créateur, assigné, admin | Marque la tâche comme terminée. | — | 302, 403 interdit, 404 non visible |
+| GET, POST | /taches/<pk>/supprimer/ | Créateur, admin | Affiche la confirmation puis supprime la tâche. | POST avec CSRF | 200 confirmation, 302 après suppression, 403 interdit, 404 non visible |
+| GET | /taches/compteur/ | Élève, superviseur, admin | Retourne le nombre de tâches « à faire » visibles, pour le badge navbar. | — | 200 JSON `{"count": N}`, 302 si non connecté |
+
+Les élèves voient leurs tâches assignées ou créées. Les superviseurs voient leurs tâches et celles assignées aux élèves des centres de leur scope actif. Les admins voient toutes les tâches. Les créations, fins et suppressions sont inscrites dans JournalAction.
+
 Le CSV contient nom, secteur, ville, code postal, site web, contact, date de création et nombre de prospections. L'API utilise la session Django et applique les mêmes règles d'isolation que `/entreprises-reference/`.
 
 ### Import CSV des entreprises — Lot 12
