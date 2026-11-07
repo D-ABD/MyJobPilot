@@ -1,0 +1,31 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  (() => {
+    if (!window.Chart) return;
+    const node = document.getElementById("cockpit-chart-data");
+    if (!node) return;
+    const chartData = JSON.parse(node.textContent);
+    document.querySelectorAll("canvas[data-cockpit-chart]").forEach((canvas) => {
+      const series = chartData[canvas.dataset.cockpitChart];
+      if (!series) return;
+      new Chart(canvas, {
+        type: series.type,
+        data: {
+          labels: series.labels,
+          datasets: [{
+            label: series.title,
+            data: series.data,
+            backgroundColor: series.type === "doughnut"
+              ? ["#0d6efd", "#198754", "#ffc107", "#0dcaf0", "#dc3545", "#6f42c1", "#6c757d"]
+              : "rgba(13, 110, 253, .35)",
+            borderColor: "#0d6efd",
+            borderWidth: 2,
+            tension: .25,
+            fill: series.type === "line"
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: series.type === "doughnut" ? {} : { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+      });
+    });
+  })();
+</script>

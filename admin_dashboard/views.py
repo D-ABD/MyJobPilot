@@ -19,6 +19,7 @@ from django.views.decorators.http import require_POST
 from comptes.models import Centre, JournalAction, ScopeSuperviseur
 from comptes.notifications import notifier_changement_statut
 from comptes.utils import invalidate_user_sessions, log_action
+from core.stats import calculer_stats_admin
 from .import_csv import importer_eleves_csv
 from documents.models import Document
 from entreprises.forms import ChangementStatutForm, CommentaireForm
@@ -79,7 +80,12 @@ def dashboard_admin(request):
         "demandes_rgpd_attente": demandes_ouvertes.count(),
         "demandes_rgpd_retard": en_retard,
     }
-    return render(request, "admin_dashboard/dashboard.html", {"stats": stats})
+    cockpit = calculer_stats_admin()
+    return render(request, "admin_dashboard/dashboard.html", {
+        "stats": stats,
+        "kpis": cockpit["kpis"],
+        "charts": cockpit["charts"],
+    })
 
 
 @administrateur_requis

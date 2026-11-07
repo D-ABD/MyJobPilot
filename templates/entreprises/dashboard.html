@@ -15,6 +15,33 @@
     </div>
   </div>
 
+  {% include "partials/_kpi_cards.html" %}
+
+  <section class="cockpit-charts mb-4" aria-labelledby="titre-graphiques-eleve">
+    <h2 class="h4" id="titre-graphiques-eleve">Votre progression récente</h2>
+    {{ charts|json_script:"cockpit-chart-data" }}
+    <div class="row g-3">
+      {% for chart in charts.values %}
+        <div class="col-12 col-lg-6">
+          <div class="card h-100"><div class="card-body">
+            <h3 class="h6">{{ chart.title }}</h3>
+            <div class="cockpit-chart"><canvas data-cockpit-chart="{{ chart.key }}" role="img" aria-label="{{ chart.title }}"></canvas></div>
+          </div></div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% include "partials/_chart_scripts.html" %}
+
+  <section class="mb-4" aria-labelledby="titre-relances">
+    <h2 class="h4" id="titre-relances">Vos 3 prochaines relances</h2>
+    {% if relances %}
+      <ul class="list-group">
+        {% for prospection in relances %}<li class="list-group-item d-flex justify-content-between"><span>{{ prospection.entreprise.nom }}</span><time datetime="{{ prospection.date_relance|date:'Y-m-d' }}">{{ prospection.date_relance|date:"d/m/Y" }}</time></li>{% endfor %}
+      </ul>
+    {% else %}<p class="text-body-secondary">Aucune relance planifiée à venir.</p>{% endif %}
+  </section>
+
   <div class="row g-3 mb-4" aria-label="Nombre de prospections par statut">
     {% for statistique in stats_par_statut %}
       <div class="col-6 col-lg-3">

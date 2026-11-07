@@ -222,3 +222,7 @@ MyJobPilot envoie un email lors de la validation ou du refus d'un compte élève
 ## Lot 14 — Recherche globale
 
 La barre de recherche de la navbar cherche les prospections et documents accessibles à l'utilisateur connecté. Les superviseurs voient aussi les élèves de leur scope actif ; les admins peuvent chercher tous les élèves. La recherche ignore la casse et les accents, affiche au plus 20 résultats par section et n'expose jamais les adresses email dans la liste des élèves.
+
+## Lot 15 — Cockpits de pilotage
+
+Les dashboards élève, superviseur et admin présentent des KPI calculés côté serveur et des graphiques Chart.js complémentaires. Les courbes élève et superviseur couvrent toujours les huit semaines les plus récentes, avec un point à zéro lorsque la semaine ne comporte aucune prospection. Les KPI restent visibles même si le CDN Chart.js est indisponible.

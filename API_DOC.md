@@ -175,6 +175,10 @@ Les paramètres de filtre sont conservés lors du tri et de la pagination. Le li
 
 Les résultats sont limités à 20 par section. Les résultats élèves affichent username et, s'ils existent, prénom et nom ; l'adresse email ne figure jamais dans les résultats.
 
+## Cockpits de pilotage — Lot 15
+
+Les dashboards HTML `/dashboard/` (élève), `/staff/` (superviseur) et `/admin-dashboard/` (admin) affichent des indicateurs calculés uniquement à partir des données autorisées au rôle connecté. Les cartes KPI sont rendues en HTML ; les graphiques sont un enrichissement Chart.js.
+
 Le CSV contient nom, secteur, ville, code postal, site web, contact, date de création et nombre de prospections. L'API utilise la session Django et applique les mêmes règles d'isolation que `/entreprises-reference/`.
 
 ### Import CSV des entreprises — Lot 12

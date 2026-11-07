@@ -7,6 +7,22 @@
     <p class="text-body-secondary mb-0">Élèves rattachés aux centres de votre périmètre.</p>
   </div>
 
+  {% include "partials/_kpi_cards.html" %}
+
+  <section class="cockpit-charts mb-4" aria-labelledby="titre-graphiques-staff">
+    <h2 class="h4" id="titre-graphiques-staff">Activité du périmètre</h2>
+    {{ charts|json_script:"cockpit-chart-data" }}
+    <div class="row g-3">
+      {% for chart in charts.values %}<div class="col-12 col-lg-6"><div class="card h-100"><div class="card-body"><h3 class="h6">{{ chart.title }}</h3><div class="cockpit-chart"><canvas data-cockpit-chart="{{ chart.key }}" role="img" aria-label="{{ chart.title }}"></canvas></div></div></div></div>{% endfor %}
+    </div>
+  </section>
+  {% include "partials/_chart_scripts.html" %}
+
+  <section class="mb-4" aria-labelledby="titre-eleves-sans-activite">
+    <h2 class="h4" id="titre-eleves-sans-activite">Élèves sans activité récente</h2>
+    {% if eleves_sans_activite %}<ul class="list-group">{% for eleve in eleves_sans_activite %}<li class="list-group-item">{{ eleve.get_full_name|default:eleve.username }} <span class="text-body-secondary">({{ eleve.centre.nom }})</span></li>{% endfor %}</ul>{% else %}<p class="text-body-secondary">Tous les élèves ont eu une activité récente.</p>{% endif %}
+  </section>
+
   <div class="row g-3 mb-4" aria-label="Nombre d'élèves par centre">
     {% for statistique in stats_par_centre %}
       <div class="col-12 col-sm-6 col-lg-4">

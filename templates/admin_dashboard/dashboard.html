@@ -2,6 +2,15 @@
 {% block title %}Administration — MyJobPilot{% endblock %}
 {% block content %}
 <h1>Dashboard administrateur</h1>
+{% include "partials/_kpi_cards.html" %}
+<section class="cockpit-charts mb-4" aria-labelledby="titre-graphiques-admin">
+  <h2 class="h4" id="titre-graphiques-admin">Vue globale de la plateforme</h2>
+  {{ charts|json_script:"cockpit-chart-data" }}
+  <div class="row g-3">
+    {% for chart in charts.values %}<div class="col-12 col-lg-6"><div class="card h-100"><div class="card-body"><h3 class="h6">{{ chart.title }}</h3><div class="cockpit-chart"><canvas data-cockpit-chart="{{ chart.key }}" role="img" aria-label="{{ chart.title }}"></canvas></div></div></div></div>{% endfor %}
+  </div>
+</section>
+{% include "partials/_chart_scripts.html" %}
 <div class="row g-3 mb-4">
   <div class="col-md-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Élèves validés</h2><p class="display-6 mb-0">{{ stats.eleves_valides }}</p></div></div></div>
   <div class="col-md-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Élèves en attente</h2><p class="display-6 mb-0">{{ stats.eleves_attente }}</p></div></div></div>

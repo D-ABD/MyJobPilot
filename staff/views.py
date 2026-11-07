@@ -13,6 +13,7 @@ from comptes.models import Centre, JournalAction, Utilisateur
 from comptes.notifications import notifier_ajout_prospection
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
+from core.stats import calculer_stats_superviseur
 from entreprises.forms import EntrepriseForm
 from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut, TypeContrat
 
@@ -115,6 +116,7 @@ def dashboard_staff(request):
         "url_reset": request.path,
         "pagination_query": pagination_params.urlencode(),
         "tri_urls": tri_urls,
+        **calculer_stats_superviseur(request.user),
     }
     return render(request, "staff/dashboard.html", contexte)
 

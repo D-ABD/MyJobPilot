@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from comptes.models import JournalAction, Utilisateur
 from comptes.scope_utils import centres_du_superviseur
+from core.stats import calculer_stats_eleve
 from comptes.notifications import notifier_ajout_prospection, notifier_changement_statut
 from comptes.utils import log_action
 from core.filters import FiltreMixin
@@ -393,6 +394,7 @@ def dashboard_eleve(request):
         parametres_tri["ordre"] = prochain_ordre
         tri_urls[champ] = f"{request.path}?{parametres_tri.urlencode()}"
 
+    cockpit = calculer_stats_eleve(request.user)
     contexte = {
         **filtreur.get_contexte_filtres(request),
         "prospections": page_obj.object_list,
@@ -403,6 +405,9 @@ def dashboard_eleve(request):
         "types_contrat": TypeContrat.choices,
         "pagination_query": pagination_query,
         "tri_urls": tri_urls,
+        "kpis": cockpit["kpis"],
+        "charts": cockpit["charts"],
+        "relances": cockpit["relances"],
     }
     return render(request, "entreprises/dashboard.html", contexte)
 

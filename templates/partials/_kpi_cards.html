@@ -1,0 +1,15 @@
+<section class="mb-4" aria-label="Indicateurs clés">
+  <div class="row g-3">
+    {% for kpi in kpis %}
+      <div class="col-6 col-xl-3">
+        <article class="card h-100 cockpit-kpi border-start border-4 border-{{ kpi.variant|default:'primary' }}">
+          <div class="card-body">
+            <h2 class="h6 text-body-secondary">{{ kpi.label }}</h2>
+            <p class="display-6 mb-0">{{ kpi.value }}</p>
+            {% if kpi.detail %}<p class="small text-body-secondary mb-0 mt-2">{{ kpi.detail }}</p>{% endif %}
+          </div>
+        </article>
+      </div>
+    {% endfor %}
+  </div>
+</section>
