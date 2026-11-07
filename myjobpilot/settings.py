@@ -1,5 +1,6 @@
 """Configuration Django, pilotée par les variables d'environnement."""
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -14,6 +15,8 @@ if not SECRET_KEY:
     raise ImproperlyConfigured("La variable SECRET_KEY doit être définie dans .env ou dans l'environnement.")
 
 DEBUG = os.getenv("DEBUG", "False").strip().lower() in {"1", "true", "yes", "on"}
+# Cette détection couvre `manage.py test`, mais pas pytest qui n'ajoute pas "test" à sys.argv.
+TESTING = "test" in sys.argv
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
 
 # CSRF : origines de confiance (Django 4+)
@@ -106,7 +109,7 @@ LOGIN_REDIRECT_URL = "comptes:redirection_apres_login"
 LOGOUT_REDIRECT_URL = "comptes:connexion"
 
 # Configuration de production (si DEBUG=False)
-if not DEBUG:
+if not DEBUG and not TESTING:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
