@@ -168,3 +168,12 @@ Les paramètres de filtre sont conservés lors du tri et de la pagination. Le li
 | GET | /api/entreprises/ | Élève, superviseur, admin | Retourne en JSON les entreprises visibles et leur nombre de prospections visibles. | q, secteur, ville | 200 JSON, 403 si session absente ou rôle non autorisé |
 
 Le CSV contient nom, secteur, ville, code postal, site web, contact, date de création et nombre de prospections. L'API utilise la session Django et applique les mêmes règles d'isolation que `/entreprises-reference/`.
+
+### Import CSV des entreprises — Lot 12
+
+| Méthode | URL | Rôle | Description | Paramètres | Réponses |
+|---|---|---|---|---|---|
+| GET, POST | /admin-dashboard/import-entreprises/ | Admin | Importe les lignes valides d'un CSV dans le référentiel partagé et affiche le bilan des créations et rejets. | Multipart POST : fichier CSV avec `nom` obligatoire ; autres colonnes facultatives | 200 HTML, 403 |
+| GET | /admin-dashboard/import-entreprises/exemple.csv | Admin | Génère et télécharge le modèle CSV UTF-8 avec BOM. | — | 200 CSV, 403 |
+
+Les validations utilisent les validateurs Django pour les adresses e-mail et URL. Le code postal accepte les formats internationaux alphanumériques, espaces et tirets. Chaque import traité est journalisé avec ses nombres de lignes totales, créées et rejetées.

@@ -207,3 +207,10 @@ La liste propose une recherche insensible à la casse et aux accents dans le nom
 ## Lot 11 — Export du référentiel des entreprises
 
 Depuis `/entreprises-reference/`, les utilisateurs connectés peuvent télécharger un CSV UTF-8 avec BOM ou consulter les entreprises au format JSON sur `/api/entreprises/`. Les deux exports reprennent le queryset autorisé et les filtres de la liste. Les élèves voient leurs entreprises, les superviseurs celles de leur scope actif et les leurs, et les administrateurs tout le référentiel. Les exports CSV non vides sont journalisés avec le nombre de lignes et les filtres appliqués.
+
+
+## Lot 12 — Import CSV des entreprises
+
+Depuis le hub ou la page des exports administrateur, un admin peut importer des entreprises dans le référentiel partagé via `/admin-dashboard/import-entreprises/`. La colonne `nom` est obligatoire ; les coordonnées et autres champs sont facultatifs. Les lignes sont validées individuellement et la page affiche le bilan ainsi que la raison de chaque rejet. Les noms déjà présents (sans distinction de casse) sont rejetés.
+
+Le lien de téléchargement génère à la volée `/admin-dashboard/import-entreprises/exemple.csv`. Les validateurs Django contrôlent les e-mails et les URL HTTP(S), et les codes postaux internationaux alphanumériques sont acceptés. Chaque import traité est consigné avec le total, le nombre de créations et le nombre de rejets.

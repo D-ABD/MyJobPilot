@@ -22,6 +22,7 @@ from comptes.utils import invalidate_user_sessions, log_action
 from .import_csv import importer_eleves_csv
 from documents.models import Document
 from entreprises.forms import ChangementStatutForm, CommentaireForm
+from entreprises.import_csv import importer_entreprises_csv
 from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut, TypeContrat
 from rgpd.models import DemandeRGPD, StatutDemande, TypeDemande
 from .forms import (
@@ -738,3 +739,59 @@ def admin_import_eleves_csv(request):
             ("Import CSV élèves", ""),
         ],
     })
+
+
+@administrateur_requis
+def admin_import_entreprises_csv(request):
+    rapport = None
+    erreur_fichier = ""
+    if request.method == "POST":
+        fichier = request.FILES.get("fichier")
+        if fichier is None:
+            erreur_fichier = "Sélectionnez un fichier CSV à importer."
+        elif not fichier.name.lower().endswith(".csv"):
+            erreur_fichier = "Le fichier doit être au format CSV."
+        else:
+            debut = fichier.read(5)
+            fichier.seek(0)
+            if debut.startswith(b"%PDF-"):
+                erreur_fichier = "Le fichier transmis est un PDF, pas un CSV."
+            else:
+                try:
+                    rapport = importer_entreprises_csv(fichier, request.user)
+                except (UnicodeDecodeError, csv.Error):
+                    erreur_fichier = "Le fichier n'est pas un CSV UTF-8 lisible."
+
+    return render(request, "admin_dashboard/import_entreprises.html", {
+        "rapport": rapport,
+        "erreur_fichier": erreur_fichier,
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Hub", "/hub/"),
+            ("Import entreprises", ""),
+        ],
+    })
+
+
+@administrateur_requis
+def admin_import_entreprises_exemple_csv(request):
+    sortie = io.StringIO(newline="")
+    writer = csv.writer(sortie)
+    writer.writerow([
+        "nom", "secteur", "ville", "code_postal", "site_web",
+        "contact_nom", "contact_email", "contact_telephone",
+    ])
+    writer.writerow([
+        "ACME Corp", "Informatique", "Paris", "75001", "https://acme.fr",
+        "Jean Dupont", "jean@acme.fr", "0123456789",
+    ])
+    writer.writerow([
+        "Super Corp", "Finance", "Lyon", "69001", "https://supercorp.fr",
+        "Marie Martin", "marie@supercorp.fr", "0987654321",
+    ])
+    response = HttpResponse(
+        "\ufeff" + sortie.getvalue(),
+        content_type="text/csv; charset=utf-8",
+    )
+    response["Content-Disposition"] = 'attachment; filename="entreprises_exemple.csv"'
+    return response
