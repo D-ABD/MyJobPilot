@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="fr">
+<body>
+  <header><h1>MyJobPilot</h1></header>
+  <main>
+    <p>Bonjour {{ nom }},</p>
+    <p>Nous avons bien reçu votre demande relative à vos données personnelles.</p>
+    <p>Type de demande : <strong>{{ type_demande }}</strong>.</p>
+    <p>Date de réception : {{ date_demande|date:"d/m/Y H:i" }}.</p>
+    <p>Nous vous répondrons dans un délai d’un mois.</p>
+  </main>
+  <footer><p><a href="{{ lien_confidentialite }}">Politique de confidentialité</a></p><p>© 2026 MyJobPilot</p></footer>
+</body>
+</html>

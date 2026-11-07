@@ -1,12 +1,17 @@
 """Administration des référentiels, comptes, consentements et journaux."""
+import logging
+
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
 from django.utils.html import format_html
 
 from .models import Centre, ConsentementRGPD, Formation, JournalAction, Notification, ScopeSuperviseur, TypeNotification, Utilisateur
+from .emails import envoyer_email_refus, envoyer_email_validation
 from .notifications import creer_notification
 from .utils import invalidate_user_sessions, log_action
+
+logger = logging.getLogger("comptes")
 
 
 @admin.register(Centre)
@@ -66,6 +71,13 @@ class UtilisateurAdmin(UserAdmin):
                 utilisateur, TypeNotification.COMPTE_VALIDE,
                 "Votre compte a été validé", "/dashboard/",
             )
+            try:
+                envoyer_email_validation(utilisateur)
+            except Exception:
+                logger.exception(
+                    "Échec de l'envoi de l'email de validation pour %s",
+                    utilisateur.username,
+                )
 
     @admin.action(description="Refuser les comptes sélectionnés")
     def refuser_comptes(self, request, queryset):
@@ -87,6 +99,13 @@ class UtilisateurAdmin(UserAdmin):
                 utilisateur, TypeNotification.COMPTE_REFUSE,
                 "Votre compte a été refusé", "/en-attente/",
             )
+            try:
+                envoyer_email_refus(utilisateur, utilisateur.motif_refus)
+            except Exception:
+                logger.exception(
+                    "Échec de l'envoi de l'email de refus pour %s",
+                    utilisateur.username,
+                )
             nombre_refuses += 1
         nombre_sans_motif = queryset.count() - nombre_refuses
         if nombre_sans_motif:

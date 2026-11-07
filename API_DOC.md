@@ -177,3 +177,7 @@ Le CSV contient nom, secteur, ville, code postal, site web, contact, date de cr�
 | GET | /admin-dashboard/import-entreprises/exemple.csv | Admin | Génère et télécharge le modèle CSV UTF-8 avec BOM. | — | 200 CSV, 403 |
 
 Les validations utilisent les validateurs Django pour les adresses e-mail et URL. Un code postal fourni doit contenir exactement 5 chiffres. Chaque import traité est journalisé avec ses nombres de lignes totales, créées et rejetées.
+
+### Emails transactionnels — Lot 13
+
+Les événements suivants déclenchent un email à l'adresse du compte : validation ou refus d'un compte élève, réception d'une demande RGPD et réponse de traitement d'une demande RGPD. Si l'adresse est absente, l'envoi est ignoré. Une panne SMTP est journalisée sans annuler l'action correspondante.

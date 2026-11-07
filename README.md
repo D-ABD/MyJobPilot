@@ -214,3 +214,7 @@ Depuis `/entreprises-reference/`, les utilisateurs connectés peuvent téléchar
 Depuis le hub ou la page des exports administrateur, un admin peut importer des entreprises dans le référentiel partagé via `/admin-dashboard/import-entreprises/`. La colonne `nom` est obligatoire ; les coordonnées et autres champs sont facultatifs. Les lignes sont validées individuellement et la page affiche le bilan ainsi que la raison de chaque rejet. Les noms déjà présents (sans distinction de casse) sont rejetés.
 
 Le lien de téléchargement génère à la volée `/admin-dashboard/import-entreprises/exemple.csv`. Les validateurs Django contrôlent les e-mails et les URL HTTP(S) ; un code postal fourni doit contenir exactement 5 chiffres. Chaque import traité est consigné avec le total, le nombre de créations et le nombre de rejets.
+
+## Lot 13 — Emails transactionnels
+
+MyJobPilot envoie un email lors de la validation ou du refus d'un compte élève, à la réception d'une demande RGPD et à l'envoi de sa réponse. L'envoi utilise Brevo SMTP, configuré par les variables d'environnement `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` et `DEFAULT_FROM_EMAIL`. Une adresse de destinataire vide est ignorée. En cas d'échec SMTP, l'erreur est journalisée et l'action principale reste effectuée.

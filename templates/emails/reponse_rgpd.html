@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="fr">
+<body>
+  <header><h1>MyJobPilot</h1></header>
+  <main>
+    <p>Bonjour {{ nom }},</p>
+    <p>Votre demande relative à vos données personnelles a été traitée.</p>
+    <p>Type de demande : <strong>{{ type_demande }}</strong>.</p>
+    <p>Statut : <strong>{{ statut }}</strong>.</p>
+    {% if est_refusee %}<p>Motif du refus : {{ motif_refus }}</p>{% endif %}
+  </main>
+  <footer><p><a href="{{ lien_confidentialite }}">Politique de confidentialité</a></p><p>© 2026 MyJobPilot</p></footer>
+</body>
+</html>

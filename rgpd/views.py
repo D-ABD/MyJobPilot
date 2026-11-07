@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -8,11 +9,14 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from comptes.models import JournalAction, Utilisateur
+from comptes.emails import envoyer_email_accuse_rgpd, envoyer_email_reponse_rgpd
 from comptes.utils import log_action
 from documents.models import Document
 from entreprises.models import Commentaire, Prospection
 from .forms import DemandeRGPDForm, TraitementDemandeRGPDForm
 from .models import DemandeRGPD, StatutDemande
+
+logger = logging.getLogger("comptes")
 
 
 def _eleve(request):
@@ -45,6 +49,13 @@ def demande_rgpd_create(request):
             cible=demande, details={"ancien_statut": None, "nouveau_statut": demande.statut},
             request=request,
         )
+        try:
+            envoyer_email_accuse_rgpd(demande)
+        except Exception:
+            logger.exception(
+                "Échec de l'envoi de l'accusé RGPD pour la demande %s",
+                demande.pk,
+            )
         messages.success(request, "Votre demande RGPD a été enregistrée.")
         return redirect("rgpd:demandes_rgpd_list")
     return render(request, "rgpd/demande_rgpd_form.html", {
@@ -96,6 +107,13 @@ def admin_demande_rgpd_traiter(request, pk):
                 cible=demande,
                 details={"ancien_statut": ancien_statut, "nouveau_statut": demande.statut},
                 request=request,
+            )
+        try:
+            envoyer_email_reponse_rgpd(demande)
+        except Exception:
+            logger.exception(
+                "Échec de l'envoi de la réponse RGPD pour la demande %s",
+                demande.pk,
             )
         messages.success(request, "La demande a été mise à jour.")
         return redirect("rgpd:admin_demandes_rgpd_list")
