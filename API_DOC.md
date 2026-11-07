@@ -167,6 +167,14 @@ Les paramètres de filtre sont conservés lors du tri et de la pagination. Le li
 | GET | /entreprises-reference/export.csv | Élève, superviseur, admin | Télécharge les entreprises visibles par le rôle courant ; l'export réutilise l'isolation et les filtres de la liste. Une exportation non vide est inscrite dans JournalAction avec son nombre de lignes et ses filtres. | q, secteur, ville, tri, ordre | 200 CSV UTF-8 avec BOM |
 | GET | /api/entreprises/ | Élève, superviseur, admin | Retourne en JSON les entreprises visibles et leur nombre de prospections visibles. | q, secteur, ville | 200 JSON, 403 si session absente ou rôle non autorisé |
 
+## Recherche globale — Lot 14
+
+| Méthode | URL | Rôle | Description | Paramètres | Réponses |
+|---|---|---|---|---|---|
+| GET | /recherche/ | Tout utilisateur connecté | Recherche accent-insensible dans les prospections et documents autorisés. Les superviseurs et admins peuvent aussi rechercher les élèves de leur périmètre (admin : tous les élèves). | q (terme recherché) | 200 HTML, 302 si non connecté |
+
+Les résultats sont limités à 20 par section. Les résultats élèves affichent username et, s'ils existent, prénom et nom ; l'adresse email ne figure jamais dans les résultats.
+
 Le CSV contient nom, secteur, ville, code postal, site web, contact, date de création et nombre de prospections. L'API utilise la session Django et applique les mêmes règles d'isolation que `/entreprises-reference/`.
 
 ### Import CSV des entreprises — Lot 12

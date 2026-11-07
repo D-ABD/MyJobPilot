@@ -22,6 +22,12 @@
         </button>
 
         <div class="navbar-collapse d-none d-lg-flex" id="menuPrincipalDesktop">
+          {% if user.is_authenticated %}
+            <form class="d-flex ms-lg-3 me-auto" role="search" action="{% url 'core:recherche' %}" method="get">
+              <input class="form-control me-2" type="search" name="q" placeholder="Rechercher..." aria-label="Rechercher">
+              <button class="btn btn-outline-light" type="submit">Rechercher</button>
+            </form>
+          {% endif %}
           <ul class="navbar-nav ms-auto align-items-lg-center">
             {% if user.is_authenticated %}
               <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}" aria-label="Notifications">Notifications <span id="notifications-count" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
@@ -61,6 +67,12 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Fermer le menu"></button>
           </div>
           <div class="offcanvas-body">
+            {% if user.is_authenticated %}
+              <form class="d-flex mb-3" role="search" action="{% url 'core:recherche' %}" method="get">
+                <input class="form-control me-2" type="search" name="q" placeholder="Rechercher..." aria-label="Rechercher">
+                <button class="btn btn-outline-light" type="submit">Rechercher</button>
+              </form>
+            {% endif %}
             <ul class="navbar-nav">
               {% if user.is_authenticated %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}">Notifications <span id="notifications-count-mobile" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>

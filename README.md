@@ -218,3 +218,7 @@ Le lien de téléchargement génère à la volée `/admin-dashboard/import-entre
 ## Lot 13 — Emails transactionnels
 
 MyJobPilot envoie un email lors de la validation ou du refus d'un compte élève, à la réception d'une demande RGPD et à l'envoi de sa réponse. L'envoi utilise Brevo SMTP, configuré par les variables d'environnement `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` et `DEFAULT_FROM_EMAIL`. Une adresse de destinataire vide est ignorée. En cas d'échec SMTP, l'erreur est journalisée et l'action principale reste effectuée.
+
+## Lot 14 — Recherche globale
+
+La barre de recherche de la navbar cherche les prospections et documents accessibles à l'utilisateur connecté. Les superviseurs voient aussi les élèves de leur scope actif ; les admins peuvent chercher tous les élèves. La recherche ignore la casse et les accents, affiche au plus 20 résultats par section et n'expose jamais les adresses email dans la liste des élèves.

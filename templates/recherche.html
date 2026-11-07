@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Recherche globale — MyJobPilot{% endblock %}
+{% block content %}
+<h1 class="h2 mb-4">Recherche globale</h1>
+{% if message_recherche %}
+  <p class="alert alert-info" role="status">{{ message_recherche }}</p>
+{% endif %}
+{% if terme %}
+  {% if prospections %}
+    <section class="mb-4" aria-labelledby="titre-resultats-prospections">
+      <h2 class="h4" id="titre-resultats-prospections">Prospections ({{ prospections|length }})</h2>
+      <ul class="list-group">
+        {% for resultat in prospections %}
+          <li class="list-group-item"><a href="{{ resultat.url }}">{{ resultat.objet.entreprise.nom }}</a> — {{ resultat.objet.eleve.username }} · {{ resultat.objet.get_statut_display }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+  {% if documents %}
+    <section class="mb-4" aria-labelledby="titre-resultats-documents">
+      <h2 class="h4" id="titre-resultats-documents">Documents ({{ documents|length }})</h2>
+      <ul class="list-group">
+        {% for resultat in documents %}
+          <li class="list-group-item"><a href="{{ resultat.url }}">{{ resultat.objet.nom }}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+  {% if eleves %}
+    <section class="mb-4" aria-labelledby="titre-resultats-eleves">
+      <h2 class="h4" id="titre-resultats-eleves">Élèves ({{ eleves|length }})</h2>
+      <ul class="list-group">
+        {% for resultat in eleves %}
+          <li class="list-group-item"><a href="{{ resultat.url }}">{{ resultat.username }}</a>{% if resultat.nom_complet %} — {{ resultat.nom_complet }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+{% endif %}
+{% endblock %}
