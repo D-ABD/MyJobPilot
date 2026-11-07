@@ -176,4 +176,4 @@ Le CSV contient nom, secteur, ville, code postal, site web, contact, date de cr�
 | GET, POST | /admin-dashboard/import-entreprises/ | Admin | Importe les lignes valides d'un CSV dans le référentiel partagé et affiche le bilan des créations et rejets. | Multipart POST : fichier CSV avec `nom` obligatoire ; autres colonnes facultatives | 200 HTML, 403 |
 | GET | /admin-dashboard/import-entreprises/exemple.csv | Admin | Génère et télécharge le modèle CSV UTF-8 avec BOM. | — | 200 CSV, 403 |
 
-Les validations utilisent les validateurs Django pour les adresses e-mail et URL. Le code postal accepte les formats internationaux alphanumériques, espaces et tirets. Chaque import traité est journalisé avec ses nombres de lignes totales, créées et rejetées.
+Les validations utilisent les validateurs Django pour les adresses e-mail et URL. Un code postal fourni doit contenir exactement 5 chiffres. Chaque import traité est journalisé avec ses nombres de lignes totales, créées et rejetées.

@@ -60,8 +60,8 @@ class ImportEntreprisesTests(TestCase):
     def test_import_valide(self):
         fichier = self.csv_file([
             ["ACME Corp", "Informatique", "Paris", "75001", "https://acme.fr", "Jean Dupont", "jean+test@example.com", "0123456789"],
-            ["Super Corp", "Finance", "Lyon", "1000", "http://supercorp.fr", "Marie Martin", "marie@example.com", "0987654321"],
-            ["North Corp", "Services", "London", "SW1A 1AA", "https://north.example", "Alex Smith", "alex@example.co.uk", "02012345678"],
+            ["Super Corp", "Finance", "Lyon", "69001", "http://supercorp.fr", "Marie Martin", "marie@example.com", "0987654321"],
+            ["North Corp", "Services", "Marseille", "13001", "https://north.example", "Alex Smith", "alex@example.co.uk", "02012345678"],
         ])
 
         response = self.import_post(fichier)
@@ -71,7 +71,7 @@ class ImportEntreprisesTests(TestCase):
         self.assertEqual(rapport["crees"], 3)
         self.assertEqual(rapport["rejetes"], 0)
         self.assertEqual(Entreprise.objects.count(), 3)
-        self.assertEqual(Entreprise.objects.get(nom="North Corp").code_postal, "SW1A 1AA")
+        self.assertEqual(Entreprise.objects.get(nom="North Corp").code_postal, "13001")
 
     def test_import_nom_existant(self):
         Entreprise.objects.create(nom="ACME Corp")
@@ -105,7 +105,15 @@ class ImportEntreprisesTests(TestCase):
         rapport = self.rapport(self.import_post(fichier))
 
         self.assertEqual((rapport["crees"], rapport["rejetes"]), (0, 1))
-        self.assertEqual(rapport["erreurs"][0]["raison"], "Code postal invalide")
+        self.assertEqual(rapport["erreurs"][0]["raison"], "Code postal invalide (5 chiffres requis)")
+
+    def test_import_code_postal_etranger_rejete(self):
+        fichier = self.csv_file([["ACME Corp", "Informatique", "Paris", "1000", "", "", "", ""]])
+
+        rapport = self.rapport(self.import_post(fichier))
+
+        self.assertEqual((rapport["crees"], rapport["rejetes"]), (0, 1))
+        self.assertEqual(rapport["erreurs"][0]["raison"], "Code postal invalide (5 chiffres requis)")
 
     def test_import_journalise(self):
         fichier = self.csv_file([

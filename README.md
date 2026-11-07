@@ -213,4 +213,4 @@ Depuis `/entreprises-reference/`, les utilisateurs connectés peuvent téléchar
 
 Depuis le hub ou la page des exports administrateur, un admin peut importer des entreprises dans le référentiel partagé via `/admin-dashboard/import-entreprises/`. La colonne `nom` est obligatoire ; les coordonnées et autres champs sont facultatifs. Les lignes sont validées individuellement et la page affiche le bilan ainsi que la raison de chaque rejet. Les noms déjà présents (sans distinction de casse) sont rejetés.
 
-Le lien de téléchargement génère à la volée `/admin-dashboard/import-entreprises/exemple.csv`. Les validateurs Django contrôlent les e-mails et les URL HTTP(S), et les codes postaux internationaux alphanumériques sont acceptés. Chaque import traité est consigné avec le total, le nombre de créations et le nombre de rejets.
+Le lien de téléchargement génère à la volée `/admin-dashboard/import-entreprises/exemple.csv`. Les validateurs Django contrôlent les e-mails et les URL HTTP(S) ; un code postal fourni doit contenir exactement 5 chiffres. Chaque import traité est consigné avec le total, le nombre de créations et le nombre de rejets.

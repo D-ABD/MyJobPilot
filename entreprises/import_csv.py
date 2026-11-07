@@ -17,7 +17,7 @@ CHAMPS_CSV = (
     "contact_nom", "contact_email", "contact_telephone",
 )
 VALIDER_URL = URLValidator(schemes=["http", "https"])
-MOTIF_CODE_POSTAL = re.compile(r"^[A-Z0-9][A-Z0-9 \-]{2,9}$", re.IGNORECASE)
+MOTIF_CODE_POSTAL = re.compile(r"^\d{5}$")
 
 
 def _valider_ligne(ligne):
@@ -54,9 +54,8 @@ def _valider_ligne(ligne):
         except ValidationError:
             return None, "URL invalide"
     if valeurs["code_postal"]:
-        valeurs["code_postal"] = valeurs["code_postal"].upper()
         if not MOTIF_CODE_POSTAL.fullmatch(valeurs["code_postal"]):
-            return None, "Code postal invalide"
+            return None, "Code postal invalide (5 chiffres requis)"
     return valeurs, None
 
 
