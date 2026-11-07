@@ -237,7 +237,7 @@ La todo list `/taches/` permet de créer et suivre des tâches, avec échéance,
 
 ## Lot 18 — Mes relances et emails automatiques
 
-La page `/mes-relances/`, réservée aux élèves, liste leurs prospections au statut « À relancer » dont la date de relance est échue ou correspond à aujourd'hui. Le compteur de la navbar affiche leur nombre. Le bouton « Terminer la relance » passe la prospection à « Candidature envoyée », renseigne la date du jour et journalise l'historique et l'action.
+La page `/mes-relances/`, réservée aux élèves, sépare les prospections « À relancer » en deux sections : « En retard » pour les dates antérieures à aujourd'hui et « À venir » pour aujourd'hui jusqu'aux 30 prochains jours. Le compteur JSON indique `en_retard`, `a_venir` et `total` ; le badge de la navbar affiche uniquement les relances en retard et son infobulle native donne les deux nombres. Le bouton « Terminer la relance » apparaît uniquement dans la section en retard et passe la prospection à « Candidature envoyée », renseigne la date du jour et journalise l'historique et l'action.
 
 La commande `python manage.py relancer_prospections` envoie un email une seule fois par prospection lorsque la relance est échue depuis le nombre de jours configuré. Une simulation sans effet de bord est disponible avec `python manage.py relancer_prospections --dry-run`. Les variables d'environnement `RELANCES_AUTO_JOURS` (7 par défaut) et `RELANCES_AUTO_EMAIL` (`True` par défaut) permettent de régler le délai ou de désactiver l'envoi.
 

@@ -54,21 +54,58 @@ class RelancesTests(TestCase):
         response = self.client.get(reverse("entreprises:mes_relances"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "En retard")
+        self.assertContains(response, "À venir")
         self.assertContains(response, visible.entreprise.nom)
         self.assertNotContains(response, autre.entreprise.nom)
-        self.assertNotContains(response, future.entreprise.nom)
+        self.assertContains(response, future.entreprise.nom)
         self.assertNotContains(response, ancienne_candidature.entreprise.nom)
 
+    def test_mes_relances_a_venir(self):
+        a_venir = self.creer_prospection(jours=-5)
+        self.client.force_login(self.eleve)
+
+        response = self.client.get(reverse("entreprises:mes_relances"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "À venir")
+        self.assertContains(response, a_venir.entreprise.nom)
+        self.assertContains(response, "Dans 5 jours")
+
     def test_mes_relances_compteur(self):
-        self.creer_prospection()
-        self.creer_prospection(self.autre_eleve)
-        self.creer_prospection(jours=-1)
+        self.creer_prospection(jours=8)
+        self.creer_prospection(jours=-5)
         self.client.force_login(self.eleve)
 
         response = self.client.get(reverse("entreprises:mes_relances_compteur"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"count": 1})
+        self.assertEqual(response.json()["en_retard"], 1)
+
+    def test_mes_relances_compteur_json(self):
+        self.creer_prospection(jours=8)
+        self.creer_prospection(jours=-5)
+        self.creer_prospection(jours=0)
+        self.creer_prospection(jours=-30)
+        self.creer_prospection(jours=-31)
+        self.creer_prospection(jours=-40)
+        self.creer_prospection(self.autre_eleve)
+        self.client.force_login(self.eleve)
+
+        response = self.client.get(reverse("entreprises:mes_relances_compteur"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"en_retard": 1, "a_venir": 3, "total": 4})
+
+    def test_mes_relances_pas_de_bouton_terminer_pour_a_venir(self):
+        a_venir = self.creer_prospection(jours=-5)
+        self.client.force_login(self.eleve)
+
+        response = self.client.get(reverse("entreprises:mes_relances"))
+
+        self.assertContains(response, a_venir.entreprise.nom)
+        self.assertNotContains(response, "Terminer la relance")
+        self.assertContains(response, "Voir la prospection")
 
     def test_mes_relances_reservees_aux_eleves(self):
         admin = Utilisateur.objects.create_superuser(

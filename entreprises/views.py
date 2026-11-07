@@ -1,5 +1,5 @@
 """Tableau de bord élève et gestion isolée des prospections."""
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import unicodedata
 
 from django.contrib import messages
@@ -224,29 +224,46 @@ def entreprises_reference(request):
 
 @login_required
 def mes_relances(request):
-    """Liste les relances échues de l'élève connecté."""
+    """Liste les relances échues et celles à venir de l'élève connecté."""
     _verifier_eleve(request)
     aujourd_hui = timezone.localdate()
-    queryset = Prospection.objects.select_related("entreprise").filter(
+    relances_en_retard_qs = Prospection.objects.select_related("entreprise").filter(
         eleve=request.user,
         statut=Statut.A_RELANCER,
-        date_relance__lte=aujourd_hui,
+        date_relance__lt=aujourd_hui,
     ).order_by("date_relance", "pk")
-    total_count = queryset.count()
-    page_obj = Paginator(queryset, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
-    relances = [
+    relances_a_venir_qs = Prospection.objects.select_related("entreprise").filter(
+        eleve=request.user,
+        statut=Statut.A_RELANCER,
+        date_relance__gte=aujourd_hui,
+        date_relance__lte=aujourd_hui + timedelta(days=30),
+    ).order_by("date_relance", "pk")
+
+    total_en_retard = relances_en_retard_qs.count()
+    total_a_venir = relances_a_venir_qs.count()
+    page_obj = Paginator(relances_en_retard_qs, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
+    relances_en_retard = [
         {
             "prospection": prospection,
             "jours_retard": (aujourd_hui - prospection.date_relance).days,
         }
         for prospection in page_obj.object_list
     ]
+    relances_a_venir = [
+        {
+            "prospection": prospection,
+            "jours_avant": (prospection.date_relance - aujourd_hui).days,
+        }
+        for prospection in relances_a_venir_qs
+    ]
     params = request.GET.copy()
     params.pop("page", None)
     return render(request, "entreprises/mes_relances.html", {
-        "relances": relances,
+        "relances_en_retard": relances_en_retard,
+        "relances_a_venir": relances_a_venir,
         "page_obj": page_obj,
-        "total_count": total_count,
+        "total_en_retard": total_en_retard,
+        "total_a_venir": total_a_venir,
         "pagination_query": params.urlencode(),
         "breadcrumb_items": [
             ("Accueil", "/"),
@@ -258,14 +275,19 @@ def mes_relances(request):
 
 @login_required
 def mes_relances_compteur(request):
-    """Retourne le nombre de relances échues pour l'élève connecté."""
+    """Retourne les compteurs de relances de l'élève connecté."""
     _verifier_eleve(request)
-    count = Prospection.objects.filter(
+    relances = Prospection.objects.filter(
         eleve=request.user,
         statut=Statut.A_RELANCER,
-        date_relance__lte=timezone.localdate(),
+    )
+    aujourd_hui = timezone.localdate()
+    en_retard = relances.filter(date_relance__lt=aujourd_hui).count()
+    a_venir = relances.filter(
+        date_relance__gte=aujourd_hui,
+        date_relance__lte=aujourd_hui + timedelta(days=30),
     ).count()
-    return JsonResponse({"count": count})
+    return JsonResponse({"en_retard": en_retard, "a_venir": a_venir, "total": en_retard + a_venir})
 
 
 @login_required
@@ -279,7 +301,7 @@ def mes_relances_terminer(request, pk):
         pk=pk,
         eleve=request.user,
         statut=Statut.A_RELANCER,
-        date_relance__lte=aujourd_hui,
+        date_relance__lt=aujourd_hui,
     )
     ancien_statut = prospection.statut
     nouveau_statut = Statut.CANDIDATURE_ENVOYEE
