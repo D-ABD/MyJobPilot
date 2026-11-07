@@ -71,6 +71,58 @@
   color: #fff;
 }
 
+/* Le thème Bootstrap est piloté par data-bs-theme sur <html>. */
+[data-bs-theme="dark"] body {
+  background-color: #1a1a1a;
+  color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .list-group-item,
+[data-bs-theme="dark"] .empty-state {
+  background-color: #2a2a2a;
+  color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .empty-state {
+  border-color: #495057;
+}
+
+[data-bs-theme="dark"] .navbar.bg-primary {
+  background-color: #17345a !important;
+}
+
+[data-bs-theme="dark"] .offcanvas {
+  background-color: #212529;
+}
+
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+  background-color: #212529;
+  border-color: #495057;
+  color: #f8f9fa;
+}
+
+[data-bs-theme="dark"] .form-control::placeholder {
+  color: #adb5bd;
+}
+
+[data-bs-theme="dark"] .table,
+[data-bs-theme="dark"] .table-light {
+  --bs-table-color: #dee2e6;
+  --bs-table-bg: #212529;
+  --bs-table-border-color: #495057;
+  --bs-table-striped-bg: #282d32;
+  --bs-table-striped-color: #dee2e6;
+  --bs-table-hover-bg: #343a40;
+  --bs-table-hover-color: #fff;
+  --bs-table-accent-bg: transparent;
+}
+
+[data-bs-theme="dark"] footer.border-top {
+  border-color: #495057 !important;
+}
+
 @media (max-width: 575.98px) {
   main.container {
     padding-left: 1rem;

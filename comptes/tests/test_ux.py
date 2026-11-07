@@ -11,6 +11,21 @@ Utilisateur = get_user_model()
 
 
 class ExperienceUtilisateurTests(TestCase):
+    def test_base_contient_toggle(self):
+        response = self.client.get(reverse("rgpd:confidentialite"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="theme-toggle"')
+        self.assertContains(response, 'aria-label="Changer de thème"')
+
+    def test_base_contient_script_theme(self):
+        response = self.client.get(reverse("rgpd:confidentialite"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'localStorage.getItem("theme")')
+        self.assertContains(response, 'localStorage.setItem("theme", nouveauTheme)')
+        self.assertLess(response.content.index(b'localStorage.getItem("theme")'), response.content.index(b"bootstrap.min.css"))
+
     def test_page_404_affiche_le_template_personnalise(self):
         request = RequestFactory().get("/page-inconnue/")
         request.user = AnonymousUser()

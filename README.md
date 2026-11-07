@@ -226,3 +226,7 @@ La barre de recherche de la navbar cherche les prospections et documents accessi
 ## Lot 15 — Cockpits de pilotage
 
 Les dashboards élève, superviseur et admin présentent des KPI calculés côté serveur et des graphiques Chart.js complémentaires. Les courbes élève et superviseur couvrent toujours les huit semaines les plus récentes, avec un point à zéro lorsque la semaine ne comporte aucune prospection. Les KPI restent visibles même si le CDN Chart.js est indisponible.
+
+## Lot 16 — Mode clair/sombre
+
+Le bouton de thème dans la barre de navigation bascule entre les modes clair et sombre. Le choix est mémorisé dans le navigateur et restauré au prochain chargement.
