@@ -16,11 +16,21 @@ if not SECRET_KEY:
 DEBUG = os.getenv("DEBUG", "False").strip().lower() in {"1", "true", "yes", "on"}
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
 
+# CSRF : origines de confiance (Django 4+)
+CSRF_TRUSTED_ORIGINS = [
+    f"https://{host}" for host in ALLOWED_HOSTS if host not in ("localhost", "127.0.0.1")
+]
+
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 
+# Quotas documents
 DOCUMENT_MAX_SIZE_BYTES = 5 * 1024 * 1024
 DOCUMENT_QUOTA_BYTES = 20 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 Mo par requête
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024   # 5 Mo par fichier en mémoire
+
+# Rétention RGPD
 RETENTION_COMPTE_DESACTIVE_JOURS = 1095
 RETENTION_COMPTE_NON_VALIDE_JOURS = 180
 RETENTION_JOURNAL_JOURS = 1095
@@ -95,6 +105,7 @@ LOGIN_URL = "comptes:connexion"
 LOGIN_REDIRECT_URL = "comptes:redirection_apres_login"
 LOGOUT_REDIRECT_URL = "comptes:connexion"
 
+# Configuration de production (si DEBUG=False)
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -103,7 +114,10 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_REFERRER_POLICY = "same-origin"
 
+# Logging
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
@@ -145,7 +159,7 @@ LOGGING = {
     },
 }
 
-
+# REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
@@ -154,3 +168,18 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
+
+# Emails (préparation pour le Lot 13)
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL", "noreply@myjobpilot.adserv.fr"
+)
+
+# Alertes email en cas d'erreur 500
+ADMINS = [("ABD", "adserv.fr@gmail.com")]
+MANAGERS = ADMINS
+
+# Durée de session (7 jours)
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7
