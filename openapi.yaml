@@ -11,6 +11,42 @@ servers:
 security:
   - DjangoSession: []
 paths:
+  /api/entreprises/:
+    get:
+      tags: [Entreprises]
+      summary: Lister les entreprises accessibles
+      description: >
+        L'élève voit les entreprises de ses prospections ; le superviseur voit
+        celles de son scope actif et ses propres prospections ; l'admin voit
+        tout le référentiel. Les résultats respectent les filtres fournis.
+      operationId: listEntreprises
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: secteur
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: ville
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Entreprises visibles par l'utilisateur courant.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Entreprise'
+        '403':
+          description: Session absente ou rôle non autorisé.
   /api/prospections/:
     get:
       tags: [Prospections]
@@ -64,7 +100,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Entreprise'
+                  $ref: '#/components/schemas/EntrepriseSearchResult'
         '302':
           description: Redirection vers la connexion sans session.
 components:
@@ -77,7 +113,7 @@ components:
   schemas:
     Entreprise:
       type: object
-      required: [id, nom, ville]
+      required: [id, nom, secteur, ville, code_postal, site_web, contact_nom, contact_email, contact_telephone, date_creation, nb_prospections]
       properties:
         id:
           type: integer
@@ -85,9 +121,42 @@ components:
         nom:
           type: string
           example: ACME Corp
+        secteur:
+          type: string
+          example: Informatique
         ville:
           type: string
           example: Paris
+        code_postal:
+          type: string
+          example: "75001"
+        site_web:
+          type: string
+          format: uri
+          example: https://example.com
+        contact_nom:
+          type: string
+        contact_email:
+          type: string
+          format: email
+        contact_telephone:
+          type: string
+        date_creation:
+          type: string
+          format: date-time
+        nb_prospections:
+          type: integer
+          minimum: 0
+    EntrepriseSearchResult:
+      type: object
+      required: [id, nom, ville]
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        ville:
+          type: string
     Prospection:
       type: object
       required: [id, entreprise, statut, statut_display, type_contrat, type_contrat_display, date_creation, date_modification]

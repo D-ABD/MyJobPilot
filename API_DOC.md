@@ -159,3 +159,12 @@ Exemple :
 | GET | /entreprises-reference/<pk>/ | Élève, superviseur, admin | Affiche les informations de l'entreprise et uniquement les prospections visibles pour le rôle courant. | pk | 200 HTML, 403, 404 |
 
 Les paramètres de filtre sont conservés lors du tri et de la pagination. Le lien « Réinitialiser les filtres » revient à /entreprises-reference/ sans paramètre.
+
+### Export du référentiel des entreprises — Lot 11
+
+| Méthode | URL | Rôle | Description | Paramètres | Réponses |
+|---|---|---|---|---|---|
+| GET | /entreprises-reference/export.csv | Élève, superviseur, admin | Télécharge les entreprises visibles par le rôle courant ; l'export réutilise l'isolation et les filtres de la liste. Une exportation non vide est inscrite dans JournalAction avec son nombre de lignes et ses filtres. | q, secteur, ville, tri, ordre | 200 CSV UTF-8 avec BOM |
+| GET | /api/entreprises/ | Élève, superviseur, admin | Retourne en JSON les entreprises visibles et leur nombre de prospections visibles. | q, secteur, ville | 200 JSON, 403 si session absente ou rôle non autorisé |
+
+Le CSV contient nom, secteur, ville, code postal, site web, contact, date de création et nombre de prospections. L'API utilise la session Django et applique les mêmes règles d'isolation que `/entreprises-reference/`.

@@ -202,3 +202,8 @@ Exemple depuis une session authentifiée :
 La page `/entreprises-reference/` permet à tous les rôles connectés de consulter le référentiel partagé. Les élèves ne voient que les entreprises de leurs propres prospections ; un superviseur voit celles des élèves de son scope actif ainsi que celles de ses propres prospections ; l'administrateur voit tout le référentiel. La fiche entreprise applique la même isolation aux prospections affichées.
 
 La liste propose une recherche insensible à la casse et aux accents dans le nom, le secteur et la ville, des filtres exacts de secteur et de ville, un tri par nom, ville ou date d'ajout, et une pagination de 25 résultats. Les paramètres de filtre sont conservés dans les liens de tri et de pagination.
+
+
+## Lot 11 — Export du référentiel des entreprises
+
+Depuis `/entreprises-reference/`, les utilisateurs connectés peuvent télécharger un CSV UTF-8 avec BOM ou consulter les entreprises au format JSON sur `/api/entreprises/`. Les deux exports reprennent le queryset autorisé et les filtres de la liste. Les élèves voient leurs entreprises, les superviseurs celles de leur scope actif et les leurs, et les administrateurs tout le référentiel. Les exports CSV non vides sont journalisés avec le nombre de lignes et les filtres appliqués.

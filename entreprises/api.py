@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from comptes.models import Utilisateur
 from comptes.scope_utils import centres_du_superviseur
 from entreprises.models import Prospection
-from entreprises.serializers import ProspectionSerializer
+from entreprises.serializers import EntrepriseSerializer, ProspectionSerializer
 
 
 @api_view(["GET"])
@@ -30,3 +30,13 @@ def prospections_list(request):
 
     queryset = queryset.select_related("entreprise").order_by("-date_modification")
     return Response(ProspectionSerializer(queryset, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def entreprises_list(request):
+    """Retourne les entreprises visibles et filtrées pour l'utilisateur courant."""
+    from entreprises.views import entreprises_reference_filtrees
+
+    entreprises = entreprises_reference_filtrees(request.user, request.query_params)
+    return Response(EntrepriseSerializer(entreprises, many=True).data)

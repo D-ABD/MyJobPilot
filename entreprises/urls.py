@@ -10,6 +10,7 @@ urlpatterns = [
     path("commentaires/<int:pk>/supprimer/", commentaires.commentaire_supprimer, name="commentaire_supprimer"),
     path("hub/", views.hub, name="hub"),
     path("entreprises-reference/", views.entreprises_reference, name="reference"),
+    path("entreprises-reference/export.csv", views.entreprises_reference_export_csv, name="export_csv"),
     path("entreprises-reference/<int:pk>/", views.entreprise_reference_detail, name="reference_detail"),
     path("dashboard/", views.dashboard_eleve, name="dashboard"),
     path("prospections/", views.prospections_toutes, name="prospections_toutes"),

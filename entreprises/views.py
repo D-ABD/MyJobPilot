@@ -129,14 +129,12 @@ def _filtrer_entreprises_par_texte(entreprises, recherche):
     ]
 
 
-def entreprises_reference(request):
-    """Liste les entreprises auxquelles l'utilisateur a accès selon son rôle."""
-    user = request.user
+def _entreprises_reference_base(user):
+    """Construit le queryset partagé du référentiel avec les compteurs autorisés."""
     if not user.is_authenticated or user.role not in {
         Utilisateur.Role.ELEVE, Utilisateur.Role.SUPERVISEUR, Utilisateur.Role.ADMIN,
     }:
         raise PermissionDenied
-
     prospections_visibles = _prospections_reference_visibles(user)
     queryset = Entreprise.objects.all()
     if user.role != Utilisateur.Role.ADMIN:
@@ -147,16 +145,40 @@ def entreprises_reference(request):
             filter=Q(prospections__in=prospections_visibles),
         )
     ).distinct()
+    return queryset
 
-    secteurs = list(queryset.order_by("secteur").values_list("secteur", flat=True).distinct())
-    villes = list(queryset.order_by("ville").values_list("ville", flat=True).distinct())
-    secteur = request.GET.get("secteur", "").strip()
-    ville = request.GET.get("ville", "").strip()
+
+def entreprises_reference_filtrees(user, params):
+    """Retourne les mêmes entreprises filtrées pour la liste, le CSV et l'API."""
+    queryset = _entreprises_reference_base(user)
+
+    secteur = params.get("secteur", "").strip()
+    ville = params.get("ville", "").strip()
     if secteur:
         queryset = queryset.filter(secteur=secteur)
     if ville:
         queryset = queryset.filter(ville=ville)
 
+    champs_triables = {"nom": "nom", "ville": "ville", "date_creation": "date_creation"}
+    tri = params.get("tri", "nom")
+    if tri not in champs_triables:
+        tri = "nom"
+    ordre = params.get("ordre", "asc")
+    if ordre not in {"asc", "desc"}:
+        ordre = "asc"
+    champ_tri = champs_triables[tri]
+    queryset = queryset.order_by(("-" if ordre == "desc" else "") + champ_tri, "pk")
+
+    return _filtrer_entreprises_par_texte(list(queryset), params.get("q", "").strip())
+
+
+def entreprises_reference(request):
+    """Liste les entreprises auxquelles l'utilisateur a accès selon son rôle."""
+    user = request.user
+    queryset = _entreprises_reference_base(user)
+
+    secteurs = list(queryset.order_by("secteur").values_list("secteur", flat=True).distinct())
+    villes = list(queryset.order_by("ville").values_list("ville", flat=True).distinct())
     champs_triables = {"nom": "nom", "ville": "ville", "date_creation": "date_creation"}
     tri = request.GET.get("tri", "nom")
     if tri not in champs_triables:
@@ -164,12 +186,10 @@ def entreprises_reference(request):
     ordre = request.GET.get("ordre", "asc")
     if ordre not in {"asc", "desc"}:
         ordre = "asc"
-    champ_tri = champs_triables[tri]
-    queryset = queryset.order_by(("-" if ordre == "desc" else "") + champ_tri, "pk")
-
-    entreprises = list(queryset)
+    entreprises = entreprises_reference_filtrees(user, request.GET)
     recherche = request.GET.get("q", "").strip()
-    entreprises = _filtrer_entreprises_par_texte(entreprises, recherche)
+    secteur = request.GET.get("secteur", "").strip()
+    ville = request.GET.get("ville", "").strip()
     page_obj = Paginator(entreprises, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
 
     parametres_pagination = request.GET.copy()
@@ -198,6 +218,31 @@ def entreprises_reference(request):
         "pagination_query": pagination_query,
         "tri_urls": tri_urls,
     })
+
+
+def entreprises_reference_export_csv(request):
+    """Télécharge les entreprises visibles avec les filtres de la liste."""
+    from django.http import HttpResponse
+
+    from .export import exporter_entreprises_csv
+
+    entreprises = entreprises_reference_filtrees(request.user, request.GET)
+    contenu = exporter_entreprises_csv(entreprises)
+    response = HttpResponse(contenu, content_type="text/csv; charset=utf-8")
+    nom_fichier = timezone.localdate().isoformat()
+    response["Content-Disposition"] = f'attachment; filename="entreprises_{nom_fichier}.csv"'
+    if entreprises:
+        JournalAction.objects.create(
+            utilisateur=request.user,
+            action=JournalAction.Action.EXPORT_CSV,
+            cible_type="Entreprise",
+            details={
+                "type": "entreprises",
+                "nb_lignes": len(entreprises),
+                "filtres": request.GET.dict(),
+            },
+        )
+    return response
 
 
 def entreprise_reference_detail(request, pk):
