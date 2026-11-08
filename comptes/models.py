@@ -1,6 +1,7 @@
 """Modèles du socle : référentiels, comptes, consentement et journal."""
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
@@ -74,6 +75,16 @@ class Utilisateur(AbstractUser):
         ADMIN = "admin", "Administrateur"
 
     role = models.CharField("rôle", max_length=20, choices=Role.choices, default=Role.ELEVE)
+    codes_rome = models.CharField(
+        "codes ROME",
+        max_length=255,
+        blank=True,
+        default="",
+        validators=[RegexValidator(
+            regex=r"\A[A-Z]\d{4}(?:\s*,\s*[A-Z]\d{4})*\Z",
+            message="Saisissez un ou plusieurs codes ROME valides, séparés par des virgules (ex. M1805,I1401).",
+        )],
+    )
     centre = models.ForeignKey(
         Centre,
         on_delete=models.PROTECT,

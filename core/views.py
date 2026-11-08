@@ -1,4 +1,7 @@
 """Recherche globale et gestion des tâches visibles par l'utilisateur connecté."""
+from datetime import datetime, time, timezone as datetime_timezone
+from urllib.parse import urlencode
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse
@@ -6,7 +9,8 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from urllib.parse import urlencode
+from django.utils.dateparse import parse_datetime, parse_date
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from comptes.models import JournalAction, Utilisateur
@@ -19,6 +23,67 @@ from entreprises.models import Prospection
 
 
 NB_MAX_RESULTATS = 20
+PAGE_PARAMETRES_OFFERTS = ("page_offres", "page_entreprises")
+
+
+def _date_publication(offre):
+    valeur = offre.get("_publication_creation")
+    if not valeur:
+        return None
+    date_heure = parse_datetime(valeur)
+    if date_heure is None:
+        date = parse_date(valeur)
+        if date is None:
+            return None
+        date_heure = datetime.combine(date, time.min)
+    if timezone.is_naive(date_heure):
+        date_heure = date_heure.replace(tzinfo=datetime_timezone.utc)
+    return date_heure
+
+
+def _trier_offres(offres, tri, codes_rome):
+    """Trie les offres de façon stable après le dédoublonnage effectué par le service LBA."""
+    if tri == "lba":
+        return offres
+    if tri == "rome":
+        ordre_codes = {code: index for index, code in enumerate(codes_rome)}
+        groupes = {code: [] for code in codes_rome}
+        sans_correspondance = []
+        for offre in offres:
+            rangs = [ordre_codes[code] for code in offre.get("_rome_codes", []) if code in ordre_codes]
+            if rangs:
+                groupes[codes_rome[min(rangs)]].append(offre)
+            else:
+                sans_correspondance.append(offre)
+        return [offre for code in codes_rome for offre in groupes[code]] + sans_correspondance
+
+    avec_date = []
+    sans_date = []
+    for offre in offres:
+        date = _date_publication(offre)
+        (avec_date if date is not None else sans_date).append((date, offre))
+    avec_date.sort(key=lambda couple: couple[0], reverse=True)
+    return [offre for _, offre in avec_date] + [offre for _, offre in sans_date]
+
+
+def _pagination_contexte(request, resultats, parametre_page, params_base):
+    page_obj = Paginator(resultats, NB_MAX_RESULTATS).get_page(request.GET.get(parametre_page))
+
+    def url_page(numero):
+        params = params_base.copy()
+        params[parametre_page] = numero
+        return f"?{params.urlencode()}"
+
+    return {
+        "page_obj": page_obj,
+        "page_links": [{
+            "number": numero,
+            "url": url_page(numero),
+            "current": numero == page_obj.number,
+        } for numero in page_obj.paginator.page_range],
+        "previous_url": url_page(page_obj.previous_page_number()) if page_obj.has_previous() else None,
+        "next_url": url_page(page_obj.next_page_number()) if page_obj.has_next() else None,
+    }
 
 
 def offres_alternance(request):
@@ -40,23 +105,47 @@ def offres_alternance(request):
         })
         return redirect(f"{reverse(nom_url)}?{params}")
 
-    form = OffresAlternanceForm(request.GET or None)
+    initial = {"code_rome": request.user.codes_rome} if request.user.is_authenticated else {}
+    form = OffresAlternanceForm(request.GET or None, initial=initial)
     offres = []
     entreprises = []
     recherche_effectuee = False
+    message_aide = ""
+    offres_page = entreprises_page = None
+    offres_pagination = entreprises_pagination = None
     if request.method == "GET" and request.GET:
         if form.is_valid():
-            recherche_effectuee = True
-            mot_cle = form.cleaned_data["mot_cle"]
+            codes_rome = form.cleaned_data["code_rome"].split(",") if form.cleaned_data["code_rome"] else []
             ville = form.cleaned_data["ville"]
             rayon = form.cleaned_data["rayon"]
-            offres = rechercher_offres_lba(mot_cle, ville, rayon)
-            entreprises = rechercher_entreprises_lba(mot_cle, ville, rayon)
+            tri = form.cleaned_data["tri"] or "recent"
+            if codes_rome:
+                recherche_effectuee = True
+                codes_rome = [code.strip().upper() for code in codes_rome]
+                offres = rechercher_offres_lba(",".join(codes_rome), ville, rayon)
+                entreprises = rechercher_entreprises_lba(",".join(codes_rome), ville, rayon)
+                offres = _trier_offres(offres, tri, codes_rome)
+                params_base = request.GET.copy()
+                for parametre in PAGE_PARAMETRES_OFFERTS:
+                    params_base.pop(parametre, None)
+                offres_pagination = _pagination_contexte(request, offres, "page_offres", params_base)
+                entreprises_pagination = _pagination_contexte(request, entreprises, "page_entreprises", params_base)
+                offres_page = offres_pagination.pop("page_obj")
+                entreprises_page = entreprises_pagination.pop("page_obj")
+                offres = offres_page.object_list
+                entreprises = entreprises_page.object_list
+            else:
+                message_aide = "Saisissez votre code ROME, ou consultez le référentiel France Travail."
     return render(request, "offres/recherche.html", {
         "form": form,
         "offres": offres,
         "entreprises": entreprises,
         "recherche_effectuee": recherche_effectuee,
+        "message_aide": message_aide,
+        "offres_page": offres_page,
+        "entreprises_page": entreprises_page,
+        "offres_pagination": offres_pagination,
+        "entreprises_pagination": entreprises_pagination,
     })
 
 

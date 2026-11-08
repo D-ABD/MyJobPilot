@@ -15,6 +15,10 @@
         {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
       </div>
     {% endfor %}
+    <p id="aide-tri-rome" class="form-text mb-3" {% if form.tri.value != "rome" %}hidden{% endif %}>
+      Le tri par code ROME s'applique aux offres uniquement. Les entreprises conservent l'ordre LBA.
+    </p>
+    <p class="form-text">Référentiel France Travail : <a href="https://candidat.francetravail.fr/metierscope/" target="_blank" rel="noopener noreferrer">rechercher un code ROME</a>.</p>
     <button class="btn btn-primary align-self-start" type="submit">Rechercher</button>
   </form>
 
@@ -22,8 +26,20 @@
     {% include "offres/_resultats.html" %}
   {% elif request.GET %}
     <p class="alert alert-warning" role="status">Vérifiez les critères de recherche puis relancez la recherche.</p>
+    {% if message_aide %}<p class="alert alert-info" role="status">{{ message_aide }} <a href="https://candidat.francetravail.fr/metierscope/" target="_blank" rel="noopener noreferrer">Référentiel France Travail</a>.</p>{% endif %}
   {% else %}
-    <p class="text-body-secondary">Saisissez un métier ou un mot-clé, un code postal et un rayon pour afficher les résultats.</p>
+    <p class="text-body-secondary">Saisissez un code ROME, un code postal et un rayon pour afficher les résultats.</p>
   {% endif %}
 </section>
+<script>
+  (() => {
+    const tri = document.getElementById("id_tri");
+    const aide = document.getElementById("aide-tri-rome");
+    if (tri && aide) {
+      const actualiser = () => { aide.hidden = tri.value !== "rome"; };
+      tri.addEventListener("change", actualiser);
+      actualiser();
+    }
+  })();
+</script>
 {% endblock %}

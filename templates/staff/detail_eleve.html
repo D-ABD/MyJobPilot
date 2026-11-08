@@ -33,6 +33,20 @@
     </dl>
   </div>
 
+  <div class="card mb-4">
+    <div class="card-header"><h2 class="h5 mb-0">Codes ROME</h2></div>
+    <form method="post" action="{% url 'staff:modifier_codes_rome' eleve.pk %}" class="card-body">
+      {% csrf_token %}
+      {% for field in codes_rome_form %}
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+        <div class="form-text">Maximum 3 codes séparés par des virgules.</div>
+      {% endfor %}
+      <button class="btn btn-outline-primary mt-2" type="submit">Enregistrer les codes ROME</button>
+    </form>
+  </div>
+
   <div class="card">
     <div class="card-header"><h2 class="h5 mb-0">Prospections de l'élève</h2></div>
     <form method="get" class="card-body border-bottom"><label class="form-label" for="filtre-type-contrat-detail">Type de contrat</label><div class="d-flex gap-2"><select class="form-select" id="filtre-type-contrat-detail" name="type_contrat"><option value="tous" {% if filtre_type_contrat == "tous" %}selected{% endif %}>Tous</option>{% for code, libelle in types_contrat %}<option value="{{ code }}" {% if filtre_type_contrat == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}</select><button class="btn btn-primary" type="submit">Filtrer</button></div></form>

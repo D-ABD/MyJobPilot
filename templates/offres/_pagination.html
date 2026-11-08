@@ -1,0 +1,20 @@
+<nav class="mt-3" aria-label="{{ titre }}">
+  <ul class="pagination pagination-sm flex-wrap mb-0">
+    {% if pagination.previous_url %}
+      <li class="page-item"><a class="page-link" href="{{ pagination.previous_url }}">Précédent</a></li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">Précédent</span></li>
+    {% endif %}
+    {% for lien in pagination.page_links %}
+      <li class="page-item{% if lien.current %} active{% endif %}">
+        {% if lien.current %}<span class="page-link" aria-current="page">{{ lien.number }}</span>
+        {% else %}<a class="page-link" href="{{ lien.url }}">{{ lien.number }}</a>{% endif %}
+      </li>
+    {% endfor %}
+    {% if pagination.next_url %}
+      <li class="page-item"><a class="page-link" href="{{ pagination.next_url }}">Suivant</a></li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">Suivant</span></li>
+    {% endif %}
+  </ul>
+</nav>

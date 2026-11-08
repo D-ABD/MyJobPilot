@@ -1,6 +1,7 @@
 """Formulaires des tâches, avec choix limités au périmètre de l'auteur."""
 from django import forms
 from django.contrib.auth import get_user_model
+from django.core.validators import RegexValidator
 from django.db.models import Q
 
 from comptes.scope_utils import centres_du_superviseur
@@ -50,11 +51,27 @@ class TacheForm(forms.ModelForm):
 
 
 class OffresAlternanceForm(forms.Form):
-    mot_cle = forms.CharField(
-        label="Métier ou mot-clé",
+    code_rome = forms.CharField(
+        label="Code(s) ROME",
         required=False,
-        max_length=100,
-        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex. développeur web ou M1805"}),
+        max_length=255,
+        validators=[RegexValidator(
+            regex=r"\A[A-Z]\d{4}(?:\s*,\s*[A-Z]\d{4})*\Z",
+            message="Saisissez un ou plusieurs codes ROME valides, séparés par des virgules (ex. M1805,I1401).",
+        )],
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex. M1805,I1401,D1406"}),
+        help_text="Développeur web → M1805. Consultez le référentiel France Travail pour trouver un code.",
+    )
+    tri = forms.ChoiceField(
+        label="Trier par",
+        choices=(
+            ("recent", "Plus récent"),
+            ("lba", "Pertinence LBA"),
+            ("rome", "Ordre saisi des codes"),
+        ),
+        required=False,
+        initial="recent",
+        widget=forms.Select(attrs={"class": "form-select", "id": "id_tri"}),
     )
     ville = forms.CharField(
         label="Code postal de la ville",
@@ -75,3 +92,9 @@ class OffresAlternanceForm(forms.Form):
         if not ville.isdigit() or len(ville) != 5:
             raise forms.ValidationError("Saisissez un code postal français à 5 chiffres.")
         return ville
+
+    def clean_code_rome(self):
+        codes = [code.strip() for code in self.cleaned_data["code_rome"].split(",") if code.strip()]
+        if len(codes) > 3:
+            raise forms.ValidationError("Maximum 3 codes ROME par recherche.")
+        return ",".join(codes)

@@ -15,6 +15,7 @@
         <dt class="col-sm-4">Rôle</dt><dd class="col-sm-8">{{ utilisateur.get_role_display }}</dd>
         <dt class="col-sm-4">Centre</dt><dd class="col-sm-8">{{ utilisateur.centre.nom|default:"—" }}</dd>
         <dt class="col-sm-4">Formation</dt><dd class="col-sm-8">{{ utilisateur.formation.nom|default:"—" }}</dd>
+        <dt class="col-sm-4">Codes ROME</dt><dd class="col-sm-8">{{ utilisateur.codes_rome|default:"—" }}</dd>
         <dt class="col-sm-4">Compte créé le</dt><dd class="col-sm-8">{{ utilisateur.date_joined|date:"d/m/Y H:i" }}</dd>
       </dl>
     </div>

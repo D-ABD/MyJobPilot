@@ -1,6 +1,7 @@
 """Tableau de bord et actions staff sur les élèves de leur périmètre."""
 from datetime import datetime, time
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
@@ -18,7 +19,7 @@ from core.models import Objectif
 from entreprises.forms import EntrepriseForm
 from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut, TypeContrat
 
-from .forms import AjoutProspectionStaffForm, ChangementCentreFormStaff, ObjectifForm
+from .forms import AjoutProspectionStaffForm, ChangementCentreFormStaff, CodesRomeForm, ObjectifForm
 
 
 NOMBRE_PAR_PAGE = 25
@@ -286,7 +287,7 @@ def _eleve_pour_action(request, pk):
     return eleve
 
 
-def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=None):
+def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=None, codes_rome_form=None):
     prospections = (
         Prospection.objects.filter(eleve=eleve)
         .select_related("entreprise")
@@ -311,6 +312,7 @@ def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=
             "filtre_type_contrat": type_contrat_selectionne,
             "prospection_form": prospection_form if prospection_form is not None else AjoutProspectionStaffForm(),
             "entreprise_form": entreprise_form if entreprise_form is not None else EntrepriseForm(),
+            "codes_rome_form": codes_rome_form or CodesRomeForm(initial={"codes_rome": eleve.codes_rome}),
             "breadcrumb_items": [
                 ("Accueil", "/"),
                 ("Mon staff", "/staff/"),
@@ -318,6 +320,21 @@ def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=
             ],
         },
     )
+
+
+@login_required
+def modifier_codes_rome_eleve(request, pk):
+    """Permet à l'admin ou au superviseur de modifier les codes de l'élève autorisé."""
+    eleve = _eleve_pour_action(request, pk)
+    if request.method != "POST":
+        return redirect("staff:detail_eleve", pk=eleve.pk)
+    form = CodesRomeForm(request.POST)
+    if form.is_valid():
+        eleve.codes_rome = form.cleaned_data["codes_rome"]
+        eleve.save(update_fields=["codes_rome"])
+        messages.success(request, "Les codes ROME de l’élève ont été mis à jour.")
+        return redirect("staff:detail_eleve", pk=eleve.pk)
+    return _rendre_detail_eleve(request, eleve, codes_rome_form=form)
 
 
 @login_required

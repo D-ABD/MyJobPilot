@@ -45,12 +45,22 @@ class ExternalApisTests(TestCase):
     def opportunities_response(self):
         return self.response({
             "jobs": [{
-                "offer": {"title": "Développeur web"},
+                "identifier": {"id": "offre-1"},
+                "offer": {
+                    "title": "Développeur web",
+                    "rome_codes": ["M1805"],
+                    "publication": {"creation": "2026-11-01T10:00:00Z"},
+                },
                 "workplace": {"name": "Atelier Numérique"},
                 "location": {"address": "10 rue Exemple, 75001 Paris"},
                 "apply": {"url": "https://example.org/candidater"},
+            }, {
+                "identifier": {"id": "offre-1"},
+                "offer": {"title": "Doublon LBA", "rome_codes": ["I1401"]},
+                "workplace": {"name": "Autre nom"},
             }],
             "recruiters": [{
+                "identifier": {"id": "recruteur-1"},
                 "workplace": {"name": "Entreprise Alpha"},
                 "location": {"address": "5 avenue Exemple, 75002 Paris"},
                 "domain": {"label": "Informatique"},
@@ -64,6 +74,9 @@ class ExternalApisTests(TestCase):
         resultat = rechercher_offres_lba("M1805", "75001", 20)
 
         self.assertEqual(resultat, [{
+            "_id": "offre-1",
+            "_rome_codes": ["M1805"],
+            "_publication_creation": "2026-11-01T10:00:00Z",
             "titre": "Développeur web",
             "entreprise": "Atelier Numérique",
             "ville": "Paris",
@@ -86,6 +99,7 @@ class ExternalApisTests(TestCase):
         resultat = rechercher_entreprises_lba("M1805", "75001", 20)
 
         self.assertEqual(resultat, [{
+            "_id": "recruteur-1",
             "nom": "Entreprise Alpha",
             "secteur": "Informatique",
             "ville": "Paris",

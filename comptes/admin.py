@@ -32,10 +32,10 @@ class FormationAdmin(admin.ModelAdmin):
 @admin.register(Utilisateur)
 class UtilisateurAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ("Parcours", {"fields": ("role", "centre", "formation", "is_valide", "date_validation", "valide_par", "motif_refus")}),
+        ("Parcours", {"fields": ("role", "centre", "formation", "codes_rome", "is_valide", "date_validation", "valide_par", "motif_refus")}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ("Parcours", {"fields": ("role", "centre", "formation", "is_valide")}),
+        ("Parcours", {"fields": ("role", "centre", "formation", "codes_rome", "is_valide")}),
     )
     list_display = ("username", "email", "role", "centre", "formation", "is_valide", "is_active", "voir_fiche_staff")
     list_filter = ("role", "centre", "is_valide", "is_active")

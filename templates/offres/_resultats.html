@@ -22,6 +22,9 @@
         </div>
       {% endfor %}
     </div>
+    {% if offres_page.paginator.num_pages > 1 %}
+      {% include "offres/_pagination.html" with pagination=offres_pagination titre="Pages des offres" %}
+    {% endif %}
   {% else %}<p class="text-body-secondary">Aucune offre trouvée pour ces critères.</p>{% endif %}
 </section>
 
@@ -47,5 +50,8 @@
         </div>
       {% endfor %}
     </div>
+    {% if entreprises_page.paginator.num_pages > 1 %}
+      {% include "offres/_pagination.html" with pagination=entreprises_pagination titre="Pages des entreprises" %}
+    {% endif %}
   {% else %}<p class="text-body-secondary">Aucune entreprise à fort potentiel trouvée pour ces critères.</p>{% endif %}
 </section>
