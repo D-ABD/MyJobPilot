@@ -4,6 +4,10 @@
 {% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
 {% include "partials/_bouton_retour.html" %}
 <h1>Prospection : {{ prospection.entreprise.nom }}</h1>
+<div class="d-flex flex-wrap gap-2 mb-4" role="group" aria-label="Actions sur la prospection">
+<a class="btn btn-outline-secondary" href="{% url 'entreprises:update' prospection.pk %}">Modifier</a>
+<a class="btn btn-outline-danger" href="{% url 'entreprises:delete' prospection.pk %}">Supprimer</a>
+</div>
 <dl class="row"><dt class="col-sm-3">Élève</dt><dd class="col-sm-9"><a href="{% url 'admin_dashboard:eleve_detail' prospection.eleve_id %}">{{ prospection.eleve.username }}</a></dd>
 <dt class="col-sm-3">Entreprise</dt><dd class="col-sm-9">{{ prospection.entreprise.nom }} — {{ prospection.entreprise.ville }}</dd>
 <dt class="col-sm-3">Statut</dt><dd class="col-sm-9">{{ prospection.get_statut_display }}</dd>

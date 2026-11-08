@@ -247,9 +247,12 @@ class AdminDashboardViewsTests(TestCase):
     def test_admin_prospection_detail_accede(self):
         prospection = self._creer_prospection()
         self.client.force_login(self.admin)
-        self.assertEqual(self.client.get(reverse(
+        response = self.client.get(reverse(
             "admin_dashboard:prospection_detail", args=[prospection.pk],
-        )).status_code, 200)
+        ))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Modifier")
+        self.assertContains(response, "Supprimer")
 
     def test_admin_prospection_changer_statut(self):
         prospection = self._creer_prospection()

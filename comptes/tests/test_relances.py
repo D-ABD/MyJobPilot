@@ -107,13 +107,50 @@ class RelancesTests(TestCase):
         self.assertNotContains(response, "Terminer la relance")
         self.assertContains(response, "Voir la prospection")
 
-    def test_mes_relances_reservees_aux_eleves(self):
+    def test_mes_relances_accessible_pour_admin(self):
         admin = Utilisateur.objects.create_superuser(
             username="relance_admin", email="admin@example.com", password="motdepasse",
         )
+        prospection = self.creer_prospection(admin)
         self.client.force_login(admin)
-        self.assertEqual(self.client.get(reverse("entreprises:mes_relances")).status_code, 403)
-        self.assertEqual(self.client.get(reverse("entreprises:mes_relances_compteur")).status_code, 403)
+
+        response = self.client.get(reverse("entreprises:mes_relances"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, prospection.entreprise.nom)
+        self.assertContains(response, "Mes relances")
+        self.assertEqual(self.client.get(reverse("entreprises:mes_relances_compteur")).status_code, 200)
+
+    def test_mes_relances_accessible_pour_superviseur(self):
+        superviseur = Utilisateur.objects.create_user(
+            username="relance_superviseur", password="motdepasse",
+            role=Utilisateur.Role.SUPERVISEUR, centre=self.centre, is_valide=True,
+        )
+        prospection = self.creer_prospection(superviseur)
+        autre_prospection = self.creer_prospection()
+        self.client.force_login(superviseur)
+
+        response = self.client.get(reverse("entreprises:mes_relances"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, prospection.entreprise.nom)
+        self.assertContains(response, "Mes relances")
+        self.assertNotContains(response, autre_prospection.entreprise.nom)
+
+    def test_compteur_relances_pour_superviseur(self):
+        superviseur = Utilisateur.objects.create_user(
+            username="relance_superviseur_compteur", password="motdepasse",
+            role=Utilisateur.Role.SUPERVISEUR, centre=self.centre, is_valide=True,
+        )
+        self.creer_prospection(superviseur, jours=8)
+        self.creer_prospection(superviseur, jours=-5)
+        self.creer_prospection(jours=8)
+        self.client.force_login(superviseur)
+
+        response = self.client.get(reverse("entreprises:mes_relances_compteur"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"en_retard": 1, "a_venir": 1, "total": 2})
 
     def test_terminer_relance_met_a_jour_statut_date_historique_et_journal(self):
         prospection = self.creer_prospection()

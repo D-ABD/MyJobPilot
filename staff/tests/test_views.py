@@ -164,7 +164,7 @@ class VuesStaffTests(TestCase):
         response = self.client.get(reverse("staff:detail_eleve", args=[self.eleve_a.pk]))
         self.assertEqual(response.status_code, 200)
 
-    def test_detail_eleve_affiche_prospections_sans_actions(self):
+    def test_detail_eleve_superviseur_peut_changer_statut_sans_modifier_ni_supprimer(self):
         self.ajouter_scope()
         entreprise = Entreprise.objects.create(nom="Entreprise visible")
         Prospection.objects.create(eleve=self.eleve_a, entreprise=entreprise, statut=Statut.A_RELANCER)
@@ -173,8 +173,9 @@ class VuesStaffTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Entreprise visible")
         self.assertContains(response, "À relancer")
-        self.assertNotContains(response, "Modifier")
-        self.assertNotContains(response, "Supprimer")
+        self.assertContains(response, "Changer le statut")
+        self.assertNotContains(response, ">Modifier</a>")
+        self.assertNotContains(response, ">Supprimer</a>")
 
     def test_redirection_apres_login_superviseur_vers_staff(self):
         self.connecter()

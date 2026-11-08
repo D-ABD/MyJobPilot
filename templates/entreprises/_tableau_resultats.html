@@ -41,6 +41,7 @@
             <div class="table-actions" role="group" aria-label="Actions pour {{ prospection.entreprise.nom }}">
               <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' prospection.pk %}" aria-label="Détails de {{ prospection.entreprise.nom }}">Détail</a>
               <a class="btn btn-sm btn-outline-secondary" href="{% url 'entreprises:update' prospection.pk %}" aria-label="Modifier la prospection de {{ prospection.entreprise.nom }}">Modifier</a>
+              <a class="btn btn-sm btn-outline-info" href="{% url 'entreprises:changer_statut' prospection.pk %}" aria-label="Changer le statut de {{ prospection.entreprise.nom }}">Changer le statut</a>
               <a class="btn btn-sm btn-outline-danger" href="{% url 'entreprises:delete' prospection.pk %}" aria-label="Supprimer la prospection de {{ prospection.entreprise.nom }}">Supprimer</a>
             </div>
           </td>

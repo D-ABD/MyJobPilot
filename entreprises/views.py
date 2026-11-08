@@ -50,6 +50,29 @@ def _prospection_eleve(request, pk):
     )
 
 
+def _prospection_pour_action(request, pk, *, autoriser_scope=False):
+    """Retourne une prospection si son propriétaire ou le rôle y a accès."""
+    prospection = get_object_or_404(
+        Prospection.objects.select_related("entreprise", "eleve"), pk=pk,
+    )
+    utilisateur = request.user
+    if utilisateur.role == Utilisateur.Role.ADMIN:
+        return prospection
+    if (
+        utilisateur.role in {Utilisateur.Role.ELEVE, Utilisateur.Role.SUPERVISEUR}
+        and prospection.eleve_id == utilisateur.pk
+    ):
+        return prospection
+    if (
+        autoriser_scope
+        and utilisateur.role == Utilisateur.Role.SUPERVISEUR
+        and prospection.eleve.role == Utilisateur.Role.ELEVE
+        and prospection.eleve.centre_id in centres_du_superviseur(utilisateur)
+    ):
+        return prospection
+    raise PermissionDenied
+
+
 def _rendre_formulaire_prospection(request, form, entreprise_form, titre, prospection=None):
     if prospection is None:
         breadcrumb_items = [
@@ -224,8 +247,7 @@ def entreprises_reference(request):
 
 @login_required
 def mes_relances(request):
-    """Liste les relances échues et celles à venir de l'élève connecté."""
-    _verifier_eleve(request)
+    """Liste les relances échues et celles à venir de l'utilisateur connecté."""
     aujourd_hui = timezone.localdate()
     relances_en_retard_qs = Prospection.objects.select_related("entreprise").filter(
         eleve=request.user,
@@ -275,8 +297,7 @@ def mes_relances(request):
 
 @login_required
 def mes_relances_compteur(request):
-    """Retourne les compteurs de relances de l'élève connecté."""
-    _verifier_eleve(request)
+    """Retourne les compteurs de relances de l'utilisateur connecté."""
     relances = Prospection.objects.filter(
         eleve=request.user,
         statut=Statut.A_RELANCER,
@@ -294,7 +315,6 @@ def mes_relances_compteur(request):
 @require_POST
 def mes_relances_terminer(request, pk):
     """Termine une relance et consigne la candidature envoyée."""
-    _verifier_eleve(request)
     aujourd_hui = timezone.localdate()
     prospection = get_object_or_404(
         Prospection.objects.select_related("entreprise"),
@@ -626,12 +646,12 @@ def _enregistrer_formulaire_prospection(prospection, donnees, request):
             prospection=prospection,
             ancien_statut=ancien_statut,
             nouveau_statut=nouveau_statut,
-            auteur=prospection.eleve,
+            auteur=request.user,
             date_associee=_valeur_date_associee(prospection, nouveau_statut),
         )
         log_action(
             JournalAction.Action.CHANGEMENT_STATUT,
-            utilisateur=prospection.eleve,
+            utilisateur=request.user,
             cible=prospection,
             details={
                 "prospection_id": prospection.pk,
@@ -644,8 +664,13 @@ def _enregistrer_formulaire_prospection(prospection, donnees, request):
 
 @login_required
 def entreprise_update(request, pk):
-    _verifier_eleve(request)
-    prospection = _prospection_eleve(request, pk)
+    if request.user.role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+    prospection = _prospection_pour_action(request, pk)
     if request.method == "POST":
         form = ProspectionForm(request.POST, prospection=prospection)
         if form.is_valid():
@@ -669,11 +694,18 @@ def entreprise_update(request, pk):
 
 @login_required
 def entreprise_delete(request, pk):
-    _verifier_eleve(request)
-    prospection = _prospection_eleve(request, pk)
+    if request.user.role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+    prospection = _prospection_pour_action(request, pk)
     if request.method == "POST":
         prospection.delete()
-        return redirect("entreprises:dashboard")
+        if request.user.role == Utilisateur.Role.ELEVE:
+            return redirect("entreprises:dashboard")
+        return redirect("entreprises:prospections_toutes")
     return render(request, "entreprises/entreprise_confirm_delete.html", {
         "prospection": prospection,
         "breadcrumb_items": [
@@ -767,8 +799,9 @@ def prospection_create_tout_role(request):
 
 @login_required
 def entreprise_detail(request, pk):
-    _verifier_eleve(request)
-    prospection = _prospection_eleve(request, pk)
+    prospection = get_object_or_404(
+        _prospections_reference_visibles(request.user).filter(pk=pk), pk=pk,
+    )
     historique = prospection.historique.select_related("auteur").order_by("-date_changement")
     return render(
         request,
@@ -787,8 +820,13 @@ def entreprise_detail(request, pk):
 
 @login_required
 def entreprise_changer_statut(request, pk):
-    _verifier_eleve(request)
-    prospection = _prospection_eleve(request, pk)
+    if request.user.role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+    prospection = _prospection_pour_action(request, pk, autoriser_scope=True)
     if request.method == "POST":
         form = ChangementStatutForm(request.POST)
         if form.is_valid():

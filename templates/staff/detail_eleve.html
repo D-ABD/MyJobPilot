@@ -40,7 +40,7 @@
       <div class="table-responsive">
         <table class="table table-striped mb-0">
           <caption class="visually-hidden">Prospections de {{ eleve.username }}</caption>
-          <thead><tr><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Statut</th><th scope="col">Type de contrat</th><th scope="col">Modifiée le</th></tr></thead>
+          <thead><tr><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Statut</th><th scope="col">Type de contrat</th><th scope="col">Modifiée le</th>{% if request.user.role == "superviseur" %}<th scope="col">Actions</th>{% endif %}</tr></thead>
           <tbody>
             {% for prospection in prospections %}
               <tr>
@@ -49,6 +49,7 @@
                 <td>{{ prospection.get_statut_display }}</td>
                 <td>{{ prospection.get_type_contrat_display }}</td>
                 <td><time datetime="{{ prospection.date_modification|date:'c' }}">{{ prospection.date_modification|date:"d/m/Y H:i" }}</time></td>
+                {% if request.user.role == "superviseur" %}<td><a class="btn btn-sm btn-outline-info" href="{% url 'entreprises:changer_statut' prospection.pk %}">Changer le statut</a></td>{% endif %}
               </tr>
             {% endfor %}
           </tbody>

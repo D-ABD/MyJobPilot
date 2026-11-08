@@ -7,7 +7,7 @@ from comptes.models import (
     TypeNotification, Utilisateur,
 )
 from entreprises.forms import ProspectionFormToutRole
-from entreprises.models import Entreprise, Prospection, Statut, TypeContrat
+from entreprises.models import Entreprise, HistoriqueStatut, Prospection, Statut, TypeContrat
 
 
 class ProspectionsTousRolesTests(TestCase):
@@ -125,6 +125,10 @@ class ProspectionsTousRolesTests(TestCase):
             {propre, eleve_scope},
         )
         self.assertEqual(response.context["total_count"], 2)
+        contenu = response.content.decode()
+        self.assertEqual(contenu.count(">Modifier</a>"), 1)
+        self.assertEqual(contenu.count(">Supprimer</a>"), 1)
+        self.assertEqual(contenu.count(">Changer le statut</a>"), 2)
 
     def test_liste_admin_inclut_toutes_les_prospections(self):
         proprietaires = (
@@ -140,6 +144,7 @@ class ProspectionsTousRolesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertSetEqual(set(response.context["prospections"]), attendues)
         self.assertEqual(response.context["total_count"], len(attendues))
+        self.assertEqual(response.content.decode().count(">Modifier</a>"), len(attendues))
 
     def test_eleve_cree_une_prospection_pour_lui_meme_sans_notification_staff(self):
         entreprise = Entreprise.objects.create(nom="Création élève pour soi")
@@ -293,3 +298,120 @@ class ProspectionsTousRolesTests(TestCase):
             {"eleves": "1"},
         )
         self.assertContains(response, 'name="eleves" value="1"')
+
+    def test_superviseur_peut_lire_une_prospection_dans_son_scope(self):
+        prospection = self.creer_prospection(self.eleve_scope, "Détail dans le scope")
+        self.client.force_login(self.superviseur)
+
+        response = self.client.get(reverse("entreprises:detail", args=[prospection.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Détail dans le scope")
+        self.assertNotContains(response, ">Modifier</a>")
+        self.assertNotContains(response, ">Supprimer</a>")
+        self.assertContains(response, ">Changer de statut</a>")
+
+    def test_superviseur_peut_modifier_sa_propre_prospection(self):
+        prospection = self.creer_prospection(self.superviseur, "Modification propre superviseur")
+        self.client.force_login(self.superviseur)
+
+        response = self.client.post(
+            reverse("entreprises:update", args=[prospection.pk]),
+            {
+                "statut": Statut.A_CONTACTER,
+                "type_contrat": TypeContrat.STAGE,
+                "notes": "Notes du superviseur",
+                "source": "Salon",
+                "entreprise_nom": prospection.entreprise.nom,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("entreprises:detail", args=[prospection.pk]))
+        prospection.refresh_from_db()
+        self.assertEqual(prospection.notes, "Notes du superviseur")
+
+    def test_superviseur_peut_supprimer_sa_propre_prospection(self):
+        prospection = self.creer_prospection(self.superviseur, "Suppression propre superviseur")
+        self.client.force_login(self.superviseur)
+
+        response = self.client.post(reverse("entreprises:delete", args=[prospection.pk]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("entreprises:prospections_toutes"))
+        self.assertFalse(Prospection.objects.filter(pk=prospection.pk).exists())
+
+    def test_superviseur_ne_peut_pas_modifier_prospection_eleve_scope(self):
+        prospection = self.creer_prospection(self.eleve_scope, "Modification interdite scope")
+        self.client.force_login(self.superviseur)
+
+        response = self.client.get(reverse("entreprises:update", args=[prospection.pk]))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_superviseur_ne_peut_pas_supprimer_prospection_eleve_scope(self):
+        prospection = self.creer_prospection(self.eleve_scope, "Suppression interdite scope")
+        self.client.force_login(self.superviseur)
+
+        response = self.client.post(reverse("entreprises:delete", args=[prospection.pk]))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Prospection.objects.filter(pk=prospection.pk).exists())
+
+    def test_superviseur_peut_changer_statut_dans_scope(self):
+        prospection = self.creer_prospection(self.eleve_scope, "Statut dans scope")
+        self.client.force_login(self.superviseur)
+
+        response = self.client.post(
+            reverse("entreprises:changer_statut", args=[prospection.pk]),
+            {"nouveau_statut": Statut.REFUS, "commentaire": "Décision reçue"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("entreprises:detail", args=[prospection.pk]))
+        prospection.refresh_from_db()
+        self.assertEqual(prospection.statut, Statut.REFUS)
+        historique = HistoriqueStatut.objects.get(prospection=prospection)
+        self.assertEqual(historique.auteur, self.superviseur)
+        self.assertTrue(JournalAction.objects.filter(
+            utilisateur=self.superviseur,
+            action=JournalAction.Action.CHANGEMENT_STATUT,
+            cible_id=str(prospection.pk),
+        ).exists())
+
+    def test_admin_peut_modifier_prospection(self):
+        prospection = self.creer_prospection(self.eleve, "Modification admin")
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("entreprises:update", args=[prospection.pk]),
+            {
+                "statut": Statut.REFUS,
+                "type_contrat": TypeContrat.STAGE,
+                "notes": "Modifiée par admin",
+                "source": "Admin",
+                "entreprise_nom": prospection.entreprise.nom,
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("entreprises:detail", args=[prospection.pk]))
+        prospection.refresh_from_db()
+        self.assertEqual(prospection.notes, "Modifiée par admin")
+        historique = HistoriqueStatut.objects.get(prospection=prospection)
+        self.assertEqual(historique.auteur, self.admin)
+        self.assertTrue(JournalAction.objects.filter(
+            utilisateur=self.admin,
+            action=JournalAction.Action.CHANGEMENT_STATUT,
+            cible_id=str(prospection.pk),
+        ).exists())
+
+    def test_admin_peut_supprimer_prospection(self):
+        prospection = self.creer_prospection(self.eleve, "Suppression admin")
+        self.client.force_login(self.admin)
+
+        response = self.client.post(reverse("entreprises:delete", args=[prospection.pk]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("entreprises:prospections_toutes"))
+        self.assertFalse(Prospection.objects.filter(pk=prospection.pk).exists())
