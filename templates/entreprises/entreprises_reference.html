@@ -8,6 +8,7 @@
       <p class="text-body-secondary mb-0">Référentiel des entreprises liées aux prospections accessibles selon votre rôle.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
+      {% if request.user.role == "admin" %}<a class="btn btn-primary" href="{% url 'entreprises:reference_create' %}">Nouvelle entreprise</a>{% endif %}
       <a class="btn btn-outline-primary" href="{% url 'entreprises:export_csv' %}?{{ request.GET.urlencode }}">Exporter en CSV</a>
       <a class="btn btn-outline-secondary" href="{% url 'api_entreprises' %}?{{ request.GET.urlencode }}">API JSON</a>
     </div>
@@ -78,7 +79,13 @@
               <td>{{ entreprise.ville|default:"—" }}</td>
               <td><time datetime="{{ entreprise.date_creation|date:'c' }}">{{ entreprise.date_creation|date:"d/m/Y" }}</time></td>
               <td>{{ entreprise.nb_prospections }}</td>
-              <td><a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:reference_detail' entreprise.pk %}">Voir détails</a></td>
+              <td class="d-flex flex-wrap gap-1">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:reference_detail' entreprise.pk %}">Voir détails</a>
+                {% if request.user.role == "admin" %}
+                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'entreprises:reference_update' entreprise.pk %}">Modifier</a>
+                  <a class="btn btn-sm btn-outline-danger" href="{% url 'entreprises:reference_delete' entreprise.pk %}">Supprimer</a>
+                {% endif %}
+              </td>
             </tr>
           {% endfor %}
         </tbody>

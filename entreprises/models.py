@@ -51,7 +51,7 @@ class Prospection(models.Model):
     )
     entreprise = models.ForeignKey(
         Entreprise,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="prospections",
         verbose_name="entreprise",
     )

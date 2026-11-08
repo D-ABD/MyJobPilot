@@ -70,6 +70,9 @@ class EntreprisesReferenceTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(list(response.context["entreprises"]), [visible])
+        self.assertNotContains(response, reverse("entreprises:reference_create"))
+        self.assertNotContains(response, "Modifier")
+        self.assertNotContains(response, "Supprimer")
 
     def test_superviseur_voit_scope_et_ses_entreprises(self):
         propre = self.creer_prospection(self.superviseur, "Entreprise superviseur")
@@ -96,6 +99,8 @@ class EntreprisesReferenceTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertSetEqual(set(response.context["entreprises"]), entreprises)
+        self.assertContains(response, reverse("entreprises:reference_create"))
+        self.assertContains(response, reverse("entreprises:reference_update", args=[next(iter(entreprises)).pk]))
 
     def test_filtre_q_est_insensible_aux_accents_et_a_la_casse(self):
         visible = self.creer_prospection(
@@ -188,3 +193,87 @@ class EntreprisesReferenceTests(TestCase):
     def test_non_authentifie_403(self):
         response = self.client.get(reverse("entreprises:reference"))
         self.assertEqual(response.status_code, 403)
+
+    def test_admin_peut_creer_entreprise(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("entreprises:reference_create"),
+            {"nom": "Nouvelle entreprise admin", "secteur": "Tech", "ville": "Paris"},
+        )
+
+        self.assertRedirects(response, reverse("entreprises:reference"))
+        self.assertTrue(Entreprise.objects.filter(nom="Nouvelle entreprise admin").exists())
+
+    def test_admin_peut_modifier_entreprise(self):
+        entreprise = Entreprise.objects.create(nom="Entreprise à modifier")
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse("entreprises:reference_update", args=[entreprise.pk]),
+            {"nom": "Entreprise modifiée", "secteur": "Conseil", "ville": "Lyon"},
+        )
+
+        self.assertRedirects(response, reverse("entreprises:reference"))
+        entreprise.refresh_from_db()
+        self.assertEqual(entreprise.nom, "Entreprise modifiée")
+        self.assertEqual(entreprise.secteur, "Conseil")
+        self.assertEqual(entreprise.ville, "Lyon")
+
+    def test_admin_peut_supprimer_entreprise_sans_prospection(self):
+        entreprise = Entreprise.objects.create(nom="Entreprise supprimable")
+        self.client.force_login(self.admin)
+
+        response = self.client.post(reverse("entreprises:reference_delete", args=[entreprise.pk]))
+
+        self.assertRedirects(response, reverse("entreprises:reference"))
+        self.assertFalse(Entreprise.objects.filter(pk=entreprise.pk).exists())
+
+    def test_admin_ne_peut_pas_supprimer_entreprise_avec_prospection(self):
+        entreprise = self.creer_prospection(self.eleve, "Entreprise protégée")
+        self.client.force_login(self.admin)
+
+        response = self.client.post(reverse("entreprises:reference_delete", args=[entreprise.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ne peut pas être supprimée")
+        self.assertContains(response, "1 prospection y est encore liée.")
+        self.assertTrue(Entreprise.objects.filter(pk=entreprise.pk).exists())
+        self.assertTrue(Prospection.objects.filter(entreprise=entreprise).exists())
+
+    def test_eleve_ne_peut_pas_creer_entreprise(self):
+        self.client.force_login(self.eleve)
+
+        response = self.client.post(
+            reverse("entreprises:reference_create"),
+            {"nom": "Entreprise interdite élève"},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Entreprise.objects.filter(nom="Entreprise interdite élève").exists())
+
+    def test_superviseur_ne_peut_pas_creer_entreprise(self):
+        self.client.force_login(self.superviseur)
+
+        response = self.client.post(
+            reverse("entreprises:reference_create"),
+            {"nom": "Entreprise interdite superviseur"},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Entreprise.objects.filter(nom="Entreprise interdite superviseur").exists())
+
+    def test_non_admin_ne_peut_pas_modifier_ou_supprimer_entreprise(self):
+        entreprise = self.creer_prospection(self.eleve, "Entreprise gestion protégée")
+        for utilisateur in (self.eleve, self.superviseur):
+            with self.subTest(role=utilisateur.role):
+                self.client.force_login(utilisateur)
+                response_modifier = self.client.get(
+                    reverse("entreprises:reference_update", args=[entreprise.pk]),
+                )
+                response_supprimer = self.client.post(
+                    reverse("entreprises:reference_delete", args=[entreprise.pk]),
+                )
+                self.assertEqual(response_modifier.status_code, 403)
+                self.assertEqual(response_supprimer.status_code, 403)
+        self.assertTrue(Entreprise.objects.filter(pk=entreprise.pk).exists())

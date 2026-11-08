@@ -1,5 +1,6 @@
 """Tests des modèles Entreprise, Prospection et HistoriqueStatut."""
 from django.db import IntegrityError, transaction
+from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 
 from comptes.models import Centre, Formation, Utilisateur
@@ -67,6 +68,12 @@ class ModelesEntreprisesTests(TestCase):
         seconde = Prospection.objects.create(eleve=autre_eleve, entreprise=entreprise)
         self.assertEqual(entreprise.prospections.count(), 2)
         self.assertNotEqual(premiere.pk, seconde.pk)
+
+    def test_entreprise_avec_prospection_ne_peut_pas_etre_supprimee(self):
+        prospection = self.creer_prospection()
+        with self.assertRaises(ProtectedError), transaction.atomic():
+            prospection.entreprise.delete()
+        self.assertTrue(Entreprise.objects.filter(pk=prospection.entreprise_id).exists())
 
     def test_nom_entreprise_est_unique_sans_tenir_compte_de_la_casse(self):
         self.creer_entreprise("ACME Corp")

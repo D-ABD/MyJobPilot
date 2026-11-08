@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
+from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -242,6 +243,78 @@ def entreprises_reference(request):
         "ordre": ordre,
         "pagination_query": pagination_query,
         "tri_urls": tri_urls,
+    })
+
+
+def _verifier_admin_entreprises(request):
+    if request.user.role != Utilisateur.Role.ADMIN:
+        raise PermissionDenied
+
+
+@login_required
+def entreprise_reference_create(request):
+    _verifier_admin_entreprises(request)
+    form = EntrepriseForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        entreprise = form.save()
+        messages.success(request, f"L’entreprise {entreprise.nom} a été créée.")
+        return redirect("entreprises:reference")
+    return render(request, "entreprises/entreprise_reference_form.html", {
+        "form": form,
+        "titre": "Nouvelle entreprise",
+        "entreprise": None,
+    })
+
+
+@login_required
+def entreprise_reference_update(request, pk):
+    _verifier_admin_entreprises(request)
+    entreprise = get_object_or_404(Entreprise, pk=pk)
+    form = EntrepriseForm(
+        request.POST if request.method == "POST" else None,
+        instance=entreprise,
+    )
+    if request.method == "POST" and form.is_valid():
+        entreprise = form.save()
+        messages.success(request, f"L’entreprise {entreprise.nom} a été modifiée.")
+        return redirect("entreprises:reference")
+    return render(request, "entreprises/entreprise_reference_form.html", {
+        "form": form,
+        "titre": f"Modifier {entreprise.nom}",
+        "entreprise": entreprise,
+    })
+
+
+@login_required
+def entreprise_reference_delete(request, pk):
+    _verifier_admin_entreprises(request)
+    entreprise = get_object_or_404(Entreprise, pk=pk)
+    nombre_prospections = entreprise.prospections.count()
+    erreur = None
+    if request.method == "POST":
+        if nombre_prospections:
+            pluriel = nombre_prospections != 1
+            erreur = (
+                "Impossible de supprimer cette entreprise : "
+                f"{nombre_prospections} prospection{'s' if pluriel else ''} "
+                f"y {'sont' if pluriel else 'est'} encore liée{'s' if pluriel else ''}."
+            )
+        else:
+            try:
+                with transaction.atomic():
+                    entreprise.delete()
+            except ProtectedError:
+                erreur = (
+                    "Impossible de supprimer cette entreprise : "
+                    "des prospections y sont encore liées."
+                )
+            else:
+                messages.success(request, "L’entreprise a été supprimée.")
+                return redirect("entreprises:reference")
+    return render(request, "entreprises/entreprise_reference_confirm_delete.html", {
+        "entreprise": entreprise,
+        "nombre_prospections": nombre_prospections,
+        "erreur": erreur,
     })
 
 

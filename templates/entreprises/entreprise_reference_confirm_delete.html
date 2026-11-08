@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Supprimer {{ entreprise.nom }} — MyJobPilot{% endblock %}
+{% block content %}
+<section class="row justify-content-center" aria-labelledby="titre-suppression-entreprise">
+  <div class="col-12 col-lg-7">
+    <div class="card border-danger">
+      <div class="card-body">
+        <h1 class="h2" id="titre-suppression-entreprise">Supprimer cette entreprise ?</h1>
+        <p>Cette action supprimera l’entreprise <strong>{{ entreprise.nom }}</strong>.</p>
+        {% if nombre_prospections %}
+          <p class="alert alert-warning" role="status">Cette entreprise est liée à {{ nombre_prospections }} prospection{{ nombre_prospections|pluralize:"s" }} et ne peut pas être supprimée.</p>
+        {% endif %}
+        {% if erreur %}<p class="alert alert-danger" role="alert">{{ erreur }}</p>{% endif %}
+        <form method="post" class="d-flex flex-wrap gap-2">
+          {% csrf_token %}
+          <button class="btn btn-danger" type="submit">Confirmer la suppression</button>
+          <a class="btn btn-outline-secondary" href="{% url 'entreprises:reference' %}">Annuler</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
