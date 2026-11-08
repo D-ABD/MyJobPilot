@@ -106,3 +106,58 @@ class OffreEnregistree(models.Model):
 
     def __str__(self):
         return f"{self.titre} — {self.utilisateur}"
+
+
+class Badge(models.Model):
+    class Categorie(models.TextChoices):
+        PROSPECTION = "prospection", "Prospection"
+        CANDIDATURE = "candidature", "Candidature"
+        SUIVI = "suivi", "Suivi"
+
+    class TypeCondition(models.TextChoices):
+        PROSPECTIONS_CONTACTEES_COUNT = "prospections_contactees_count", "Prospections contactées"
+        CANDIDATURES_COUNT = "candidatures_count", "Candidatures"
+        RELANCES_COUNT = "relances_count", "Relances effectuées"
+
+    slug = models.SlugField(
+        unique=True,
+        help_text="Identifiant stable. NE PAS MODIFIER après création.",
+    )
+    categorie = models.CharField(max_length=16, choices=Categorie.choices)
+    nom = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    icone = models.CharField(max_length=50, blank=True)
+    type_condition = models.CharField(max_length=32, choices=TypeCondition.choices)
+    seuil = models.PositiveIntegerField(
+        default=1,
+        help_text="Modifier ce seuil n'enlève pas les badges déjà obtenus.",
+    )
+    valeur_points = models.PositiveIntegerField(default=10)
+    ordre_affichage = models.PositiveIntegerField(default=0)
+    est_actif = models.BooleanField(
+        default=True,
+        help_text="Désactiver ne retire pas les badges déjà obtenus.",
+    )
+
+    class Meta:
+        ordering = ["categorie", "ordre_affichage", "seuil"]
+
+    def __str__(self):
+        return self.nom
+
+
+class BadgeObtenu(models.Model):
+    utilisateur = models.ForeignKey(
+        "comptes.Utilisateur",
+        on_delete=models.CASCADE,
+        related_name="badges_obtenus",
+    )
+    badge = models.ForeignKey(Badge, on_delete=models.CASCADE)
+    date_obtention = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("utilisateur", "badge")]
+        ordering = ["-date_obtention"]
+
+    def __str__(self):
+        return f"{self.badge.nom} — {self.utilisateur.username}"

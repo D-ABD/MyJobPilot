@@ -118,3 +118,12 @@ class StatsCockpitsTests(TestCase):
         reponse_admin = self.client.get(reverse("admin_dashboard:dashboard"))
         self.assertContains(reponse_admin, "Total entreprises")
 
+    def test_terminee_n_est_pas_comptee_comme_une_reponse(self):
+        self.creer_prospection(self.eleve, "Stat terminée exclue", Statut.TERMINEE)
+        self.creer_prospection(self.eleve, "Stat refus réponse", Statut.REFUS)
+
+        stats = calculer_stats_eleve(self.eleve)
+
+        taux = next(kpi["value"] for kpi in stats["kpis"] if kpi["label"] == "Taux de réponse")
+        self.assertEqual(taux, "50%")
+

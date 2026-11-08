@@ -1,6 +1,16 @@
 """Administration du référentiel et des prospections."""
 from django.contrib import admin
 
+from .models import Relance
+
+
+@admin.register(Relance)
+class RelanceAdmin(admin.ModelAdmin):
+    list_display = ("prospection", "type", "auteur", "date_relance")
+    list_filter = ("type", "date_relance")
+    search_fields = ("prospection__entreprise__nom", "auteur__email")
+    raw_id_fields = ("prospection", "auteur")
+
 from comptes.models import Utilisateur
 
 from .models import Commentaire, Entreprise, HistoriqueStatut, Prospection, TypeContrat

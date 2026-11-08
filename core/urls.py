@@ -6,6 +6,7 @@ from . import views
 app_name = "core"
 
 urlpatterns = [
+    path("mon-compte/badges/", views.mes_badges, name="mes_badges"),
     path("offres-alternance/", views.offres_alternance, name="offres_alternance"),
     path("offres/enregistrer/<str:offre_id_lba>/", views.enregistrer_offre, name="enregistrer_offre"),
     path("offres/retirer/<str:offre_id_lba>/", views.retirer_offre, name="retirer_offre"),

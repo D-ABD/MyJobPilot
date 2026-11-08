@@ -12,19 +12,22 @@ from django.db.models import Count, Q
 from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 
-from comptes.models import JournalAction, Utilisateur
-from comptes.scope_utils import centres_du_superviseur
+from comptes.models import JournalAction, TypeNotification, Utilisateur
+from comptes.notifications import creer_notification, notifier_changement_statut
+from comptes.scope_utils import centres_du_superviseur, verifier_superviseur
 from core.stats import calculer_stats_eleve
-from comptes.notifications import notifier_changement_statut
 from comptes.utils import log_action
 from core.filters import FiltreMixin
+from core.gamification import resume_badges, verifier_et_attribuer_badges
 
 from .forms import (
     ChangementStatutForm, EntrepriseForm, ProspectionForm, ProspectionFormToutRole,
 )
-from .models import Entreprise, HistoriqueStatut, Prospection, Statut, TypeContrat
+from .models import Entreprise, HistoriqueStatut, Prospection, Relance, Statut, TypeContrat
 
 
 NOMBRE_PAR_PAGE = 25
@@ -351,11 +354,15 @@ def mes_relances(request):
         }
         for prospection in relances_a_venir_qs
     ]
+    historique_relances = Relance.objects.filter(
+        prospection__eleve=request.user
+    ).select_related("auteur", "prospection__entreprise")[:50]
     params = request.GET.copy()
     params.pop("page", None)
     return render(request, "entreprises/mes_relances.html", {
         "relances_en_retard": relances_en_retard,
         "relances_a_venir": relances_a_venir,
+        "historique_relances": historique_relances,
         "page_obj": page_obj,
         "total_en_retard": total_en_retard,
         "total_a_venir": total_a_venir,
@@ -366,6 +373,81 @@ def mes_relances(request):
             ("Mes relances", ""),
         ],
     })
+
+
+@login_required
+@require_POST
+def mes_relance_creer(request):
+    """Ajoute un événement de relance, avec contrôle du propriétaire et du scope."""
+    try:
+        prospection_id = int(request.POST.get("prospection_id", ""))
+    except (TypeError, ValueError):
+        raise PermissionDenied
+    prospection = get_object_or_404(
+        Prospection.objects.select_related("entreprise", "eleve"),
+        pk=prospection_id,
+    )
+    if request.user.role == Utilisateur.Role.ELEVE:
+        if prospection.eleve_id != request.user.pk:
+            raise PermissionDenied
+    elif request.user.role == Utilisateur.Role.SUPERVISEUR:
+        if prospection.eleve_id != request.user.pk:
+            verifier_superviseur(request, prospection.eleve)
+    elif request.user.role != Utilisateur.Role.ADMIN:
+        raise PermissionDenied
+
+    type_relance = request.POST.get("type", Relance.Type.PROSPECTION)
+    if type_relance not in Relance.Type.values:
+        messages.error(request, "Le type de relance est invalide.")
+        return redirect("entreprises:mes_relances")
+    date_saisie = request.POST.get("date_relance", "").strip()
+    nouvelle_echeance = parse_date(date_saisie) if date_saisie else None
+    if date_saisie and nouvelle_echeance is None:
+        messages.error(request, "La date de relance est invalide.")
+        return redirect("entreprises:mes_relances")
+
+    ancien_statut = prospection.statut
+    nouveau_statut = ancien_statut
+    if type_relance == Relance.Type.PROSPECTION and ancien_statut == Statut.A_RELANCER:
+        nouveau_statut = Statut.EN_ATTENTE
+    with transaction.atomic():
+        Relance.objects.create(
+            prospection=prospection,
+            type=type_relance,
+            auteur=request.user,
+            contenu=request.POST.get("contenu", "").strip(),
+        )
+        prospection.date_relance = nouvelle_echeance
+        prospection.statut = nouveau_statut
+        prospection.save(update_fields=("date_relance", "statut", "date_modification"))
+        if ancien_statut != nouveau_statut:
+            HistoriqueStatut.objects.create(
+                prospection=prospection,
+                ancien_statut=ancien_statut,
+                nouveau_statut=nouveau_statut,
+                auteur=request.user,
+            )
+            log_action(
+                JournalAction.Action.CHANGEMENT_STATUT,
+                utilisateur=request.user,
+                cible=prospection,
+                details={
+                    "prospection_id": prospection.pk,
+                    "ancien_statut": ancien_statut,
+                    "nouveau_statut": nouveau_statut,
+                },
+                request=request,
+            )
+    if request.user != prospection.eleve:
+        creer_notification(
+            prospection.eleve,
+            TypeNotification.RELANCE_CREEE,
+            f"Nouvelle relance sur {prospection.entreprise.nom}",
+            reverse("entreprises:detail", args=[prospection.pk]),
+        )
+    verifier_et_attribuer_badges(prospection.eleve)
+    messages.success(request, f"La relance pour {prospection.entreprise.nom} a été enregistrée.")
+    return redirect("entreprises:mes_relances")
 
 
 @login_required
@@ -570,6 +652,7 @@ def prospections_toutes(request):
 @login_required
 def dashboard_eleve(request):
     _verifier_eleve(request)
+    verifier_et_attribuer_badges(request.user)
     queryset = Prospection.objects.filter(eleve=request.user).select_related("entreprise")
     filtreur = FiltresDashboard()
     resultats = filtreur.apply_filters(queryset, request.GET)
@@ -611,6 +694,7 @@ def dashboard_eleve(request):
         "kpis": cockpit["kpis"],
         "charts": cockpit["charts"],
         "relances": cockpit["relances"],
+        **resume_badges(request.user),
     }
     return render(request, "entreprises/dashboard.html", contexte)
 
@@ -704,7 +788,9 @@ def _creer_prospection(eleve, entreprise, donnees):
         )
     }
     valeurs["date_entretien"] = _datetime_entretien(donnees.get("date_entretien"))
-    return Prospection.objects.create(eleve=eleve, entreprise=entreprise, **valeurs)
+    prospection = Prospection.objects.create(eleve=eleve, entreprise=entreprise, **valeurs)
+    verifier_et_attribuer_badges(eleve)
+    return prospection
 
 
 def _enregistrer_formulaire_prospection(prospection, donnees, request):
@@ -739,6 +825,7 @@ def _enregistrer_formulaire_prospection(prospection, donnees, request):
             },
             request=request,
         )
+    verifier_et_attribuer_badges(prospection.eleve)
 
 
 @login_required
@@ -955,6 +1042,7 @@ def entreprise_changer_statut(request, pk):
                 notifier_changement_statut(
                     prospection, request.user, ancien_statut, nouveau_statut,
                 )
+            verifier_et_attribuer_badges(prospection.eleve)
             return redirect("entreprises:detail", pk=prospection.pk)
     else:
         form = ChangementStatutForm(initial={"nouveau_statut": prospection.statut})

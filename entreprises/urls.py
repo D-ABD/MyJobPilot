@@ -10,6 +10,7 @@ urlpatterns = [
     path("commentaires/<int:pk>/supprimer/", commentaires.commentaire_supprimer, name="commentaire_supprimer"),
     path("hub/", views.hub, name="hub"),
     path("mes-relances/compteur/", views.mes_relances_compteur, name="mes_relances_compteur"),
+    path("mes-relances/creer/", views.mes_relance_creer, name="mes_relance_creer"),
     path("mes-relances/terminer/<int:pk>/", views.mes_relances_terminer, name="mes_relances_terminer"),
     path("mes-relances/", views.mes_relances, name="mes_relances"),
     path("entreprises-reference/", views.entreprises_reference, name="reference"),

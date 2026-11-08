@@ -2,6 +2,7 @@
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 
 from core.utils import _MOTIF_CODES_ROME, normaliser_codes_rome
@@ -124,6 +125,15 @@ class Utilisateur(AbstractUser):
     def a_consenti_rgpd(self):
         """Indique si un consentement RGPD est enregistré."""
         return hasattr(self, "consentement")
+
+    @property
+    def points_total(self):
+        """Total des points issus des badges obtenus."""
+        from core.models import BadgeObtenu
+
+        return BadgeObtenu.objects.filter(utilisateur=self).aggregate(
+            total=Sum("badge__valeur_points")
+        )["total"] or 0
 
     def clean(self):
         """Vérifie les codes ROME et les rattachements selon le rôle."""

@@ -7,6 +7,7 @@ from django.db.models.functions import Lower
 class Statut(models.TextChoices):
     A_CONTACTER = "a_contacter", "À contacter"
     A_RELANCER = "a_relancer", "À relancer"
+    TERMINEE = "terminee", "Terminée"
     CANDIDATURE_ENVOYEE = "candidature_envoyee", "Candidature envoyée"
     EN_ATTENTE = "en_attente", "En attente"
     ENTRETIEN_PROGRAMME = "entretien_programme", "Entretien programmé"
@@ -91,6 +92,38 @@ class Prospection(models.Model):
 
     def __str__(self):
         return f"{self.eleve.username} → {self.entreprise.nom}"
+
+
+class Relance(models.Model):
+    class Type(models.TextChoices):
+        PROSPECTION = "prospection", "Relance de prospection"
+        CANDIDATURE = "candidature", "Relance de candidature"
+
+    prospection = models.ForeignKey(
+        Prospection,
+        on_delete=models.CASCADE,
+        related_name="relances",
+    )
+    type = models.CharField(
+        max_length=16,
+        choices=Type.choices,
+        default=Type.PROSPECTION,
+    )
+    auteur = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="relances_effectuees",
+    )
+    date_relance = models.DateTimeField(auto_now_add=True)
+    contenu = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-date_relance"]
+
+    def __str__(self):
+        return f"{self.get_type_display()} — {self.prospection}"
 
 
 class HistoriqueStatut(models.Model):

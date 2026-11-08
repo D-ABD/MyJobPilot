@@ -20,6 +20,17 @@
               <td>{{ relance.jours_retard }} jour{{ relance.jours_retard|pluralize:"s" }}</td>
               <td class="d-flex flex-wrap gap-2">
                 <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' relance.prospection.pk %}">Voir la prospection</a>
+                <form method="post" action="{% url 'entreprises:mes_relance_creer' %}" class="d-flex flex-wrap gap-2 align-items-end">
+                  {% csrf_token %}
+                  <input type="hidden" name="prospection_id" value="{{ relance.prospection.pk }}">
+                  <label class="visually-hidden" for="type-relance-retard-{{ relance.prospection.pk }}">Type de relance</label>
+                  <select class="form-select form-select-sm" id="type-relance-retard-{{ relance.prospection.pk }}" name="type">
+                    <option value="prospection">Prospection</option><option value="candidature">Candidature</option>
+                  </select>
+                  <label class="visually-hidden" for="date-relance-retard-{{ relance.prospection.pk }}">Nouvelle échéance facultative</label>
+                  <input class="form-control form-control-sm" type="date" id="date-relance-retard-{{ relance.prospection.pk }}" name="date_relance">
+                  <button class="btn btn-sm btn-outline-success" type="submit">Relancer</button>
+                </form>
                 <form method="post" action="{% url 'entreprises:mes_relances_terminer' relance.prospection.pk %}">
                   {% csrf_token %}
                   <button class="btn btn-sm btn-success" type="submit">Terminer la relance</button>
@@ -58,7 +69,17 @@
               <td>{{ relance.prospection.entreprise.ville|default:"—" }}</td>
               <td>{{ relance.prospection.date_relance|date:"d/m/Y" }}</td>
               <td>{% if relance.jours_avant == 0 %}Aujourd'hui{% else %}Dans {{ relance.jours_avant }} jour{{ relance.jours_avant|pluralize:"s" }}{% endif %}</td>
-              <td><a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' relance.prospection.pk %}">Voir la prospection</a></td>
+              <td class="d-flex flex-wrap gap-2 align-items-center">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' relance.prospection.pk %}">Voir la prospection</a>
+                <form method="post" action="{% url 'entreprises:mes_relance_creer' %}" class="d-flex flex-wrap gap-2 align-items-center">
+                  {% csrf_token %}<input type="hidden" name="prospection_id" value="{{ relance.prospection.pk }}">
+                  <label class="visually-hidden" for="type-relance-avenir-{{ relance.prospection.pk }}">Type de relance</label>
+                  <select class="form-select form-select-sm" id="type-relance-avenir-{{ relance.prospection.pk }}" name="type"><option value="prospection">Prospection</option><option value="candidature">Candidature</option></select>
+                  <label class="visually-hidden" for="date-relance-avenir-{{ relance.prospection.pk }}">Nouvelle échéance facultative</label>
+                  <input class="form-control form-control-sm" type="date" id="date-relance-avenir-{{ relance.prospection.pk }}" name="date_relance">
+                  <button class="btn btn-sm btn-outline-success" type="submit">Relancer</button>
+                </form>
+              </td>
             </tr>
           {% endfor %}
         </tbody>
@@ -67,5 +88,20 @@
   {% else %}
     <p class="text-body-secondary">Aucune relance prévue dans les 30 prochains jours.</p>
   {% endif %}
+</section>
+
+<section class="mt-5" aria-labelledby="titre-historique-relances">
+  <h2 class="h4" id="titre-historique-relances">Historique des relances réellement effectuées</h2>
+  {% if historique_relances %}
+    <ul class="list-group">
+      {% for evenement in historique_relances %}
+        <li class="list-group-item">
+          <strong>{{ evenement.get_type_display }}</strong> — {{ evenement.prospection.entreprise.nom }}
+          <time datetime="{{ evenement.date_relance|date:'c' }}">{{ evenement.date_relance|date:"d/m/Y H:i" }}</time>
+          {% if evenement.contenu %}<p class="mb-0">{{ evenement.contenu }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}<p class="text-body-secondary">Aucune relance enregistrée pour le moment.</p>{% endif %}
 </section>
 {% endblock %}

@@ -20,7 +20,8 @@ from comptes.models import JournalAction, Utilisateur
 from comptes.scope_utils import centres_du_superviseur
 from .external_apis import rechercher_entreprises_lba, rechercher_offres_lba
 from .forms import OffresAlternanceForm, TacheForm
-from .models import OffreEnregistree, Tache
+from .models import Badge, BadgeObtenu, OffreEnregistree, Tache
+from .gamification import compter_progression, resume_badges, verifier_et_attribuer_badges
 from documents.models import Document
 from entreprises.models import Prospection
 
@@ -488,3 +489,49 @@ def tache_supprimer(request, pk):
         tache.delete()
         return redirect("core:taches_liste")
     return render(request, "taches/confirm_delete.html", {"tache": tache})
+
+
+@login_required
+def mes_badges(request):
+    """Affiche les badges personnels d'un élève, sans accès staff transversal."""
+    if request.user.role != Utilisateur.Role.ELEVE:
+        raise PermissionDenied
+    verifier_et_attribuer_badges(request.user)
+    obtenus = list(
+        BadgeObtenu.objects.filter(utilisateur=request.user)
+        .select_related("badge")
+        .order_by("badge__categorie", "badge__ordre_affichage", "badge__seuil")
+    )
+    obtenus_ids = {attribution.badge_id for attribution in obtenus}
+    a_obtenir = list(
+        Badge.objects.filter(est_actif=True)
+        .exclude(pk__in=obtenus_ids)
+        .order_by("categorie", "ordre_affichage", "seuil")
+    )
+    compteurs = compter_progression(request.user)
+    compteurs_par_condition = {
+        Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT: compteurs["prospections_contactees"],
+        Badge.TypeCondition.CANDIDATURES_COUNT: compteurs["candidatures"],
+        Badge.TypeCondition.RELANCES_COUNT: compteurs["relances"],
+    }
+    categories = []
+    for valeur, libelle in Badge.Categorie.choices:
+        categories.append({
+            "valeur": valeur,
+            "libelle": libelle,
+            "obtenus": [item for item in obtenus if item.badge.categorie == valeur],
+            "a_obtenir": [
+                {
+                    "badge": badge,
+                    "progression": compteurs_par_condition.get(badge.type_condition, 0),
+                }
+                for badge in a_obtenir
+                if badge.categorie == valeur
+            ],
+        })
+    return render(request, "core/mes_badges.html", {
+        "categories_badges": categories,
+        "points_total": request.user.points_total,
+        "badges_obtenus_count": len(obtenus),
+        "badges_total_count": Badge.objects.count(),
+    })

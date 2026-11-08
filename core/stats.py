@@ -162,7 +162,9 @@ def calculer_stats_eleve(eleve):
     total = prospections.count()
     candidatures = prospections.filter(statut=Statut.CANDIDATURE_ENVOYEE).count()
     entretiens = prospections.filter(statut=Statut.ENTRETIEN_PROGRAMME).count()
-    depassees = prospections.exclude(statut=Statut.A_CONTACTER).count()
+    depassees = prospections.exclude(
+        statut__in=(Statut.A_CONTACTER, Statut.TERMINEE)
+    ).count()
     taux_reponse = round(depassees * 100 / total) if total else 0
     relances = prospections.filter(date_relance__gte=timezone.localdate()).order_by(
         "date_relance", "pk"

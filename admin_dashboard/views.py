@@ -19,6 +19,7 @@ from django.views.decorators.http import require_POST
 from comptes.models import Centre, JournalAction, ScopeSuperviseur
 from comptes.notifications import notifier_changement_statut
 from comptes.utils import invalidate_user_sessions, log_action
+from core.gamification import resume_badges, verifier_et_attribuer_badges
 from core.models import Objectif
 from core.stats import (
     PERIODES_DASHBOARD,
@@ -32,7 +33,7 @@ from .import_csv import importer_eleves_csv
 from documents.models import Document
 from entreprises.forms import ChangementStatutForm, CommentaireForm
 from entreprises.import_csv import importer_entreprises_csv
-from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut, TypeContrat
+from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Relance, Statut, TypeContrat
 from rgpd.models import DemandeRGPD, StatutDemande, TypeDemande
 from .forms import (
     AdminEleveCentreForm, AdminEleveFormationForm, AdminSuperviseurUpdateForm,
@@ -441,6 +442,7 @@ def admin_export_demandes_rgpd_csv(request):
 
 
 def _contexte_eleve_detail(eleve, type_contrat="tous"):
+    verifier_et_attribuer_badges(eleve)
     prospections = Prospection.objects.filter(eleve=eleve).select_related(
         "entreprise",
     ).prefetch_related("historique__auteur")
@@ -454,7 +456,11 @@ def _contexte_eleve_detail(eleve, type_contrat="tous"):
             (eleve.get_full_name() or eleve.username, ""),
         ],
         "eleve": eleve,
+        **resume_badges(eleve),
         "prospections": prospections,
+        "historique_relances": Relance.objects.filter(
+            prospection__eleve=eleve
+        ).select_related("auteur", "prospection__entreprise")[:50],
         "types_contrat": TypeContrat.choices,
         "filtre_type_contrat": type_contrat,
         "documents": Document.objects.listing().filter(eleve=eleve),
@@ -774,6 +780,7 @@ def admin_prospection_changer_statut(request, pk):
             notifier_changement_statut(
                 prospection, request.user, ancien_statut, nouveau_statut,
             )
+    verifier_et_attribuer_badges(prospection.eleve)
     messages.success(request, "Le statut de la prospection a été modifié.")
     return redirect("admin_dashboard:prospection_detail", pk=pk)
 

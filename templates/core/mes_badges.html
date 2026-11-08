@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Mes badges — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-mes-badges">
+  <h1 class="h2 mb-2" id="titre-mes-badges">Mes badges</h1>
+  <p class="lead">{{ points_total }} points · {{ badges_obtenus_count }}/{{ badges_total_count }} badges obtenus</p>
+
+  {% for categorie in categories_badges %}
+    <section class="mb-5" aria-labelledby="categorie-{{ categorie.valeur }}">
+      <h2 class="h4" id="categorie-{{ categorie.valeur }}">{{ categorie.libelle }}</h2>
+      <div class="row g-3">
+        {% for attribution in categorie.obtenus %}
+          <div class="col-12 col-md-6 col-lg-4">
+            <article class="card h-100 border-success">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2">
+                  {% if attribution.badge.icone %}<i class="{{ attribution.badge.icone }}" aria-hidden="true"></i>{% endif %}
+                  <h3 class="h6 mb-0">{{ attribution.badge.nom }}</h3>
+                </div>
+                {% if attribution.badge.description %}<p class="mt-2 mb-1">{{ attribution.badge.description }}</p>{% endif %}
+                <p class="small text-body-secondary mb-0">Obtenu le {{ attribution.date_obtention|date:"d/m/Y" }} · {{ attribution.badge.valeur_points }} points</p>
+              </div>
+            </article>
+          </div>
+        {% endfor %}
+        {% for element in categorie.a_obtenir %}
+          <div class="col-12 col-md-6 col-lg-4">
+            <article class="card h-100 text-body-secondary">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2">
+                  {% if element.badge.icone %}<i class="{{ element.badge.icone }} opacity-50" aria-hidden="true"></i>{% endif %}
+                  <h3 class="h6 mb-0">{{ element.badge.nom }}</h3>
+                </div>
+                {% if element.badge.description %}<p class="mt-2 mb-1">{{ element.badge.description }}</p>{% endif %}
+                <p class="small mb-0">Progression : {{ element.progression }}/{{ element.badge.seuil }}</p>
+              </div>
+            </article>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+</section>
+{% endblock %}

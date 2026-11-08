@@ -14,6 +14,7 @@ from comptes.models import Centre, JournalAction, TypeNotification, Utilisateur
 from comptes.notifications import creer_notification
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
+from core.gamification import resume_badges, verifier_et_attribuer_badges
 from core.stats import (
     PERIODES_DASHBOARD,
     calculer_atteinte_objectif,
@@ -24,7 +25,7 @@ from core.stats import (
 )
 from core.models import Objectif
 from entreprises.forms import EntrepriseForm
-from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut, TypeContrat
+from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Relance, Statut, TypeContrat
 
 from .forms import AjoutProspectionStaffForm, ChangementCentreFormStaff, CodesRomeForm, ObjectifForm
 
@@ -324,6 +325,7 @@ def _eleve_pour_action(request, pk):
 
 
 def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=None, codes_rome_form=None):
+    verifier_et_attribuer_badges(eleve)
     prospections = (
         Prospection.objects.filter(eleve=eleve)
         .select_related("entreprise")
@@ -343,7 +345,11 @@ def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=
         "staff/detail_eleve.html",
         {
             "eleve": eleve,
+            **resume_badges(eleve),
             "prospections": prospections,
+            "historique_relances": Relance.objects.filter(
+                prospection__eleve=eleve
+            ).select_related("auteur", "prospection__entreprise")[:50],
             "types_contrat": TypeContrat.choices,
             "filtre_type_contrat": type_contrat_selectionne,
             "prospection_form": prospection_form if prospection_form is not None else AjoutProspectionStaffForm(),
@@ -516,6 +522,7 @@ def ajouter_entreprise_staff(request, pk):
             except IntegrityError:
                 form.add_error("entreprise_nom", "Cette entreprise fait déjà l'objet d'une prospection pour cet élève.")
                 return _rendre_detail_eleve(request, eleve, form, entreprise_form)
+            verifier_et_attribuer_badges(eleve)
             return redirect("staff:detail_eleve", pk=eleve.pk)
     else:
         form = AjoutProspectionStaffForm()
