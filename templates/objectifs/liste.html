@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Objectifs — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-objectifs">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 id="titre-objectifs">Objectifs</h1>
+    {% if peut_gerer %}<a class="btn btn-primary" href="{% url 'objectifs:nouveau' %}">Nouvel objectif</a>{% endif %}
+  </div>
+  {% include "objectifs/_objectifs_table.html" %}
+</section>
+{% endblock %}

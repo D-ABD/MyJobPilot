@@ -9,6 +9,14 @@
 
   {% include "partials/_kpi_cards.html" %}
 
+  <section class="mb-4" aria-labelledby="titre-objectifs-staff">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h4 mb-0" id="titre-objectifs-staff">Objectifs</h2>
+      <a class="btn btn-sm btn-outline-primary" href="{% url 'objectifs:liste' %}">Gérer les objectifs</a>
+    </div>
+    {% include "objectifs/_objectifs_table.html" with objectifs=objectifs_actifs peut_gerer=True %}
+  </section>
+
   <section class="cockpit-charts mb-4" aria-labelledby="titre-graphiques-staff">
     <h2 class="h4" id="titre-graphiques-staff">Activité du périmètre</h2>
     {{ charts|json_script:"cockpit-chart-data" }}

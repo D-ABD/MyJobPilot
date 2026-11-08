@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Supprimer un objectif — MyJobPilot{% endblock %}
+{% block content %}
+<section class="mx-auto" style="max-width: 40rem" aria-labelledby="titre-suppression-objectif">
+  <h1 id="titre-suppression-objectif">Supprimer cet objectif ?</h1>
+  <p>Confirmez la suppression de l’objectif « {{ objectif.get_type_display }} » de {{ objectif.eleve.get_full_name|default:objectif.eleve.username }} pour la période du {{ objectif.periode_debut|date:"d/m/Y" }} au {{ objectif.periode_fin|date:"d/m/Y" }}.</p>
+  <form method="post" action="{% url 'objectifs:supprimer' objectif.pk %}">{% csrf_token %}<button class="btn btn-danger" type="submit">Supprimer définitivement</button> <a class="btn btn-outline-secondary" href="{% url 'objectifs:liste' %}">Annuler</a></form>
+</section>
+{% endblock %}

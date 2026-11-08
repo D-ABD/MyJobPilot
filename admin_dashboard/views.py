@@ -19,7 +19,8 @@ from django.views.decorators.http import require_POST
 from comptes.models import Centre, JournalAction, ScopeSuperviseur
 from comptes.notifications import notifier_changement_statut
 from comptes.utils import invalidate_user_sessions, log_action
-from core.stats import calculer_stats_admin
+from core.models import Objectif
+from core.stats import calculer_atteinte_objectif, calculer_stats_admin
 from .import_csv import importer_eleves_csv
 from documents.models import Document
 from entreprises.forms import ChangementStatutForm, CommentaireForm
@@ -81,10 +82,20 @@ def dashboard_admin(request):
         "demandes_rgpd_retard": en_retard,
     }
     cockpit = calculer_stats_admin()
+    aujourd_hui = timezone.localdate()
+    objectifs_actifs = Objectif.objects.filter(
+        periode_debut__lte=aujourd_hui,
+        periode_fin__gte=aujourd_hui,
+    ).select_related("eleve", "createur")
+    objectifs_actifs = [
+        {"objectif": objectif, "atteinte": calculer_atteinte_objectif(objectif)}
+        for objectif in objectifs_actifs
+    ]
     return render(request, "admin_dashboard/dashboard.html", {
         "stats": stats,
         "kpis": cockpit["kpis"],
         "charts": cockpit["charts"],
+        "objectifs_actifs": objectifs_actifs,
     })
 
 

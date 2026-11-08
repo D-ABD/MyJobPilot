@@ -1,5 +1,6 @@
 """Calculs des indicateurs des cockpits MyJobPilot."""
 from datetime import date, timedelta
+from math import ceil
 
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -7,7 +8,37 @@ from django.utils import timezone
 from comptes.models import Centre, Utilisateur
 from comptes.scope_utils import centres_du_superviseur
 from entreprises.models import Entreprise, Prospection, Statut
+from .models import Objectif
 from rgpd.models import DemandeRGPD, StatutDemande
+
+
+def calculer_atteinte_objectif(objectif):
+    """Calcule la progression d'un objectif sur la période définie."""
+    periode = (objectif.periode_debut, objectif.periode_fin)
+    if objectif.type == Objectif.Type.PROSPECTIONS_SEMAINE:
+        prospections = Prospection.objects.filter(
+            eleve=objectif.eleve,
+            date_creation__date__range=periode,
+        )
+        semaines = max(1, ceil(((objectif.periode_fin - objectif.periode_debut).days + 1) / 7))
+        valeur_actuelle = prospections.count() / semaines
+    elif objectif.type == Objectif.Type.CANDIDATURES_MOIS:
+        valeur_actuelle = Prospection.objects.filter(
+            eleve=objectif.eleve,
+            statut=Statut.CANDIDATURE_ENVOYEE,
+            date_candidature__range=periode,
+        ).count()
+    else:
+        valeur_actuelle = 0
+
+    pourcentage = min(100, valeur_actuelle / objectif.valeur * 100) if objectif.valeur else 0
+    statut = "atteint" if pourcentage >= 100 else "en_cours" if pourcentage >= 50 else "en_retard"
+    return {
+        "valeur_cible": objectif.valeur,
+        "valeur_actuelle": valeur_actuelle,
+        "pourcentage": round(pourcentage),
+        "statut": statut,
+    }
 
 
 def _semaines(queryset, champ_date="date_creation"):

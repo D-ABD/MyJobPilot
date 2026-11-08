@@ -13,11 +13,12 @@ from comptes.models import Centre, JournalAction, Utilisateur
 from comptes.notifications import notifier_ajout_prospection
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
-from core.stats import calculer_stats_superviseur
+from core.stats import calculer_atteinte_objectif, calculer_stats_superviseur
+from core.models import Objectif
 from entreprises.forms import EntrepriseForm
 from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut, TypeContrat
 
-from .forms import AjoutProspectionStaffForm, ChangementCentreFormStaff
+from .forms import AjoutProspectionStaffForm, ChangementCentreFormStaff, ObjectifForm
 
 
 NOMBRE_PAR_PAGE = 25
@@ -94,6 +95,16 @@ def dashboard_staff(request):
         }
         for centre in centres
     ]
+    aujourd_hui = timezone.localdate()
+    objectifs_actifs = Objectif.objects.filter(
+        eleve__centre_id__in=centres_ids,
+        periode_debut__lte=aujourd_hui,
+        periode_fin__gte=aujourd_hui,
+    ).select_related("eleve", "createur")
+    objectifs_actifs = [
+        {"objectif": objectif, "atteinte": calculer_atteinte_objectif(objectif)}
+        for objectif in objectifs_actifs
+    ]
     tri_urls = {
         "username": _url_tri(request, "username", tri, ordre),
         "last_name": _url_tri(request, "last_name", tri, ordre),
@@ -116,9 +127,137 @@ def dashboard_staff(request):
         "url_reset": request.path,
         "pagination_query": pagination_params.urlencode(),
         "tri_urls": tri_urls,
+        "objectifs_actifs": objectifs_actifs,
         **calculer_stats_superviseur(request.user),
     }
     return render(request, "staff/dashboard.html", contexte)
+
+
+def _utilisateur_gestion_objectifs(request):
+    if request.user.role not in {Utilisateur.Role.ADMIN, Utilisateur.Role.SUPERVISEUR}:
+        raise PermissionDenied
+    if request.user.role == Utilisateur.Role.SUPERVISEUR:
+        verifier_superviseur(request)
+
+
+def _objectifs_gestionnables(request):
+    objectifs = Objectif.objects.select_related("eleve", "createur")
+    if request.user.role == Utilisateur.Role.SUPERVISEUR:
+        objectifs = objectifs.filter(eleve__centre_id__in=centres_du_superviseur(request.user))
+    return objectifs
+
+
+def _eleves_objectifs(request):
+    eleves = Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE)
+    if request.user.role == Utilisateur.Role.SUPERVISEUR:
+        eleves = eleves.filter(centre_id__in=centres_du_superviseur(request.user))
+    return eleves
+
+
+def _verifier_eleve_poste(request):
+    """Refuse explicitement un élève situé hors du scope du superviseur."""
+    eleve_id = request.POST.get("eleve")
+    if request.user.role == Utilisateur.Role.SUPERVISEUR and eleve_id and eleve_id.isdigit():
+        if not _eleves_objectifs(request).filter(pk=int(eleve_id)).exists():
+            raise PermissionDenied
+
+
+def _objectifs_avec_atteinte(objectifs):
+    return [
+        {"objectif": objectif, "atteinte": calculer_atteinte_objectif(objectif)}
+        for objectif in objectifs
+    ]
+
+
+@login_required
+def objectifs_liste(request):
+    role = request.user.role
+    if role == Utilisateur.Role.ADMIN:
+        objectifs = Objectif.objects.all()
+        peut_gerer = True
+    elif role == Utilisateur.Role.SUPERVISEUR:
+        verifier_superviseur(request)
+        objectifs = _objectifs_gestionnables(request)
+        peut_gerer = True
+    elif role == Utilisateur.Role.ELEVE:
+        objectifs = Objectif.objects.filter(eleve=request.user)
+        peut_gerer = False
+    else:
+        raise PermissionDenied
+    return render(request, "objectifs/liste.html", {
+        "objectifs": _objectifs_avec_atteinte(objectifs),
+        "peut_gerer": peut_gerer,
+    })
+
+
+@login_required
+def objectif_nouveau(request):
+    _utilisateur_gestion_objectifs(request)
+    if request.method == "POST":
+        _verifier_eleve_poste(request)
+    form = ObjectifForm(request.POST or None, utilisateur=request.user)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            objectif = form.save(commit=False)
+            objectif.createur = request.user
+            objectif.save()
+            log_action(
+                JournalAction.Action.OBJECTIF_CREE,
+                utilisateur=request.user,
+                cible=objectif,
+                details={"objectif_id": objectif.pk, "eleve_id": objectif.eleve_id, "type": objectif.type},
+                request=request,
+            )
+        return redirect("objectifs:liste")
+    return render(request, "objectifs/form.html", {"form": form, "action": "Créer"})
+
+
+@login_required
+def objectif_modifier(request, pk):
+    if request.user.role == Utilisateur.Role.ELEVE:
+        get_object_or_404(Objectif, pk=pk, eleve=request.user)
+        raise PermissionDenied
+    _utilisateur_gestion_objectifs(request)
+    objectif = get_object_or_404(_objectifs_gestionnables(request), pk=pk)
+    if request.method == "POST":
+        _verifier_eleve_poste(request)
+    form = ObjectifForm(request.POST or None, utilisateur=request.user, instance=objectif)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            objectif = form.save()
+            log_action(
+                JournalAction.Action.OBJECTIF_MODIFIE,
+                utilisateur=request.user,
+                cible=objectif,
+                details={"objectif_id": objectif.pk, "eleve_id": objectif.eleve_id, "type": objectif.type},
+                request=request,
+            )
+        return redirect("objectifs:liste")
+    return render(request, "objectifs/form.html", {"form": form, "action": "Modifier", "objectif": objectif})
+
+
+@login_required
+def objectif_supprimer(request, pk):
+    if request.method not in {"GET", "POST"}:
+        raise PermissionDenied
+    if request.user.role == Utilisateur.Role.ELEVE:
+        get_object_or_404(Objectif, pk=pk, eleve=request.user)
+        raise PermissionDenied
+    _utilisateur_gestion_objectifs(request)
+    objectif = get_object_or_404(_objectifs_gestionnables(request), pk=pk)
+    if request.method == "GET":
+        return render(request, "objectifs/confirm_delete.html", {"objectif": objectif})
+    with transaction.atomic():
+        details = {"objectif_id": objectif.pk, "eleve_id": objectif.eleve_id, "type": objectif.type}
+        log_action(
+            JournalAction.Action.OBJECTIF_SUPPRIME,
+            utilisateur=request.user,
+            cible=objectif,
+            details=details,
+            request=request,
+        )
+        objectif.delete()
+    return redirect("objectifs:liste")
 
 
 @login_required

@@ -1,0 +1,28 @@
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <caption class="visually-hidden">Objectifs et avancement</caption>
+    <thead><tr><th>Élève</th><th>Objectif</th><th>Période</th><th>Progression</th>{% if peut_gerer %}<th>Actions</th>{% endif %}</tr></thead>
+    <tbody>
+      {% for ligne in objectifs %}
+        {% with objectif=ligne.objectif atteinte=ligne.atteinte %}
+        <tr>
+          <th scope="row">{{ objectif.eleve.get_full_name|default:objectif.eleve.username }}</th>
+          <td>{{ objectif.get_type_display }} : {{ objectif.valeur }}</td>
+          <td>{{ objectif.periode_debut|date:"d/m/Y" }} – {{ objectif.periode_fin|date:"d/m/Y" }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" role="progressbar" aria-label="Atteinte de l’objectif" aria-valuenow="{{ atteinte.pourcentage }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar {% if atteinte.statut == 'en_retard' %}bg-danger{% elif atteinte.statut == 'atteint' %}bg-success{% endif %}" style="width: {{ atteinte.pourcentage }}%"></div>
+              </div>
+              <span>{{ atteinte.pourcentage }}%</span>
+              {% if atteinte.statut == "en_retard" %}<span class="badge text-bg-danger">En retard</span>{% elif atteinte.statut == "atteint" %}<span class="badge text-bg-success">Atteint</span>{% else %}<span class="badge text-bg-primary">En cours</span>{% endif %}
+            </div>
+            <small class="text-body-secondary">{{ atteinte.valeur_actuelle }} / {{ atteinte.valeur_cible }}{% if objectif.type == "prospections_semaine" %} par semaine{% endif %}</small>
+          </td>
+          {% if peut_gerer %}<td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{% url 'objectifs:modifier' objectif.pk %}">Modifier</a> <a class="btn btn-sm btn-outline-danger" href="{% url 'objectifs:supprimer' objectif.pk %}">Supprimer</a></td>{% endif %}
+        </tr>
+        {% endwith %}
+      {% empty %}<tr><td colspan="5" class="text-body-secondary">Aucun objectif pour cette période.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>

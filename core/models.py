@@ -46,3 +46,41 @@ class Tache(models.Model):
 
     def __str__(self):
         return self.titre
+
+
+class Objectif(models.Model):
+    class Type(models.TextChoices):
+        PROSPECTIONS_SEMAINE = "prospections_semaine", "Prospections / semaine"
+        CANDIDATURES_MOIS = "candidatures_mois", "Candidatures / mois"
+
+    createur = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="objectifs_crees",
+        on_delete=models.CASCADE,
+    )
+    eleve = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="objectifs",
+        on_delete=models.CASCADE,
+    )
+    type = models.CharField(max_length=30, choices=Type.choices)
+    valeur = models.PositiveIntegerField()
+    periode_debut = models.DateField()
+    periode_fin = models.DateField()
+    date_creation = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-periode_debut", "eleve__username"]
+        indexes = [
+            models.Index(fields=["eleve", "type"]),
+            models.Index(fields=["createur", "periode_debut"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["eleve", "type", "periode_debut", "periode_fin"],
+                name="unique_objectif_par_eleve_type_periode",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_type_display()} — {self.eleve.username}"

@@ -157,6 +157,9 @@ class JournalAction(models.Model):
         TACHE_TERMINEE = "tache_terminee", "Tâche terminée"
         TACHE_SUPPRIMEE = "tache_supprimee", "Tâche supprimée"
         RELANCE_EMAIL_ENVOYE = "relance_email_envoye", "Email de relance envoyé"
+        OBJECTIF_CREE = "objectif_cree", "Objectif créé"
+        OBJECTIF_MODIFIE = "objectif_modifie", "Objectif modifié"
+        OBJECTIF_SUPPRIME = "objectif_supprime", "Objectif supprimé"
 
     utilisateur = models.ForeignKey(
         "comptes.Utilisateur",
