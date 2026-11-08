@@ -2,7 +2,40 @@
 {% block title %}Administration — MyJobPilot{% endblock %}
 {% block content %}
 <h1>Dashboard administrateur</h1>
+<form method="get" class="card card-body mb-4" aria-label="Filtres du tableau de bord">
+  <div class="row g-3 align-items-end">
+    <div class="col-12 col-md-3">
+      <label class="form-label" for="kpi-periode-admin">Période</label>
+      <select class="form-select" id="kpi-periode-admin" name="periode">
+        {% for code, jours in periodes_dashboard.items %}<option value="{{ code }}" {% if filtre_periode == code %}selected{% endif %}>{% if code == "all" %}Tout l’historique{% else %}{{ code }} jours{% endif %}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3">
+      <label class="form-label" for="kpi-centre-admin">Centre</label>
+      <select class="form-select" id="kpi-centre-admin" name="centre">
+        <option value="">Tous les centres</option>
+        {% for centre in centres_filtre %}<option value="{{ centre.pk }}" {% if filtre_centre == centre.pk|stringformat:"s" %}selected{% endif %}>{{ centre.nom }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3">
+      <label class="form-label" for="kpi-superviseur-admin">Superviseur</label>
+      <select class="form-select" id="kpi-superviseur-admin" name="superviseur">
+        <option value="">Tous les superviseurs</option>
+        {% for superviseur in superviseurs_filtre %}<option value="{{ superviseur.pk }}" {% if filtre_superviseur == superviseur.pk|stringformat:"s" %}selected{% endif %}>{{ superviseur.get_full_name|default:superviseur.username }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3">
+      <label class="form-label" for="kpi-eleve-admin">Élève</label>
+      <select class="form-select" id="kpi-eleve-admin" name="eleve">
+        <option value="">Tous les élèves</option>
+        {% for eleve_filtre in eleves_filtre %}<option value="{{ eleve_filtre.pk }}" {% if filtre_eleve == eleve_filtre.pk|stringformat:"s" %}selected{% endif %}>{{ eleve_filtre.get_full_name|default:eleve_filtre.username }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-12"><button class="btn btn-primary" type="submit">Appliquer</button></div>
+  </div>
+</form>
 {% include "partials/_kpi_cards.html" %}
+{% include "partials/_dashboard_prospection_kpis.html" %}
 <section class="mb-4" aria-labelledby="titre-objectifs-admin">
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h2 class="h4 mb-0" id="titre-objectifs-admin">Objectifs</h2>

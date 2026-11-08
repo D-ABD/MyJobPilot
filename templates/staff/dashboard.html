@@ -7,7 +7,36 @@
     <p class="text-body-secondary mb-0">Élèves rattachés aux centres de votre périmètre.</p>
   </div>
 
+  <form method="get" class="card card-body mb-4" aria-label="Filtres du tableau de bord">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="kpi-periode-staff">Période</label>
+        <select class="form-select" id="kpi-periode-staff" name="periode">
+          {% for code, jours in periodes_dashboard.items %}
+            <option value="{{ code }}" {% if filtre_periode == code %}selected{% endif %}>{% if code == "all" %}Tout l’historique{% else %}{{ code }} jours{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="kpi-centre-staff">Centre</label>
+        <select class="form-select" id="kpi-centre-staff" name="centre">
+          <option value="">Tous les centres</option>
+          {% for centre in centres %}<option value="{{ centre.pk }}" {% if filtre_centre == centre.pk|stringformat:"s" %}selected{% endif %}>{{ centre.nom }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="kpi-eleve-staff">Élève</label>
+        <select class="form-select" id="kpi-eleve-staff" name="eleve">
+          <option value="">Tous les élèves</option>
+          {% for eleve_filtre in eleves_filtre %}<option value="{{ eleve_filtre.pk }}" {% if filtre_eleve == eleve_filtre.pk|stringformat:"s" %}selected{% endif %}>{{ eleve_filtre.get_full_name|default:eleve_filtre.username }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12"><button class="btn btn-primary" type="submit">Appliquer</button></div>
+    </div>
+  </form>
+
   {% include "partials/_kpi_cards.html" %}
+  {% include "partials/_dashboard_prospection_kpis.html" %}
 
   <section class="mb-4" aria-labelledby="titre-objectifs-staff">
     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -45,7 +74,7 @@
   </div>
 
   <form method="get" class="card card-body mb-3" aria-label="Filtrer par type de contrat">
-    <input type="hidden" name="q" value="{{ filtre_q }}"><input type="hidden" name="centre" value="{{ filtre_centre }}"><input type="hidden" name="is_valide" value="{{ filtre_is_valide }}"><input type="hidden" name="tri" value="{{ filtre_tri }}"><input type="hidden" name="ordre" value="{{ filtre_ordre }}">
+    <input type="hidden" name="q" value="{{ filtre_q }}"><input type="hidden" name="centre" value="{{ filtre_centre }}"><input type="hidden" name="eleve" value="{{ filtre_eleve }}"><input type="hidden" name="periode" value="{{ filtre_periode }}"><input type="hidden" name="is_valide" value="{{ filtre_is_valide }}"><input type="hidden" name="tri" value="{{ filtre_tri }}"><input type="hidden" name="ordre" value="{{ filtre_ordre }}">
     <label class="form-label" for="filtre-type-contrat-staff">Prospections : type de contrat</label>
     <div class="d-flex gap-2"><select class="form-select" id="filtre-type-contrat-staff" name="type_contrat"><option value="tous" {% if filtre_type_contrat == "tous" %}selected{% endif %}>Tous les types</option>{% for code, libelle in types_contrat %}<option value="{{ code }}" {% if filtre_type_contrat == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}</select><button class="btn btn-primary" type="submit">Filtrer</button></div>
   </form>

@@ -20,7 +20,14 @@ from comptes.models import Centre, JournalAction, ScopeSuperviseur
 from comptes.notifications import notifier_changement_statut
 from comptes.utils import invalidate_user_sessions, log_action
 from core.models import Objectif
-from core.stats import calculer_atteinte_objectif, calculer_stats_admin
+from core.stats import (
+    PERIODES_DASHBOARD,
+    calculer_atteinte_objectif,
+    calculer_kpis_dashboard,
+    calculer_stats_admin,
+    debut_periode_dashboard,
+    normaliser_periode_dashboard,
+)
 from .import_csv import importer_eleves_csv
 from documents.models import Document
 from entreprises.forms import ChangementStatutForm, CommentaireForm
@@ -68,22 +75,75 @@ def _tri(queryset, request, autorises, defaut):
 
 @administrateur_requis
 def dashboard_admin(request):
+    periode = normaliser_periode_dashboard(request.GET.get("periode", "30"))
+    eleves = Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE).select_related("centre", "formation")
+    superviseurs = Utilisateur.objects.filter(role=Utilisateur.Role.SUPERVISEUR).order_by("username")
+
+    superviseur_selectionne = request.GET.get("superviseur", "")
+    centres_superviseur = None
+    if superviseur_selectionne:
+        if not superviseur_selectionne.isdigit():
+            raise PermissionDenied
+        superviseur = superviseurs.filter(pk=int(superviseur_selectionne)).first()
+        if superviseur is None:
+            raise PermissionDenied
+        centres_superviseur = ScopeSuperviseur.objects.filter(
+            superviseur=superviseur, is_active=True,
+        ).values_list("centre_id", flat=True)
+        eleves = eleves.filter(centre_id__in=centres_superviseur)
+        superviseurs = superviseurs.filter(pk=superviseur.pk)
+
+    centre_selectionne = request.GET.get("centre", "")
+    centres = Centre.objects.order_by("nom")
+    if centre_selectionne:
+        if not centre_selectionne.isdigit() or not centres.filter(pk=int(centre_selectionne)).exists():
+            raise PermissionDenied
+        eleves = eleves.filter(centre_id=int(centre_selectionne))
+    if centres_superviseur is not None:
+        centres = centres.filter(pk__in=centres_superviseur)
+
+    eleve_selectionne = request.GET.get("eleve", "")
+    eleve_selectionne_obj = None
+    if eleve_selectionne:
+        if not eleve_selectionne.isdigit():
+            raise PermissionDenied
+        eleve = eleves.filter(pk=int(eleve_selectionne)).first()
+        if eleve is None:
+            raise PermissionDenied
+        eleve_selectionne_obj = eleve
+        eleves = eleves.filter(pk=eleve.pk)
+    if centre_selectionne or eleve_selectionne:
+        superviseurs = superviseurs.filter(
+            scopes__is_active=True,
+            scopes__centre_id__in=eleves.values_list("centre_id", flat=True),
+        ).distinct()
+    params_tous_eleves = request.GET.copy()
+    params_tous_eleves.pop("eleve", None)
+
     now = timezone.now()
     demandes_ouvertes = DemandeRGPD.objects.filter(
         statut__in=[StatutDemande.RECUE, StatutDemande.EN_COURS],
+        utilisateur__in=eleves,
     )
+    debut = debut_periode_dashboard(periode)
+    if debut:
+        demandes_ouvertes = demandes_ouvertes.filter(date_demande__date__gte=debut)
     en_retard = demandes_ouvertes.filter(date_demande__lt=now - timedelta(days=25)).count()
+    prospections_periode = Prospection.objects.filter(eleve__in=eleves)
+    if debut:
+        prospections_periode = prospections_periode.filter(date_creation__date__gte=debut)
     stats = {
-        "eleves_valides": Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE, is_valide=True).count(),
-        "eleves_attente": Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE, is_valide=False).count(),
-        "superviseurs_actifs": Utilisateur.objects.filter(role=Utilisateur.Role.SUPERVISEUR, is_active=True).count(),
-        "prospections_totales": Prospection.objects.count(),
+        "eleves_valides": eleves.filter(is_valide=True).count(),
+        "eleves_attente": eleves.filter(is_valide=False).count(),
+        "superviseurs_actifs": superviseurs.filter(is_active=True).count(),
+        "prospections_totales": prospections_periode.count(),
         "demandes_rgpd_attente": demandes_ouvertes.count(),
         "demandes_rgpd_retard": en_retard,
     }
-    cockpit = calculer_stats_admin()
+    cockpit = calculer_stats_admin(eleves=eleves, superviseurs=superviseurs, periode=periode)
     aujourd_hui = timezone.localdate()
     objectifs_actifs = Objectif.objects.filter(
+        eleve__in=eleves,
         periode_debut__lte=aujourd_hui,
         periode_fin__gte=aujourd_hui,
     ).select_related("eleve", "createur")
@@ -96,6 +156,19 @@ def dashboard_admin(request):
         "kpis": cockpit["kpis"],
         "charts": cockpit["charts"],
         "objectifs_actifs": objectifs_actifs,
+        "centres_filtre": Centre.objects.order_by("nom"),
+        "superviseurs_filtre": Utilisateur.objects.filter(
+            role=Utilisateur.Role.SUPERVISEUR,
+        ).order_by("username"),
+        "eleves_filtre": eleves.order_by("username"),
+        "filtre_periode": periode,
+        "filtre_centre": centre_selectionne,
+        "filtre_superviseur": superviseur_selectionne,
+        "filtre_eleve": eleve_selectionne,
+        "eleve_selectionne_obj": eleve_selectionne_obj,
+        "url_tous_eleves": f"{request.path}?{params_tous_eleves.urlencode()}" if params_tous_eleves else request.path,
+        "periodes_dashboard": PERIODES_DASHBOARD,
+        **calculer_kpis_dashboard(eleves.values("pk"), periode=periode),
     })
 
 

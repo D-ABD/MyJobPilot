@@ -102,8 +102,7 @@ class VuesStaffTests(TestCase):
         self.ajouter_scope(self.centre_a)
         self.connecter()
         response = self.client.get(reverse("staff:dashboard"), {"centre": str(self.centre_b.pk)})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["total_count"], 0)
+        self.assertEqual(response.status_code, 403)
 
     def test_dashboard_filtre_par_etat_de_validation(self):
         self.ajouter_scope()

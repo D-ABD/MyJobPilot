@@ -89,6 +89,74 @@ def _chart(key, chart_type, title, labels, values):
     return {"key": key, "type": chart_type, "title": title, "labels": labels, "data": values}
 
 
+PERIODES_DASHBOARD = {"7": 7, "30": 30, "90": 90, "all": None}
+
+
+def normaliser_periode_dashboard(valeur):
+    """Retourne une période autorisée, avec 30 jours par défaut."""
+    return valeur if valeur in PERIODES_DASHBOARD else "30"
+
+
+def debut_periode_dashboard(periode):
+    """Début inclusif de la période sélectionnée, ou None pour tout l'historique."""
+    jours = PERIODES_DASHBOARD[normaliser_periode_dashboard(periode)]
+    return timezone.localdate() - timedelta(days=jours - 1) if jours else None
+
+
+def filtrer_prospections_periode(prospections, periode):
+    debut = debut_periode_dashboard(periode)
+    if debut:
+        return prospections.filter(date_creation__date__gte=debut)
+    return prospections
+
+
+def calculer_kpis_dashboard(eleve_ids, periode="30"):
+    """Calcule les quatre KPI sur les élèves et la période demandés."""
+    prospections = filtrer_prospections_periode(
+        Prospection.objects.filter(eleve_id__in=eleve_ids), periode
+    )
+    statuts = dict(prospections.values("statut").annotate(total=Count("pk")).values_list("statut", "total"))
+    par_statut = [
+        {"code": code, "label": libelle, "value": statuts.get(code, 0)}
+        for code, libelle in Statut.choices
+    ]
+    max_statut = max((item["value"] for item in par_statut), default=0)
+    for item in par_statut:
+        item["percentage"] = round(item["value"] * 100 / max_statut) if max_statut else 0
+    conversion = prospections.aggregate(
+        total=Count("pk"),
+        acceptees=Count("pk", filter=Q(statut=Statut.ACCEPTE)),
+    )
+    total = conversion["total"]
+    acceptees = conversion["acceptees"]
+    # Ce taux mesure les prospections créées dans la période qui sont aujourd'hui acceptées,
+    # pas les prospections qui ont été acceptées pendant cette période.
+    taux_conversion = round(acceptees * 100 / total) if total else 0
+    aujourd_hui = timezone.localdate()
+    relances_a_venir = Prospection.objects.filter(
+        eleve_id__in=eleve_ids,
+        statut=Statut.A_RELANCER,
+        date_relance__gte=aujourd_hui,
+        date_relance__lte=aujourd_hui + timedelta(days=7),
+    ).count()
+    entreprises = list(
+        prospections.values("entreprise__nom")
+        .annotate(total=Count("pk"))
+        .order_by("-total", "entreprise__nom")[:5]
+    )
+    max_entreprise = max((item["total"] for item in entreprises), default=0)
+    for item in entreprises:
+        item["percentage"] = round(item["total"] * 100 / max_entreprise) if max_entreprise else 0
+    return {
+        "prospections_par_statut": par_statut,
+        "taux_conversion": taux_conversion,
+        "prospections_total": total,
+        "prospections_acceptees": acceptees,
+        "relances_a_venir": relances_a_venir,
+        "top_entreprises": entreprises,
+    }
+
+
 def calculer_stats_eleve(eleve):
     prospections = Prospection.objects.filter(eleve=eleve).select_related("entreprise")
     total = prospections.count()
@@ -116,16 +184,19 @@ def calculer_stats_eleve(eleve):
     }
 
 
-def calculer_stats_superviseur(superviseur):
+def calculer_stats_superviseur(superviseur, eleves=None, periode="all"):
     centres_ids = centres_du_superviseur(superviseur)
-    eleves = Utilisateur.objects.filter(
-        role=Utilisateur.Role.ELEVE, centre_id__in=centres_ids
-    ).select_related("centre")
-    prospections = Prospection.objects.filter(eleve__in=eleves)
+    if eleves is None:
+        eleves = Utilisateur.objects.filter(
+            role=Utilisateur.Role.ELEVE, centre_id__in=centres_ids
+        ).select_related("centre")
+    prospections = filtrer_prospections_periode(
+        Prospection.objects.filter(eleve__in=eleves), periode
+    )
     nb_eleves = eleves.count()
     valides = eleves.filter(is_valide=True).count()
     entretiens = prospections.filter(statut=Statut.ENTRETIEN_PROGRAMME).count()
-    centres = list(Centre.objects.filter(pk__in=centres_ids).order_by("nom"))
+    centres = list(Centre.objects.filter(pk__in=centres_ids, utilisateurs__in=eleves).distinct().order_by("nom"))
     centres_chart = [
         (centre.nom, eleves.filter(centre_id=centre.pk).count()) for centre in centres
     ]
@@ -152,29 +223,37 @@ def calculer_stats_superviseur(superviseur):
     }
 
 
-def calculer_stats_admin():
-    eleves = Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE)
-    superviseurs = Utilisateur.objects.filter(role=Utilisateur.Role.SUPERVISEUR)
+def calculer_stats_admin(eleves=None, superviseurs=None, periode="all"):
+    if eleves is None:
+        eleves = Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE)
+    if superviseurs is None:
+        superviseurs = Utilisateur.objects.filter(role=Utilisateur.Role.SUPERVISEUR)
+    prospections = filtrer_prospections_periode(
+        Prospection.objects.filter(eleve__in=eleves), periode
+    )
     demandes_ouvertes = DemandeRGPD.objects.filter(
         statut__in=[StatutDemande.RECUE, StatutDemande.EN_COURS]
-    )
+    ).filter(utilisateur__in=eleves)
+    debut = debut_periode_dashboard(periode)
+    if debut:
+        demandes_ouvertes = demandes_ouvertes.filter(date_demande__date__gte=debut)
     retard = demandes_ouvertes.filter(
         date_demande__lt=timezone.now() - timedelta(days=25)
     ).count()
-    repartition = _repartition_statuts(Prospection.objects.all())
-    centres = list(Centre.objects.annotate(
-        nombre=Count("utilisateurs", filter=Q(utilisateurs__role=Utilisateur.Role.ELEVE))
-    ).order_by("nom"))
-    demandes_chart = _mois_12(DemandeRGPD.objects.all(), "date_demande")
+    repartition = _repartition_statuts(prospections)
+    centres = list(Centre.objects.filter(utilisateurs__in=eleves).annotate(
+        nombre=Count("utilisateurs", filter=Q(utilisateurs__role=Utilisateur.Role.ELEVE, utilisateurs__in=eleves))
+    ).distinct().order_by("nom"))
+    demandes_chart = _mois_12(demandes_ouvertes, "date_demande")
     return {
         "kpis": [
             {"label": "Total élèves", "value": eleves.count()},
             {"label": "Total superviseurs", "value": superviseurs.count()},
-            {"label": "Total entreprises", "value": Entreprise.objects.count()},
+            {"label": "Total entreprises", "value": prospections.values("entreprise_id").distinct().count()},
             {"label": "Demandes RGPD en attente", "value": demandes_ouvertes.count(), "variant": "danger" if retard else "primary", "detail": f"{retard} en retard (> 25 jours)"},
         ],
         "charts": {
-            "prospections_mois": _chart("prospections_mois", "line", "Prospections par mois", *_mois_12(Prospection.objects.all(), "date_creation").values()),
+            "prospections_mois": _chart("prospections_mois", "line", "Prospections par mois", *_mois_12(prospections, "date_creation").values()),
             "statuts": _chart("statuts", "doughnut", "Répartition globale des statuts", repartition["labels"], repartition["data"]),
             "centres": _chart("centres", "bar", "Élèves par centre", [centre.nom for centre in centres], [centre.nombre for centre in centres]),
             "demandes_mois": _chart("demandes_mois", "line", "Demandes RGPD par mois", demandes_chart["labels"], demandes_chart["data"]),

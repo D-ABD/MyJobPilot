@@ -14,7 +14,14 @@ from comptes.models import Centre, JournalAction, TypeNotification, Utilisateur
 from comptes.notifications import creer_notification
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
-from core.stats import calculer_atteinte_objectif, calculer_stats_superviseur
+from core.stats import (
+    PERIODES_DASHBOARD,
+    calculer_atteinte_objectif,
+    calculer_kpis_dashboard,
+    calculer_stats_superviseur,
+    debut_periode_dashboard,
+    normaliser_periode_dashboard,
+)
 from core.models import Objectif
 from entreprises.forms import EntrepriseForm
 from entreprises.models import Commentaire, HistoriqueStatut, Prospection, Statut, TypeContrat
@@ -41,10 +48,42 @@ def dashboard_staff(request):
     verifier_superviseur(request)
     centres_ids = centres_du_superviseur(request.user)
     centres = list(Centre.objects.filter(pk__in=centres_ids))
+    periode = normaliser_periode_dashboard(request.GET.get("periode", "30"))
+    eleves_scope = Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE, centre_id__in=centres_ids)
+
+    centre_selectionne = request.GET.get("centre", "")
+    if centre_selectionne:
+        if not centre_selectionne.isdigit() or int(centre_selectionne) not in centres_ids:
+            raise PermissionDenied
+        eleves_scope = eleves_scope.filter(centre_id=int(centre_selectionne))
+
+    eleve_selectionne = request.GET.get("eleve", "")
+    eleve_selectionne_obj = None
+    if eleve_selectionne:
+        if not eleve_selectionne.isdigit():
+            raise PermissionDenied
+        eleve = Utilisateur.objects.filter(
+            pk=int(eleve_selectionne), role=Utilisateur.Role.ELEVE,
+            centre_id__in=centres_ids,
+        ).first()
+        if eleve is None or (centre_selectionne and eleve.centre_id != int(centre_selectionne)):
+            raise PermissionDenied
+        eleve_selectionne_obj = eleve
+        eleves_scope = eleves_scope.filter(pk=eleve.pk)
+
+    eleves_kpi = eleves_scope.select_related("centre", "formation")
+    filtre_date_prospection = {}
+    debut_periode = debut_periode_dashboard(periode)
+    if debut_periode:
+        filtre_date_prospection["filter"] = Q(
+            prospections__date_creation__date__gte=debut_periode,
+        )
     queryset = (
-        Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE, centre_id__in=centres_ids)
+        eleves_kpi
         .select_related("centre", "formation")
-        .annotate(nombre_prospections=Count("prospections", distinct=True))
+        .annotate(nombre_prospections=Count(
+            "prospections", distinct=True, **filtre_date_prospection,
+        ))
     )
 
     recherche = request.GET.get("q", "").strip()
@@ -55,13 +94,6 @@ def dashboard_staff(request):
             | Q(last_name__icontains=recherche)
             | Q(email__icontains=recherche)
         )
-
-    centre_selectionne = request.GET.get("centre", "")
-    if centre_selectionne:
-        if not centre_selectionne.isdigit() or int(centre_selectionne) not in centres_ids:
-            queryset = queryset.none()
-        else:
-            queryset = queryset.filter(centre_id=int(centre_selectionne))
 
     type_contrat_selectionne = request.GET.get("type_contrat", "tous")
     if type_contrat_selectionne in {choix for choix, _ in TypeContrat.choices}:
@@ -85,20 +117,17 @@ def dashboard_staff(request):
     pagination = Paginator(queryset, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
     pagination_params = request.GET.copy()
     pagination_params.pop("page", None)
-    stats = [
-        {
-            "centre": centre,
-            "nombre": Utilisateur.objects.filter(
-                role=Utilisateur.Role.ELEVE,
-                centre_id=centre.pk,
-                centre_id__in=centres_ids,
-            ).count(),
-        }
-        for centre in centres
-    ]
+    params_tous_eleves = request.GET.copy()
+    params_tous_eleves.pop("eleve", None)
+    centres_stats = Centre.objects.filter(pk__in=centres_ids, utilisateurs__in=eleves_kpi).annotate(
+        nombre=Count("utilisateurs", filter=Q(
+            utilisateurs__role=Utilisateur.Role.ELEVE, utilisateurs__in=eleves_kpi,
+        ))
+    ).distinct().order_by("nom")
+    stats = [{"centre": centre, "nombre": centre.nombre} for centre in centres_stats]
     aujourd_hui = timezone.localdate()
     objectifs_actifs = Objectif.objects.filter(
-        eleve__centre_id__in=centres_ids,
+        eleve__in=eleves_kpi,
         periode_debut__lte=aujourd_hui,
         periode_fin__gte=aujourd_hui,
     ).select_related("eleve", "createur")
@@ -116,10 +145,16 @@ def dashboard_staff(request):
         "eleves": pagination.object_list,
         "page_obj": pagination,
         "centres": centres,
+        "eleves_filtre": eleves_kpi.order_by("username"),
         "stats_par_centre": stats,
         "total_count": queryset.count(),
         "filtre_q": recherche,
         "filtre_centre": centre_selectionne,
+        "filtre_eleve": eleve_selectionne,
+        "eleve_selectionne_obj": eleve_selectionne_obj,
+        "url_tous_eleves": f"{request.path}?{params_tous_eleves.urlencode()}" if params_tous_eleves else request.path,
+        "filtre_periode": periode,
+        "periodes_dashboard": PERIODES_DASHBOARD,
         "filtre_is_valide": validation_selectionnee,
         "filtre_type_contrat": type_contrat_selectionne,
         "types_contrat": TypeContrat.choices,
@@ -129,7 +164,8 @@ def dashboard_staff(request):
         "pagination_query": pagination_params.urlencode(),
         "tri_urls": tri_urls,
         "objectifs_actifs": objectifs_actifs,
-        **calculer_stats_superviseur(request.user),
+        **calculer_stats_superviseur(request.user, eleves=eleves_kpi, periode=periode),
+        **calculer_kpis_dashboard(eleves_kpi.values("pk"), periode=periode),
     }
     return render(request, "staff/dashboard.html", contexte)
 
