@@ -84,3 +84,25 @@ class Objectif(models.Model):
 
     def __str__(self):
         return f"{self.get_type_display()} — {self.eleve.username}"
+
+
+class OffreEnregistree(models.Model):
+    utilisateur = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="offres_enregistrees",
+    )
+    offre_id_lba = models.CharField(max_length=255)
+    titre = models.CharField(max_length=255)
+    entreprise = models.CharField(max_length=255, blank=True, default="")
+    ville = models.CharField(max_length=255, blank=True, default="")
+    url = models.URLField(blank=True, default="")
+    date_publication = models.DateTimeField(null=True, blank=True)
+    date_enregistrement = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("utilisateur", "offre_id_lba")
+        ordering = ["-date_enregistrement"]
+
+    def __str__(self):
+        return f"{self.titre} — {self.utilisateur}"

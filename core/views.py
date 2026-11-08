@@ -3,21 +3,24 @@ from datetime import datetime, time, timezone as datetime_timezone
 from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.validators import URLValidator
 from django.http import JsonResponse
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.dateparse import parse_datetime, parse_date
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_protect
 
 from comptes.models import JournalAction, Utilisateur
 from comptes.scope_utils import centres_du_superviseur
 from .external_apis import rechercher_entreprises_lba, rechercher_offres_lba
 from .forms import OffresAlternanceForm, TacheForm
-from .models import Tache
+from .models import OffreEnregistree, Tache
 from documents.models import Document
 from entreprises.models import Prospection
 
@@ -113,6 +116,11 @@ def offres_alternance(request):
     message_aide = ""
     offres_page = entreprises_page = None
     offres_pagination = entreprises_pagination = None
+    offres_enregistrees = set()
+    if request.user.is_authenticated:
+        offres_enregistrees = set(OffreEnregistree.objects.filter(
+            utilisateur=request.user,
+        ).values_list("offre_id_lba", flat=True))
     if request.method == "GET" and request.GET:
         if form.is_valid():
             codes_rome = form.cleaned_data["code_rome"].split(",") if form.cleaned_data["code_rome"] else []
@@ -134,6 +142,11 @@ def offres_alternance(request):
                 entreprises_page = entreprises_pagination.pop("page_obj")
                 offres = offres_page.object_list
                 entreprises = entreprises_page.object_list
+                for offre in offres:
+                    offre_id = offre.get("_id", "")
+                    offre["offre_id_lba"] = offre_id
+                    offre["date_publication"] = offre.get("_publication_creation") or ""
+                    offre["est_enregistree"] = offre_id in offres_enregistrees
             else:
                 message_aide = "Saisissez votre code ROME, ou consultez le référentiel France Travail."
     return render(request, "offres/recherche.html", {
@@ -146,6 +159,79 @@ def offres_alternance(request):
         "entreprises_page": entreprises_page,
         "offres_pagination": offres_pagination,
         "entreprises_pagination": entreprises_pagination,
+        "offres_enregistrees": offres_enregistrees,
+    })
+
+
+def _retour_apres_offre(request):
+    referer = request.META.get("HTTP_REFERER", "")
+    if referer and url_has_allowed_host_and_scheme(
+        referer,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(referer)
+    return redirect("core:mes_offres_enregistrees")
+
+
+@login_required
+@require_POST
+@csrf_protect
+def enregistrer_offre(request, offre_id_lba):
+    """Enregistre une offre LBA pour l'utilisateur connecté, sans doublon."""
+    titre = request.POST.get("titre", "").strip()[:255]
+    if not offre_id_lba or len(offre_id_lba) > 255 or not titre:
+        return redirect("core:offres_alternance")
+
+    date_publication = _date_publication({
+        "_publication_creation": request.POST.get("date_publication", ""),
+    })
+    url = request.POST.get("url", "").strip()
+    if len(url) > 200:
+        url = ""
+    elif url:
+        try:
+            URLValidator()(url)
+        except ValidationError:
+            url = ""
+    defaults = {
+        "titre": titre,
+        "entreprise": request.POST.get("entreprise", "").strip()[:255],
+        "ville": request.POST.get("ville", "").strip()[:255],
+        "url": url[:200],
+        "date_publication": date_publication,
+    }
+    OffreEnregistree.objects.get_or_create(
+        utilisateur=request.user,
+        offre_id_lba=offre_id_lba,
+        defaults=defaults,
+    )
+    return _retour_apres_offre(request)
+
+
+@login_required
+@require_POST
+@csrf_protect
+def retirer_offre(request, offre_id_lba):
+    """Retire uniquement le favori appartenant à l'utilisateur connecté."""
+    OffreEnregistree.objects.filter(
+        utilisateur=request.user,
+        offre_id_lba=offre_id_lba,
+    ).delete()
+    return _retour_apres_offre(request)
+
+
+@login_required
+def mes_offres_enregistrees(request):
+    offres = OffreEnregistree.objects.filter(utilisateur=request.user)
+    params_base = request.GET.copy()
+    params_base.pop("page", None)
+    pagination = _pagination_contexte(request, offres, "page", params_base)
+    page = pagination.pop("page_obj")
+    return render(request, "offres/mes_offres_enregistrees.html", {
+        "offres": page.object_list,
+        "offres_page": page,
+        "offres_pagination": pagination,
     })
 
 

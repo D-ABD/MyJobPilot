@@ -7,6 +7,9 @@ app_name = "core"
 
 urlpatterns = [
     path("offres-alternance/", views.offres_alternance, name="offres_alternance"),
+    path("offres/enregistrer/<str:offre_id_lba>/", views.enregistrer_offre, name="enregistrer_offre"),
+    path("offres/retirer/<str:offre_id_lba>/", views.retirer_offre, name="retirer_offre"),
+    path("mes-offres-enregistrees/", views.mes_offres_enregistrees, name="mes_offres_enregistrees"),
     path("recherche/", views.recherche, name="recherche"),
     path("taches/compteur/", views.taches_compteur, name="taches_compteur"),
     path("taches/", views.taches_liste, name="taches_liste"),

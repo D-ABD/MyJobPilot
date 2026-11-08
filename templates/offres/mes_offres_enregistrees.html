@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Mes offres enregistrées — MyJobPilot{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="h2 mb-4">Mes offres enregistrées</h1>
+  {% if offres %}
+    <div class="row g-3">
+      {% for offre in offres %}
+        <div class="col-12 col-lg-6">
+          <article class="card h-100"><div class="card-body">
+            <h2 class="h5">{{ offre.titre }}</h2>
+            <p class="mb-2">{{ offre.entreprise }}{% if offre.ville %} · {{ offre.ville }}{% endif %}</p>
+            <p class="small text-body-secondary">Enregistrée le {{ offre.date_enregistrement|date:"d/m/Y à H:i" }}</p>
+            <div class="d-flex flex-wrap gap-2">
+              {% if offre.url %}<a class="btn btn-outline-primary" href="{{ offre.url }}" target="_blank" rel="noopener noreferrer">Postuler</a>{% endif %}
+              <form method="post" action="{% url 'core:retirer_offre' offre.offre_id_lba %}">
+                {% csrf_token %}<button class="btn btn-outline-danger" type="submit">Retirer</button>
+              </form>
+            </div>
+          </div></article>
+        </div>
+      {% endfor %}
+    </div>
+    {% if offres_page.paginator.num_pages > 1 %}
+      {% include "offres/_pagination.html" with pagination=offres_pagination titre="Pages de mes offres enregistrées" %}
+    {% endif %}
+  {% else %}
+    <p class="text-body-secondary">Vous n'avez encore enregistré aucune offre.</p>
+  {% endif %}
+</div>
+{% endblock %}

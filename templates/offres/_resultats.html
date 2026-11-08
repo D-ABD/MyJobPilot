@@ -8,7 +8,31 @@
             <h3 class="h5">{{ offre.titre }}</h3>
             <p class="mb-3">{{ offre.entreprise }}{% if offre.ville %} · {{ offre.ville }}{% endif %}</p>
             <div class="d-flex flex-wrap gap-2">
-              {% if offre.url %}<a class="btn btn-outline-primary" href="{{ offre.url }}" target="_blank" rel="noopener noreferrer">Voir l'offre</a>{% endif %}
+              {% if offre.url %}<a class="btn btn-outline-primary" href="{{ offre.url }}" target="_blank" rel="noopener noreferrer">Postuler</a>{% endif %}
+              {% if offre.offre_id_lba %}
+                {% if user.is_authenticated %}
+                  {% if offre.est_enregistree %}
+                    <span class="badge text-bg-success align-self-center">Déjà enregistrée</span>
+                    <form method="post" action="{% url 'core:retirer_offre' offre.offre_id_lba %}">
+                      {% csrf_token %}<button class="btn btn-outline-danger" type="submit">Retirer</button>
+                    </form>
+                  {% else %}
+                    <form method="post" action="{% url 'core:enregistrer_offre' offre.offre_id_lba %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="titre" value="{{ offre.titre }}">
+                      <input type="hidden" name="entreprise" value="{{ offre.entreprise }}">
+                      <input type="hidden" name="ville" value="{{ offre.ville }}">
+                      <input type="hidden" name="url" value="{{ offre.url }}">
+                      <input type="hidden" name="date_publication" value="{{ offre.date_publication }}">
+                      <button class="btn btn-outline-primary" type="submit">Enregistrer</button>
+                    </form>
+                  {% endif %}
+                {% else %}
+                  <button class="btn btn-outline-primary" type="button" disabled title="Connectez-vous pour enregistrer">Enregistrer</button>
+                {% endif %}
+              {% else %}
+                <button class="btn btn-outline-secondary" type="button" disabled title="Identifiant LBA indisponible">Enregistrer</button>
+              {% endif %}
               {% if user.is_authenticated %}
                 <form method="post" action="{% url 'core:offres_alternance' %}">
                   {% csrf_token %}<input type="hidden" name="creer_prospection" value="1">
