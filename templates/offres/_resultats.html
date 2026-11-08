@@ -1,0 +1,51 @@
+<section class="mb-5" aria-labelledby="titre-resultats-offres">
+  <h2 class="h3" id="titre-resultats-offres">Offres d'alternance</h2>
+  {% if offres %}
+    <div class="row g-3">
+      {% for offre in offres %}
+        <div class="col-12 col-lg-6">
+          <article class="card h-100"><div class="card-body">
+            <h3 class="h5">{{ offre.titre }}</h3>
+            <p class="mb-3">{{ offre.entreprise }}{% if offre.ville %} · {{ offre.ville }}{% endif %}</p>
+            <div class="d-flex flex-wrap gap-2">
+              {% if offre.url %}<a class="btn btn-outline-primary" href="{{ offre.url }}" target="_blank" rel="noopener noreferrer">Voir l'offre</a>{% endif %}
+              {% if user.is_authenticated %}
+                <form method="post" action="{% url 'core:offres_alternance' %}">
+                  {% csrf_token %}<input type="hidden" name="creer_prospection" value="1">
+                  <input type="hidden" name="entreprise_nom" value="{{ offre.entreprise }}">
+                  <input type="hidden" name="ville" value="{{ offre.ville }}">
+                  <button class="btn btn-primary" type="submit">Créer une prospection</button>
+                </form>
+              {% else %}<a class="btn btn-primary" href="{% url 'comptes:connexion' %}">Connectez-vous pour créer une prospection</a>{% endif %}
+            </div>
+          </div></article>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}<p class="text-body-secondary">Aucune offre trouvée pour ces critères.</p>{% endif %}
+</section>
+
+<section aria-labelledby="titre-resultats-entreprises">
+  <h2 class="h3" id="titre-resultats-entreprises">Entreprises à contacter (candidature spontanée)</h2>
+  {% if entreprises %}
+    <div class="row g-3">
+      {% for entreprise in entreprises %}
+        <div class="col-12 col-lg-6">
+          <article class="card h-100"><div class="card-body">
+            <h3 class="h5">{{ entreprise.nom }}</h3>
+            <p class="mb-3">{% if entreprise.secteur %}{{ entreprise.secteur }}{% endif %}{% if entreprise.secteur and entreprise.ville %} · {% endif %}{{ entreprise.ville }}</p>
+            {% if user.is_authenticated %}
+              <form method="post" action="{% url 'core:offres_alternance' %}">
+                {% csrf_token %}<input type="hidden" name="creer_prospection" value="1">
+                <input type="hidden" name="entreprise_nom" value="{{ entreprise.nom }}">
+                <input type="hidden" name="ville" value="{{ entreprise.ville }}">
+                <input type="hidden" name="secteur" value="{{ entreprise.secteur }}">
+                <button class="btn btn-primary" type="submit">Créer une prospection</button>
+              </form>
+            {% else %}<a class="btn btn-primary" href="{% url 'comptes:connexion' %}">Connectez-vous pour créer une prospection</a>{% endif %}
+          </div></article>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}<p class="text-body-secondary">Aucune entreprise à fort potentiel trouvée pour ces critères.</p>{% endif %}
+</section>

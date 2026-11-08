@@ -684,8 +684,15 @@ def entreprise_create(request):
             notifier_ajout_prospection(prospection, request.user)
             return redirect("entreprises:detail", pk=prospection.pk)
     else:
-        form = ProspectionForm()
-        entreprise_form = EntrepriseForm()
+        form = ProspectionForm(initial={
+            "entreprise_nom": request.GET.get("entreprise_nom", ""),
+            "source": request.GET.get("source", ""),
+        })
+        entreprise_form = EntrepriseForm(initial={
+            "nom": request.GET.get("entreprise_nom", ""),
+            "ville": request.GET.get("ville", ""),
+            "secteur": request.GET.get("secteur", ""),
+        })
     return _rendre_formulaire_prospection(request, form, entreprise_form, "Nouvelle prospection")
 
 
@@ -800,8 +807,21 @@ def prospection_create_tout_role(request):
     }:
         raise PermissionDenied
 
-    form = ProspectionFormToutRole(request.POST or None, request=request)
-    entreprise_form = EntrepriseForm(request.POST or None)
+    initial_prospection = {
+        "entreprise_nom": request.GET.get("entreprise_nom", ""),
+        "source": request.GET.get("source", ""),
+    }
+    initial_entreprise = {
+        "nom": request.GET.get("entreprise_nom", ""),
+        "ville": request.GET.get("ville", ""),
+        "secteur": request.GET.get("secteur", ""),
+    }
+    form = ProspectionFormToutRole(
+        request.POST or None,
+        request=request,
+        initial=initial_prospection,
+    )
+    entreprise_form = EntrepriseForm(request.POST or None, initial=initial_entreprise)
 
     def rendre():
         return render(request, "entreprises/prospection_form_tout_role.html", {

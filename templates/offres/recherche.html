@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Offres d’alternance — MyJobPilot{% endblock %}
+{% block content %}
+<section aria-labelledby="titre-offres-alternance">
+  <div class="mb-4">
+    <h1 class="h2" id="titre-offres-alternance">Trouver une alternance</h1>
+    <p class="text-body-secondary">Offres et entreprises à contacter, proposées par La bonne alternance.</p>
+  </div>
+  <form method="get" class="card card-body mb-4" aria-label="Recherche d'offres d'alternance">
+    {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+    <button class="btn btn-primary align-self-start" type="submit">Rechercher</button>
+  </form>
+
+  {% if recherche_effectuee %}
+    {% include "offres/_resultats.html" %}
+  {% elif request.GET %}
+    <p class="alert alert-warning" role="status">Vérifiez les critères de recherche puis relancez la recherche.</p>
+  {% else %}
+    <p class="text-body-secondary">Saisissez un métier ou un mot-clé, un code postal et un rayon pour afficher les résultats.</p>
+  {% endif %}
+</section>
+{% endblock %}

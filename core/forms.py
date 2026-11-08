@@ -47,3 +47,31 @@ class TacheForm(forms.ModelForm):
         elif role == Utilisateur.Role.ADMIN:
             self.fields["assigne_a"].queryset = Utilisateur.objects.all().order_by("username")
             self.fields["prospection"].queryset = Prospection.objects.select_related("entreprise", "eleve")
+
+
+class OffresAlternanceForm(forms.Form):
+    mot_cle = forms.CharField(
+        label="Métier ou mot-clé",
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex. développeur web ou M1805"}),
+    )
+    ville = forms.CharField(
+        label="Code postal de la ville",
+        max_length=5,
+        widget=forms.TextInput(attrs={"class": "form-control", "inputmode": "numeric", "placeholder": "Ex. 75001"}),
+        help_text="La recherche géographique LBA utilise un code postal français à 5 chiffres.",
+    )
+    rayon = forms.IntegerField(
+        label="Rayon (km)",
+        min_value=0,
+        max_value=200,
+        initial=30,
+        widget=forms.NumberInput(attrs={"class": "form-control", "min": 0, "max": 200}),
+    )
+
+    def clean_ville(self):
+        ville = self.cleaned_data["ville"].strip()
+        if not ville.isdigit() or len(ville) != 5:
+            raise forms.ValidationError("Saisissez un code postal français à 5 chiffres.")
+        return ville
