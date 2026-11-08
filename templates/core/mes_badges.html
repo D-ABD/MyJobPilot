@@ -3,7 +3,20 @@
 {% block content %}
 <section aria-labelledby="titre-mes-badges">
   <h1 class="h2 mb-2" id="titre-mes-badges">Mes badges</h1>
-  <p class="lead">{{ points_total }} points · {{ badges_obtenus_count }}/{{ badges_total_count }} badges obtenus</p>
+  <section class="card mb-4" aria-label="Ma progression">
+    <div class="card-body">
+      <h2 class="h4">🏆 Niveau : {{ progression.niveau.nom }}</h2>
+      {% if progression.niveau.est_max %}
+        <p>{{ progression.xp }} XP · Niveau maximum atteint</p>
+      {% else %}
+        <p>{{ progression.xp }} XP · {{ progression.niveau.xp_pour_suivant }} XP pour atteindre {{ progression.niveau.niveau_suivant_nom|default:"le prochain niveau" }}</p>
+      {% endif %}
+      <div class="progress mb-3" role="progressbar" aria-label="Progression vers le niveau suivant" aria-valuenow="{{ progression.niveau.progression_pourcentage }}" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" style="width: {{ progression.niveau.progression_pourcentage }}%"></div>
+      </div>
+      <p class="mb-0">{{ progression.points }} points · {{ progression.badges_obtenus }}/{{ progression.badges_total }} badges obtenus</p>
+    </div>
+  </section>
 
   {% for categorie in categories_badges %}
     <section class="mb-5" aria-labelledby="categorie-{{ categorie.valeur }}">

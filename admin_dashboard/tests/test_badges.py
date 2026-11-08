@@ -35,3 +35,10 @@ class BadgesFicheAdminTests(TestCase):
         self.assertContains(response, "15 points")
         self.assertContains(response, "1/18 badges")
         self.assertContains(response, "Badge admin")
+
+    def test_fiche_eleve_admin_affiche_niveau_et_xp(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin_dashboard:eleve_detail", args=[self.eleve.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Niveau : Novice")
+        self.assertContains(response, "0 XP")

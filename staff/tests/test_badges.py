@@ -46,3 +46,10 @@ class BadgesFicheSuperviseurTests(TestCase):
         self.client.force_login(self.superviseur)
         response = self.client.get(reverse("staff:detail_eleve", args=[self.hors_scope.pk]))
         self.assertEqual(response.status_code, 403)
+
+    def test_detail_eleve_superviseur_affiche_niveau_et_xp(self):
+        self.client.force_login(self.superviseur)
+        response = self.client.get(reverse("staff:detail_eleve", args=[self.eleve.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Niveau : Novice")
+        self.assertContains(response, "0 XP")

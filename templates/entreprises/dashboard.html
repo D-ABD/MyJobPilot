@@ -18,9 +18,22 @@
   {% include "partials/_kpi_cards.html" %}
 
   <section class="card mb-4" aria-label="Points et badges">
-    <div class="card-body d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
-      <p class="mb-0"><strong>Points : {{ points_total }}</strong> <span class="text-body-secondary">| Badges : {{ badges_obtenus_count }}/{{ badges_total_count }}</span></p>
-      <a class="btn btn-sm btn-outline-primary" href="{% url 'core:mes_badges' %}">Voir mes badges</a>
+    <div class="card-body">
+      <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
+        <div>
+          <p class="mb-1"><strong>🏆 Niveau : {{ progression.niveau.nom }}</strong></p>
+          {% if progression.niveau.est_max %}
+            <p class="small mb-2">{{ progression.xp }} XP · Niveau maximum atteint</p>
+          {% else %}
+            <p class="small mb-2">{{ progression.xp }} XP · {{ progression.niveau.xp_pour_suivant }} XP pour {{ progression.niveau.niveau_suivant_nom|default:"le prochain niveau" }}</p>
+          {% endif %}
+        </div>
+        <a class="btn btn-sm btn-outline-primary align-self-sm-start" href="{% url 'core:mes_badges' %}">Voir mes badges</a>
+      </div>
+      <div class="progress mb-2" role="progressbar" aria-label="Progression vers le niveau suivant" aria-valuenow="{{ progression.niveau.progression_pourcentage }}" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar" style="width: {{ progression.niveau.progression_pourcentage }}%"></div>
+      </div>
+      <p class="small mb-0">Points : {{ progression.points }} · Badges : {{ progression.badges_obtenus }}/{{ progression.badges_total }}</p>
     </div>
   </section>
 

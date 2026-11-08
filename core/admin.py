@@ -1,7 +1,7 @@
 """Administration en lecture seule des offres enregistrées."""
 from django.contrib import admin
 
-from .models import Badge, BadgeObtenu, OffreEnregistree
+from .models import Badge, BadgeObtenu, Niveau, OffreEnregistree
 
 
 @admin.register(Badge)
@@ -25,6 +25,14 @@ class BadgeObtenuAdmin(admin.ModelAdmin):
     search_fields = ("utilisateur__email", "badge__nom")
     readonly_fields = ("date_obtention",)
     raw_id_fields = ("utilisateur", "badge")
+
+
+@admin.register(Niveau)
+class NiveauAdmin(admin.ModelAdmin):
+    list_display = ("nom", "seuil_min", "ordre_affichage", "est_actif")
+    list_editable = ("ordre_affichage", "est_actif")
+    search_fields = ("nom",)
+    ordering = ("-seuil_min",)
 
 
 @admin.register(OffreEnregistree)

@@ -138,26 +138,3 @@ class Badge(models.Model):
         default=True,
         help_text="Désactiver ne retire pas les badges déjà obtenus.",
     )
-
-    class Meta:
-        ordering = ["categorie", "ordre_affichage", "seuil"]
-
-    def __str__(self):
-        return self.nom
-
-
-class BadgeObtenu(models.Model):
-    utilisateur = models.ForeignKey(
-        "comptes.Utilisateur",
-        on_delete=models.CASCADE,
-        related_name="badges_obtenus",
-    )
-    badge = models.ForeignKey(Badge, on_delete=models.CASCADE)
-    date_obtention = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = [("utilisateur", "badge")]
-        ordering = ["-date_obtention"]
-
-    def __str__(self):
-        return f"{self.badge.nom} — {self.utilisateur.username}"
