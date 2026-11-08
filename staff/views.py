@@ -10,8 +10,8 @@ from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from comptes.models import Centre, JournalAction, Utilisateur
-from comptes.notifications import notifier_ajout_prospection
+from comptes.models import Centre, JournalAction, TypeNotification, Utilisateur
+from comptes.notifications import creer_notification
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
 from core.stats import calculer_atteinte_objectif, calculer_stats_superviseur
@@ -330,8 +330,16 @@ def modifier_codes_rome_eleve(request, pk):
         return redirect("staff:detail_eleve", pk=eleve.pk)
     form = CodesRomeForm(request.POST)
     if form.is_valid():
-        eleve.codes_rome = form.cleaned_data["codes_rome"]
+        nouveaux_codes = form.cleaned_data["codes_rome"]
+        codes_modifies = eleve.codes_rome != nouveaux_codes
+        eleve.codes_rome = nouveaux_codes
         eleve.save(update_fields=["codes_rome"])
+        if codes_modifies and request.user.role == Utilisateur.Role.SUPERVISEUR:
+            creer_notification(
+                eleve,
+                TypeNotification.CODES_ROME_MODIFIES,
+                "Vos codes ROME ont été mis à jour par votre superviseur",
+            )
         messages.success(request, "Les codes ROME de l’élève ont été mis à jour.")
         return redirect("staff:detail_eleve", pk=eleve.pk)
     return _rendre_detail_eleve(request, eleve, codes_rome_form=form)
@@ -472,7 +480,6 @@ def ajouter_entreprise_staff(request, pk):
             except IntegrityError:
                 form.add_error("entreprise_nom", "Cette entreprise fait déjà l'objet d'une prospection pour cet élève.")
                 return _rendre_detail_eleve(request, eleve, form, entreprise_form)
-            notifier_ajout_prospection(prospection, request.user)
             return redirect("staff:detail_eleve", pk=eleve.pk)
     else:
         form = AjoutProspectionStaffForm()

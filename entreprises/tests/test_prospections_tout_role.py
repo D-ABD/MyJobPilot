@@ -170,7 +170,7 @@ class ProspectionsTousRolesTests(TestCase):
             action=JournalAction.Action.ACTION_STAFF_ELEVE,
         ).exists())
 
-    def test_superviseur_cree_pour_un_eleve_de_scope_journalise_et_notifie(self):
+    def test_superviseur_cree_pour_un_eleve_de_scope_sans_notification(self):
         entreprise = Entreprise.objects.create(nom="Création superviseur pour élève")
         response = self.poster_creation(self.superviseur, self.eleve_scope, entreprise)
         self.assertEqual(response.status_code, 302)
@@ -180,7 +180,7 @@ class ProspectionsTousRolesTests(TestCase):
             cible_id=str(prospection.pk),
             details__proprietaire_id=self.eleve_scope.pk,
         ).exists())
-        self.assertTrue(Notification.objects.filter(
+        self.assertFalse(Notification.objects.filter(
             destinataire=self.eleve_scope,
             type=TypeNotification.AJOUT_PROSPECTION,
         ).exists())
@@ -213,7 +213,7 @@ class ProspectionsTousRolesTests(TestCase):
             JournalAction.objects.filter(action=JournalAction.Action.ACTION_STAFF_ELEVE).count(),
             2,
         )
-        self.assertTrue(Notification.objects.filter(
+        self.assertFalse(Notification.objects.filter(
             destinataire=self.autre_superviseur,
             type=TypeNotification.AJOUT_PROSPECTION,
         ).exists())

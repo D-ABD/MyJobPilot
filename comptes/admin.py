@@ -209,7 +209,16 @@ class ScopeSuperviseurAdmin(admin.ModelAdmin):
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ("destinataire", "type", "message", "lu", "date_creation")
+    list_display = ("destinataire", "type", "lu", "date_creation")
     list_filter = ("type", "lu", "date_creation")
     search_fields = ("destinataire__username", "message")
-    readonly_fields = ("date_creation",)
+    readonly_fields = ("destinataire", "type", "message", "lien", "lu", "date_creation")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

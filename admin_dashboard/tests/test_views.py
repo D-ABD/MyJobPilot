@@ -132,7 +132,7 @@ class AdminDashboardViewsTests(TestCase):
         ).exists())
 
 
-    def test_changement_statut_par_admin_notifie_superviseurs(self):
+    def test_changement_statut_par_admin_ne_notifie_pas_les_superviseurs(self):
         ScopeSuperviseur.objects.create(superviseur=self.superviseur, centre=self.centre)
         prospection = self._creer_prospection()
         self.client.force_login(self.admin)
@@ -141,7 +141,7 @@ class AdminDashboardViewsTests(TestCase):
             {"nouveau_statut": Statut.REFUS},
         )
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(Notification.objects.filter(
+        self.assertFalse(Notification.objects.filter(
             destinataire=self.superviseur, type=TypeNotification.STATUT_CHANGE,
         ).exists())
 

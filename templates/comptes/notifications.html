@@ -12,25 +12,27 @@
     {% endif %}
   </div>
   {% if notifications %}
-    <ul class="list-group">
+      <ul class="list-group">
       {% for notification in notifications %}
-        <li class="list-group-item {% if not notification.lu %}list-group-item-primary{% endif %}">
-          <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
-            <div>
-              <p class="mb-1">{{ notification.message }}</p>
-              <small class="text-body-secondary">{{ notification.get_type_display }} · {{ notification.date_creation|date:"d/m/Y H:i" }}</small>
-              {% if notification.lien %}<p class="mb-0 mt-2"><a href="{{ notification.lien }}">Ouvrir</a></p>{% endif %}
-            </div>
-            {% if not notification.lu %}
-              <form method="post" action="{% url 'comptes:notification_mark_read' notification.pk %}">
-                {% csrf_token %}
-                <button class="btn btn-sm btn-outline-secondary" type="submit">Marquer comme lu</button>
-              </form>
-            {% endif %}
-          </div>
+        <li class="list-group-item p-0 {% if not notification.lu %}list-group-item-primary{% endif %}">
+          <form method="post" action="{% url 'comptes:notification_mark_read' notification.pk %}">
+            {% csrf_token %}
+            <button class="btn w-100 text-start p-3 {% if notification.lu %}text-body-secondary{% else %}text-body{% endif %}" type="submit">
+              <span class="d-flex align-items-start gap-3">
+                <i class="bi {% if notification.type == 'relance_creee' %}bi-alarm{% elif notification.type == 'statut_change' %}bi-arrow-repeat{% elif notification.type == 'codes_rome_modifies' %}bi-code-slash{% else %}bi-bell{% endif %}" aria-hidden="true"></i>
+                <span>
+                  <span class="d-block mb-1 {% if not notification.lu %}fw-bold{% endif %}">{{ notification.message }}</span>
+                  <small class="text-body-secondary">{{ notification.get_type_display }} · {{ notification.date_creation|date:"d/m/Y H:i" }}</small>
+                </span>
+              </span>
+            </button>
+          </form>
         </li>
       {% endfor %}
     </ul>
+      {% if page_obj.paginator.num_pages > 1 %}
+        {% include "offres/_pagination.html" with pagination=pagination titre="Pages des notifications" %}
+      {% endif %}
   {% else %}
     <p class="alert alert-info" role="status">Aucune notification.</p>
   {% endif %}

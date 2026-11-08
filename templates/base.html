@@ -40,7 +40,7 @@
           <ul class="navbar-nav ms-auto align-items-lg-center">
             <li class="nav-item"><a class="nav-link" href="{% url 'core:offres_alternance' %}"><i class="bi bi-briefcase me-1" aria-hidden="true"></i>Offres d'alternance</a></li>
             {% if user.is_authenticated %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}" aria-label="Notifications">Notifications <span id="notifications-count" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}" aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i><span class="visually-hidden">Notifications</span> <span id="notifications-count" class="badge rounded-pill text-bg-danger{% if not notifications_non_lues %} d-none{% endif %}" aria-live="polite">{{ notifications_non_lues }}</span></a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:reference' %}">Entreprises</a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'core:taches_liste' %}">Mes tâches <span id="taches-count" class="badge rounded-pill text-bg-warning d-none" aria-live="polite">0</span></a></li>
@@ -95,7 +95,7 @@
             <ul class="navbar-nav">
               <li class="nav-item"><a class="nav-link" href="{% url 'core:offres_alternance' %}"><i class="bi bi-briefcase me-1" aria-hidden="true"></i>Offres d'alternance</a></li>
               {% if user.is_authenticated %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}">Notifications <span id="notifications-count-mobile" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}"><i class="bi bi-bell" aria-hidden="true"></i> Notifications <span id="notifications-count-mobile" class="badge rounded-pill text-bg-danger{% if not notifications_non_lues %} d-none{% endif %}" aria-live="polite">{{ notifications_non_lues }}</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:reference' %}">Entreprises</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'core:taches_liste' %}">Mes tâches <span id="taches-count-mobile" class="badge rounded-pill text-bg-warning d-none" aria-live="polite">0</span></a></li>

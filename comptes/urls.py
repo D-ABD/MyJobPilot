@@ -15,6 +15,8 @@ urlpatterns = [
     path("mon-compte/", views.mon_compte, name="mon_compte"),
     path("notifications/", notification_views.notification_list, name="notifications"),
     path("notifications/unread-count/", notification_views.notification_unread_count, name="notifications_unread_count"),
-    path("notifications/<int:pk>/marquer-lu/", notification_views.notification_mark_read, name="notification_mark_read"),
-    path("notifications/marquer-tout-lu/", notification_views.notification_mark_all_read, name="notification_mark_all_read"),
+    path("notifications/<int:pk>/lue/", notification_views.notification_mark_read, name="notification_mark_read"),
+    path("notifications/<int:pk>/marquer-lu/", notification_views.notification_mark_read, name="notification_mark_read_legacy"),
+    path("notifications/tout-lu/", notification_views.notification_mark_all_read, name="notification_mark_all_read"),
+    path("notifications/marquer-tout-lu/", notification_views.notification_mark_all_read, name="notification_mark_all_read_legacy"),
 ]

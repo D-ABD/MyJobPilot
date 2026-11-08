@@ -285,6 +285,8 @@ class TypeNotification(models.TextChoices):
     COMPTE_VALIDE = "compte_valide", "Compte validé"
     COMPTE_REFUSE = "compte_refuse", "Compte refusé"
     STATUT_CHANGE = "statut_change", "Statut de prospection modifié"
+    RELANCE_CREEE = "relance_creee", "Relance créée"
+    CODES_ROME_MODIFIES = "codes_rome_modifies", "Codes ROME modifiés"
     COMMENTAIRE = "commentaire", "Nouveau commentaire"
     DOCUMENT = "document", "Nouveau document"
     AJOUT_PROSPECTION = "ajout_prospection", "Nouvelle prospection"
@@ -299,7 +301,7 @@ class Notification(models.Model):
     )
     type = models.CharField(
         "type",
-        max_length=30,
+        max_length=32,
         choices=TypeNotification.choices,
     )
     message = models.CharField("message", max_length=255)

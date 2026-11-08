@@ -17,7 +17,7 @@ from django.utils import timezone
 from comptes.models import JournalAction, Utilisateur
 from comptes.scope_utils import centres_du_superviseur
 from core.stats import calculer_stats_eleve
-from comptes.notifications import notifier_ajout_prospection, notifier_changement_statut
+from comptes.notifications import notifier_changement_statut
 from comptes.utils import log_action
 from core.filters import FiltreMixin
 
@@ -681,7 +681,6 @@ def entreprise_create(request):
                 return _rendre_formulaire_prospection(
                     request, form, entreprise_form, "Nouvelle prospection"
                 )
-            notifier_ajout_prospection(prospection, request.user)
             return redirect("entreprises:detail", pk=prospection.pk)
     else:
         form = ProspectionForm(initial={
@@ -882,8 +881,6 @@ def prospection_create_tout_role(request):
             )
             return rendre()
 
-        if request.user != proprietaire:
-            notifier_ajout_prospection(prospection, request.user)
         messages.success(request, "La prospection a été créée.")
         return redirect("entreprises:prospections_toutes")
 

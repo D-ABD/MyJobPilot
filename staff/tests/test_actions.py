@@ -134,7 +134,7 @@ class ActionsStaffEleveTests(TestCase):
         )
         self.assertEqual(journal.cible_type, "entreprises.Prospection")
         self.assertEqual(journal.cible_id, str(prospection.pk))
-        self.assertTrue(Notification.objects.filter(
+        self.assertFalse(Notification.objects.filter(
             destinataire=self.eleve_paris, type=TypeNotification.AJOUT_PROSPECTION,
         ).exists())
 
@@ -207,7 +207,7 @@ class ActionsStaffEleveTests(TestCase):
         )
         self.assertRedirects(response, reverse("staff:detail_eleve", args=[self.eleve_lyon.pk]))
         self.assertTrue(Prospection.objects.filter(eleve=self.eleve_lyon, entreprise=entreprise).exists())
-        self.assertTrue(Notification.objects.filter(
+        self.assertFalse(Notification.objects.filter(
             destinataire=self.eleve_lyon, type=TypeNotification.AJOUT_PROSPECTION,
         ).exists())
 

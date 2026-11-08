@@ -174,7 +174,7 @@ class VuesEntreprisesTests(TestCase):
         prospection = Prospection.objects.get(eleve=self.eleve, entreprise=entreprise)
         self.assertRedirects(response, reverse("entreprises:detail", args=[prospection.pk]))
 
-    def test_ajout_prospection_eleve_notifie_superviseurs(self):
+    def test_ajout_prospection_eleve_ne_notifie_pas_les_superviseurs(self):
         superviseur = Utilisateur.objects.create_user(
             username="sup_notif_creation", password="p", role=Utilisateur.Role.SUPERVISEUR,
             centre=self.centre, is_valide=True,
@@ -185,7 +185,7 @@ class VuesEntreprisesTests(TestCase):
             "entreprise_nom": "Prospection notif élève", "nom": "Prospection notif élève",
             "statut": Statut.A_CONTACTER, "type_contrat": TypeContrat.ALTERNANCE,
         })
-        self.assertTrue(Notification.objects.filter(
+        self.assertFalse(Notification.objects.filter(
             destinataire=superviseur, type=TypeNotification.AJOUT_PROSPECTION,
         ).exists())
 
@@ -284,7 +284,7 @@ class VuesEntreprisesTests(TestCase):
         self.assertEqual(journal.cible_type, "entreprises.Prospection")
         self.assertEqual(journal.cible_id, str(prospection.pk))
 
-    def test_changement_statut_par_eleve_notifie_superviseurs(self):
+    def test_changement_statut_par_eleve_ne_notifie_pas_les_superviseurs(self):
         superviseur = Utilisateur.objects.create_user(
             username="sup_statut_vue", password="p", role=Utilisateur.Role.SUPERVISEUR,
             centre=self.centre, is_valide=True,
@@ -297,9 +297,7 @@ class VuesEntreprisesTests(TestCase):
             {"nouveau_statut": Statut.A_RELANCER, "date_associee": "2026-11-15"},
         )
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(Notification.objects.filter(
-            destinataire=superviseur, type=TypeNotification.STATUT_CHANGE,
-        ).exists())
+        self.assertFalse(Notification.objects.exists())
 
     def test_changement_statut_par_eleve_ne_notifie_pas_eleve_lui_meme(self):
         superviseur = Utilisateur.objects.create_user(
