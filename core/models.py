@@ -138,3 +138,48 @@ class Badge(models.Model):
         default=True,
         help_text="Désactiver ne retire pas les badges déjà obtenus.",
     )
+
+    class Meta:
+        ordering = ["categorie", "ordre_affichage", "seuil"]
+
+    def __str__(self):
+        return self.nom
+
+
+class BadgeObtenu(models.Model):
+    utilisateur = models.ForeignKey(
+        "comptes.Utilisateur",
+        on_delete=models.CASCADE,
+        related_name="badges_obtenus",
+    )
+    badge = models.ForeignKey(Badge, on_delete=models.CASCADE)
+    date_obtention = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("utilisateur", "badge")]
+        ordering = ["-date_obtention"]
+
+    def __str__(self):
+        return f"{self.badge.nom} — {self.utilisateur.username}"
+
+
+class Niveau(models.Model):
+    nom = models.CharField(max_length=50, help_text="Éditable librement.")
+    seuil_min = models.PositiveIntegerField(
+        help_text="XP minimum pour atteindre ce niveau. Modifier ce seuil recalcule automatiquement le niveau de tous les utilisateurs."
+    )
+    ordre_affichage = models.PositiveIntegerField(default=0)
+    est_actif = models.BooleanField(
+        default=True,
+        help_text="Désactiver retire ce niveau du calcul. Les utilisateurs concernés sont recalculés au niveau inférieur.",
+    )
+
+    class Meta:
+        ordering = ["-seuil_min"]
+        constraints = [
+            models.UniqueConstraint(fields=["seuil_min"], name="unique_niveau_seuil_min"),
+            models.UniqueConstraint(fields=["nom"], name="unique_niveau_nom"),
+        ]
+
+    def __str__(self):
+        return f"{self.nom} ({self.seuil_min} XP)"

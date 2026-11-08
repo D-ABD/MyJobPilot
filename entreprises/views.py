@@ -141,4 +141,928 @@ def _prospections_reference_visibles(user):
 def _normaliser_recherche_entreprise(texte):
     """Normalise casse et accents pour la recherche du référentiel partagé."""
     texte = unicodedata.normalize("NFKD", texte or "")
-    return "".join(cara
+    return "".join(caractere for caractere in texte if not unicodedata.combining(caractere)).casefold()
+
+
+def _filtrer_entreprises_par_texte(entreprises, recherche):
+    """Filtre une liste de référentiels par nom, secteur ou ville sans accents."""
+    terme = _normaliser_recherche_entreprise(recherche)
+    if not terme:
+        return entreprises
+    return [
+        entreprise for entreprise in entreprises
+        if any(
+            terme in _normaliser_recherche_entreprise(valeur)
+            for valeur in (entreprise.nom, entreprise.secteur, entreprise.ville)
+        )
+    ]
+
+
+def _entreprises_reference_base(user):
+    """Construit le queryset partagé du référentiel avec les compteurs autorisés."""
+    if not user.is_authenticated or user.role not in {
+        Utilisateur.Role.ELEVE, Utilisateur.Role.SUPERVISEUR, Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+    prospections_visibles = _prospections_reference_visibles(user)
+    queryset = Entreprise.objects.all()
+    if user.role != Utilisateur.Role.ADMIN:
+        queryset = queryset.filter(pk__in=prospections_visibles.values("entreprise_id"))
+    queryset = queryset.annotate(
+        nb_prospections=Count(
+            "prospections",
+            filter=Q(prospections__in=prospections_visibles),
+        )
+    ).distinct()
+    return queryset
+
+
+def entreprises_reference_filtrees(user, params):
+    """Retourne les mêmes entreprises filtrées pour la liste, le CSV et l'API."""
+    queryset = _entreprises_reference_base(user)
+
+    secteur = params.get("secteur", "").strip()
+    ville = params.get("ville", "").strip()
+    if secteur:
+        queryset = queryset.filter(secteur=secteur)
+    if ville:
+        queryset = queryset.filter(ville=ville)
+
+    champs_triables = {"nom": "nom", "ville": "ville", "date_creation": "date_creation"}
+    tri = params.get("tri", "nom")
+    if tri not in champs_triables:
+        tri = "nom"
+    ordre = params.get("ordre", "asc")
+    if ordre not in {"asc", "desc"}:
+        ordre = "asc"
+    champ_tri = champs_triables[tri]
+    queryset = queryset.order_by(("-" if ordre == "desc" else "") + champ_tri, "pk")
+
+    return _filtrer_entreprises_par_texte(list(queryset), params.get("q", "").strip())
+
+
+def entreprises_reference(request):
+    """Liste les entreprises auxquelles l'utilisateur a accès selon son rôle."""
+    user = request.user
+    queryset = _entreprises_reference_base(user)
+
+    secteurs = list(queryset.order_by("secteur").values_list("secteur", flat=True).distinct())
+    villes = list(queryset.order_by("ville").values_list("ville", flat=True).distinct())
+    champs_triables = {"nom": "nom", "ville": "ville", "date_creation": "date_creation"}
+    tri = request.GET.get("tri", "nom")
+    if tri not in champs_triables:
+        tri = "nom"
+    ordre = request.GET.get("ordre", "asc")
+    if ordre not in {"asc", "desc"}:
+        ordre = "asc"
+    entreprises = entreprises_reference_filtrees(user, request.GET)
+    recherche = request.GET.get("q", "").strip()
+    secteur = request.GET.get("secteur", "").strip()
+    ville = request.GET.get("ville", "").strip()
+    page_obj = Paginator(entreprises, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
+
+    parametres_pagination = request.GET.copy()
+    parametres_pagination.pop("page", None)
+    pagination_query = parametres_pagination.urlencode()
+    tri_urls = {}
+    for champ in champs_triables:
+        params = request.GET.copy()
+        params.pop("page", None)
+        prochain_ordre = "desc" if tri == champ and ordre == "asc" else "asc"
+        params["tri"] = champ
+        params["ordre"] = prochain_ordre
+        tri_urls[champ] = f"{request.path}?{params.urlencode()}"
+
+    return render(request, "entreprises/entreprises_reference.html", {
+        "entreprises": page_obj.object_list,
+        "page_obj": page_obj,
+        "total_count": len(entreprises),
+        "filtre_q": recherche,
+        "filtre_secteur": secteur,
+        "filtre_ville": ville,
+        "secteurs": [valeur for valeur in secteurs if valeur],
+        "villes": [valeur for valeur in villes if valeur],
+        "tri": tri,
+        "ordre": ordre,
+        "pagination_query": pagination_query,
+        "tri_urls": tri_urls,
+    })
+
+
+def _verifier_admin_entreprises(request):
+    if request.user.role != Utilisateur.Role.ADMIN:
+        raise PermissionDenied
+
+
+@login_required
+def entreprise_reference_create(request):
+    _verifier_admin_entreprises(request)
+    form = EntrepriseForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        entreprise = form.save()
+        messages.success(request, f"L’entreprise {entreprise.nom} a été créée.")
+        return redirect("entreprises:reference")
+    return render(request, "entreprises/entreprise_reference_form.html", {
+        "form": form,
+        "titre": "Nouvelle entreprise",
+        "entreprise": None,
+    })
+
+
+@login_required
+def entreprise_reference_update(request, pk):
+    _verifier_admin_entreprises(request)
+    entreprise = get_object_or_404(Entreprise, pk=pk)
+    form = EntrepriseForm(
+        request.POST if request.method == "POST" else None,
+        instance=entreprise,
+    )
+    if request.method == "POST" and form.is_valid():
+        entreprise = form.save()
+        messages.success(request, f"L’entreprise {entreprise.nom} a été modifiée.")
+        return redirect("entreprises:reference")
+    return render(request, "entreprises/entreprise_reference_form.html", {
+        "form": form,
+        "titre": f"Modifier {entreprise.nom}",
+        "entreprise": entreprise,
+    })
+
+
+@login_required
+def entreprise_reference_delete(request, pk):
+    _verifier_admin_entreprises(request)
+    entreprise = get_object_or_404(Entreprise, pk=pk)
+    nombre_prospections = entreprise.prospections.count()
+    erreur = None
+    if request.method == "POST":
+        if nombre_prospections:
+            pluriel = nombre_prospections != 1
+            erreur = (
+                "Impossible de supprimer cette entreprise : "
+                f"{nombre_prospections} prospection{'s' if pluriel else ''} "
+                f"y {'sont' if pluriel else 'est'} encore liée{'s' if pluriel else ''}."
+            )
+        else:
+            try:
+                with transaction.atomic():
+                    entreprise.delete()
+            except ProtectedError:
+                erreur = (
+                    "Impossible de supprimer cette entreprise : "
+                    "des prospections y sont encore liées."
+                )
+            else:
+                messages.success(request, "L’entreprise a été supprimée.")
+                return redirect("entreprises:reference")
+    return render(request, "entreprises/entreprise_reference_confirm_delete.html", {
+        "entreprise": entreprise,
+        "nombre_prospections": nombre_prospections,
+        "erreur": erreur,
+    })
+
+
+@login_required
+def mes_relances(request):
+    """Liste les relances échues et celles à venir de l'utilisateur connecté."""
+    aujourd_hui = timezone.localdate()
+    relances_en_retard_qs = Prospection.objects.select_related("entreprise").filter(
+        eleve=request.user,
+        statut=Statut.A_RELANCER,
+        date_relance__lt=aujourd_hui,
+    ).order_by("date_relance", "pk")
+    relances_a_venir_qs = Prospection.objects.select_related("entreprise").filter(
+        eleve=request.user,
+        statut=Statut.A_RELANCER,
+        date_relance__gte=aujourd_hui,
+        date_relance__lte=aujourd_hui + timedelta(days=30),
+    ).order_by("date_relance", "pk")
+
+    total_en_retard = relances_en_retard_qs.count()
+    total_a_venir = relances_a_venir_qs.count()
+    page_obj = Paginator(relances_en_retard_qs, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
+    relances_en_retard = [
+        {
+            "prospection": prospection,
+            "jours_retard": (aujourd_hui - prospection.date_relance).days,
+        }
+        for prospection in page_obj.object_list
+    ]
+    relances_a_venir = [
+        {
+            "prospection": prospection,
+            "jours_avant": (prospection.date_relance - aujourd_hui).days,
+        }
+        for prospection in relances_a_venir_qs
+    ]
+    historique_relances = Relance.objects.filter(
+        prospection__eleve=request.user
+    ).select_related("auteur", "prospection__entreprise")[:50]
+    params = request.GET.copy()
+    params.pop("page", None)
+    return render(request, "entreprises/mes_relances.html", {
+        "relances_en_retard": relances_en_retard,
+        "relances_a_venir": relances_a_venir,
+        "historique_relances": historique_relances,
+        "page_obj": page_obj,
+        "total_en_retard": total_en_retard,
+        "total_a_venir": total_a_venir,
+        "pagination_query": params.urlencode(),
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard", "/dashboard/"),
+            ("Mes relances", ""),
+        ],
+    })
+
+
+@login_required
+@require_POST
+def mes_relance_creer(request):
+    """Ajoute un événement de relance, avec contrôle du propriétaire et du scope."""
+    try:
+        prospection_id = int(request.POST.get("prospection_id", ""))
+    except (TypeError, ValueError):
+        raise PermissionDenied
+    prospection = get_object_or_404(
+        Prospection.objects.select_related("entreprise", "eleve"),
+        pk=prospection_id,
+    )
+    if request.user.role == Utilisateur.Role.ELEVE:
+        if prospection.eleve_id != request.user.pk:
+            raise PermissionDenied
+    elif request.user.role == Utilisateur.Role.SUPERVISEUR:
+        if prospection.eleve_id != request.user.pk:
+            verifier_superviseur(request, prospection.eleve)
+    elif request.user.role != Utilisateur.Role.ADMIN:
+        raise PermissionDenied
+
+    type_relance = request.POST.get("type", Relance.Type.PROSPECTION)
+    if type_relance not in Relance.Type.values:
+        messages.error(request, "Le type de relance est invalide.")
+        return redirect("entreprises:mes_relances")
+    date_saisie = request.POST.get("date_relance", "").strip()
+    nouvelle_echeance = parse_date(date_saisie) if date_saisie else None
+    if date_saisie and nouvelle_echeance is None:
+        messages.error(request, "La date de relance est invalide.")
+        return redirect("entreprises:mes_relances")
+
+    ancien_statut = prospection.statut
+    nouveau_statut = ancien_statut
+    if type_relance == Relance.Type.PROSPECTION and ancien_statut == Statut.A_RELANCER:
+        nouveau_statut = Statut.EN_ATTENTE
+    with transaction.atomic():
+        Relance.objects.create(
+            prospection=prospection,
+            type=type_relance,
+            auteur=request.user,
+            contenu=request.POST.get("contenu", "").strip(),
+        )
+        prospection.date_relance = nouvelle_echeance
+        prospection.statut = nouveau_statut
+        prospection.save(update_fields=("date_relance", "statut", "date_modification"))
+        if ancien_statut != nouveau_statut:
+            HistoriqueStatut.objects.create(
+                prospection=prospection,
+                ancien_statut=ancien_statut,
+                nouveau_statut=nouveau_statut,
+                auteur=request.user,
+            )
+            log_action(
+                JournalAction.Action.CHANGEMENT_STATUT,
+                utilisateur=request.user,
+                cible=prospection,
+                details={
+                    "prospection_id": prospection.pk,
+                    "ancien_statut": ancien_statut,
+                    "nouveau_statut": nouveau_statut,
+                },
+                request=request,
+            )
+    if request.user != prospection.eleve:
+        creer_notification(
+            prospection.eleve,
+            TypeNotification.RELANCE_CREEE,
+            f"Nouvelle relance sur {prospection.entreprise.nom}",
+            reverse("entreprises:detail", args=[prospection.pk]),
+        )
+    verifier_et_attribuer_badges(prospection.eleve)
+    messages.success(request, f"La relance pour {prospection.entreprise.nom} a été enregistrée.")
+    return redirect("entreprises:mes_relances")
+
+
+@login_required
+def mes_relances_compteur(request):
+    """Retourne les compteurs de relances de l'utilisateur connecté."""
+    relances = Prospection.objects.filter(
+        eleve=request.user,
+        statut=Statut.A_RELANCER,
+    )
+    aujourd_hui = timezone.localdate()
+    en_retard = relances.filter(date_relance__lt=aujourd_hui).count()
+    a_venir = relances.filter(
+        date_relance__gte=aujourd_hui,
+        date_relance__lte=aujourd_hui + timedelta(days=30),
+    ).count()
+    return JsonResponse({"en_retard": en_retard, "a_venir": a_venir, "total": en_retard + a_venir})
+
+
+@login_required
+@require_POST
+def mes_relances_terminer(request, pk):
+    """Termine une relance et consigne la candidature envoyée."""
+    aujourd_hui = timezone.localdate()
+    prospection = get_object_or_404(
+        Prospection.objects.select_related("entreprise"),
+        pk=pk,
+        eleve=request.user,
+        statut=Statut.A_RELANCER,
+        date_relance__lt=aujourd_hui,
+    )
+    ancien_statut = prospection.statut
+    nouveau_statut = Statut.CANDIDATURE_ENVOYEE
+    with transaction.atomic():
+        prospection.statut = nouveau_statut
+        prospection.date_candidature = aujourd_hui
+        prospection.save(update_fields=["statut", "date_candidature", "date_modification"])
+        HistoriqueStatut.objects.create(
+            prospection=prospection,
+            ancien_statut=ancien_statut,
+            nouveau_statut=nouveau_statut,
+            auteur=request.user,
+            date_associee=aujourd_hui,
+        )
+        log_action(
+            JournalAction.Action.CHANGEMENT_STATUT,
+            utilisateur=request.user,
+            cible=prospection,
+            details={
+                "prospection_id": prospection.pk,
+                "ancien_statut": ancien_statut,
+                "nouveau_statut": nouveau_statut,
+            },
+            request=request,
+        )
+    messages.success(request, f"La relance pour {prospection.entreprise.nom} est terminée.")
+    return redirect("entreprises:mes_relances")
+
+
+def entreprises_reference_export_csv(request):
+    """Télécharge les entreprises visibles avec les filtres de la liste."""
+    from django.http import HttpResponse
+
+    from .export import exporter_entreprises_csv
+
+    entreprises = entreprises_reference_filtrees(request.user, request.GET)
+    contenu = exporter_entreprises_csv(entreprises)
+    response = HttpResponse(contenu, content_type="text/csv; charset=utf-8")
+    nom_fichier = timezone.localdate().isoformat()
+    response["Content-Disposition"] = f'attachment; filename="entreprises_{nom_fichier}.csv"'
+    if entreprises:
+        JournalAction.objects.create(
+            utilisateur=request.user,
+            action=JournalAction.Action.EXPORT_CSV,
+            cible_type="Entreprise",
+            details={
+                "type": "entreprises",
+                "nb_lignes": len(entreprises),
+                "filtres": request.GET.dict(),
+            },
+        )
+    return response
+
+
+def entreprise_reference_detail(request, pk):
+    """Affiche une entreprise et seulement les prospections visibles du rôle."""
+    user = request.user
+    if not user.is_authenticated or user.role not in {
+        Utilisateur.Role.ELEVE, Utilisateur.Role.SUPERVISEUR, Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+
+    prospections_visibles = _prospections_reference_visibles(user)
+    entreprises_visibles = Entreprise.objects.all()
+    if user.role != Utilisateur.Role.ADMIN:
+        entreprises_visibles = entreprises_visibles.filter(
+            pk__in=prospections_visibles.values("entreprise_id"),
+        )
+    entreprise = get_object_or_404(entreprises_visibles, pk=pk)
+    prospections = prospections_visibles.filter(entreprise=entreprise).order_by("eleve__username")
+    return render(request, "entreprises/entreprise_reference_detail.html", {
+        "entreprise": entreprise,
+        "prospections": prospections,
+    })
+
+
+class FiltresDashboard(FiltreMixin):
+    """Expose le mixin commun au tableau de bord élève."""
+
+
+@login_required
+def hub(request):
+    """Hub d'accès rapide réservé aux superviseurs et aux admins."""
+    if request.user.role not in {Utilisateur.Role.SUPERVISEUR, Utilisateur.Role.ADMIN}:
+        raise PermissionDenied
+    return render(request, "entreprises/hub.html")
+
+
+@login_required
+def prospections_toutes(request):
+    """Liste les prospections visibles et filtrées selon le rôle."""
+    role = request.user.role
+    if role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+
+    mode_demande = next(
+        (
+            mode for mode in ("mine", "eleves", "superviseurs")
+            if request.GET.get(mode) == "1"
+        ),
+        None,
+    )
+    if role == Utilisateur.Role.SUPERVISEUR and mode_demande == "superviseurs":
+        raise PermissionDenied
+    # Les élèves restent limités à leurs propres prospections.
+    mode_prospections = (
+        ("mine" if mode_demande == "mine" else None)
+        if role == Utilisateur.Role.ELEVE
+        else mode_demande
+    )
+
+    queryset = Prospection.objects.all()
+    if role == Utilisateur.Role.ELEVE:
+        queryset = queryset.filter(eleve=request.user)
+    elif role == Utilisateur.Role.SUPERVISEUR:
+        centres_du_scope = centres_du_superviseur(request.user)
+        if mode_prospections == "mine":
+            queryset = queryset.filter(eleve=request.user)
+        elif mode_prospections == "eleves":
+            queryset = queryset.filter(
+                eleve__role=Utilisateur.Role.ELEVE,
+                eleve__centre__in=centres_du_scope,
+            )
+        else:
+            queryset = queryset.filter(
+                Q(eleve=request.user)
+                | Q(eleve__role=Utilisateur.Role.ELEVE, eleve__centre__in=centres_du_scope)
+            )
+    else:
+        if mode_prospections == "mine":
+            queryset = queryset.filter(eleve=request.user)
+        elif mode_prospections == "eleves":
+            queryset = queryset.filter(eleve__role=Utilisateur.Role.ELEVE)
+        elif mode_prospections == "superviseurs":
+            queryset = queryset.filter(eleve__role=Utilisateur.Role.SUPERVISEUR)
+
+    titres = {
+        "mine": "Mes prospections",
+        "eleves": "Prospections des élèves",
+        "superviseurs": "Prospections des superviseurs",
+    }
+    titre_prospections = titres.get(mode_prospections, "Toutes les prospections")
+
+    queryset = queryset.select_related("eleve", "entreprise")
+    filtreur = FiltresDashboard()
+    resultats = filtreur.apply_filters(queryset, request.GET)
+    page_obj = Paginator(resultats, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
+    parametres_pagination = request.GET.copy()
+    parametres_pagination.pop("page", None)
+    url_reset = (
+        f"{request.path}?{mode_prospections}=1"
+        if mode_prospections else request.path
+    )
+    return render(request, "entreprises/prospections_toutes.html", {
+        **filtreur.get_contexte_filtres(request),
+        "prospections": page_obj.object_list,
+        "page_obj": page_obj,
+        "total_count": resultats.count(),
+        "statuts": Statut.choices,
+        "types_contrat": TypeContrat.choices,
+        "pagination_query": parametres_pagination.urlencode(),
+        "tri_urls": {},
+        "mode_prospections": mode_prospections,
+        "titre_prospections": titre_prospections,
+        "url_reset": url_reset,
+    })
+
+
+@login_required
+def dashboard_eleve(request):
+    _verifier_eleve(request)
+    verifier_et_attribuer_badges(request.user)
+    progression = calculer_progression_utilisateur(request.user)
+    queryset = Prospection.objects.filter(eleve=request.user).select_related("entreprise")
+    filtreur = FiltresDashboard()
+    resultats = filtreur.apply_filters(queryset, request.GET)
+    page_obj = Paginator(resultats, NOMBRE_PAR_PAGE).get_page(request.GET.get("page"))
+
+    stats_par_statut = [
+        {
+            "code": code,
+            "libelle": libelle,
+            "nombre": queryset.filter(statut=code).count(),
+        }
+        for code, libelle in Statut.choices
+    ]
+    parametres_pagination = request.GET.copy()
+    parametres_pagination.pop("page", None)
+    pagination_query = parametres_pagination.urlencode()
+
+    tri_urls = {}
+    for champ in filtreur.CHAMPS_TRIABLES:
+        parametres_tri = request.GET.copy()
+        est_actif = parametres_tri.get("tri", "-date_modification").lstrip("-") == champ
+        ordre_actuel = parametres_tri.get("ordre", "desc")
+        prochain_ordre = "desc" if est_actif and ordre_actuel == "asc" else "asc"
+        parametres_tri["tri"] = champ
+        parametres_tri["ordre"] = prochain_ordre
+        tri_urls[champ] = f"{request.path}?{parametres_tri.urlencode()}"
+
+    cockpit = calculer_stats_eleve(request.user)
+    contexte = {
+        **filtreur.get_contexte_filtres(request),
+        "prospections": page_obj.object_list,
+        "page_obj": page_obj,
+        "total_count": resultats.count(),
+        "stats_par_statut": stats_par_statut,
+        "statuts": Statut.choices,
+        "types_contrat": TypeContrat.choices,
+        "pagination_query": pagination_query,
+        "tri_urls": tri_urls,
+        "kpis": cockpit["kpis"],
+        "charts": cockpit["charts"],
+        "relances": cockpit["relances"],
+        **progression["resume_badges"],
+        "progression": progression,
+    }
+    return render(request, "entreprises/dashboard.html", contexte)
+
+
+@login_required
+def recherche_entreprises(request):
+    """Recherche des entreprises sans exposer de données de prospection."""
+    recherche = request.GET.get("q", "").strip()
+    resultats = []
+    if recherche:
+        resultats = list(
+            Entreprise.objects.filter(nom__icontains=recherche)
+            .order_by("nom")
+            .values("id", "nom", "ville")[:10]
+        )
+    return JsonResponse(resultats, safe=False)
+
+
+@login_required
+def entreprise_create(request):
+    _verifier_eleve(request)
+    if request.method == "POST":
+        form = ProspectionForm(request.POST)
+        entreprise_form = EntrepriseForm(request.POST)
+        if form.is_valid():
+            entreprise = form.cleaned_data.get("entreprise_id")
+            if entreprise is None and not entreprise_form.is_valid():
+                return _rendre_formulaire_prospection(
+                    request, form, entreprise_form, "Nouvelle prospection"
+                )
+            if entreprise is None:
+                nom_autocomplete = form.cleaned_data["entreprise_nom"].strip()
+                if entreprise_form.cleaned_data["nom"].strip().casefold() != nom_autocomplete.casefold():
+                    form.add_error(
+                        "entreprise_nom",
+                        "Le nom de l'entreprise doit correspondre au nom renseigné dans ses informations.",
+                    )
+                    return _rendre_formulaire_prospection(
+                        request, form, entreprise_form, "Nouvelle prospection"
+                    )
+                entreprise = entreprise_form.save()
+
+            prospection_existante = Prospection.objects.filter(
+                eleve=request.user, entreprise=entreprise
+            ).first()
+            if prospection_existante:
+                messages.info(request, "Vous avez déjà une prospection pour cette entreprise.")
+                return redirect("entreprises:detail", pk=prospection_existante.pk)
+
+            donnees = form.cleaned_data
+            try:
+                with transaction.atomic():
+                    if entreprise.pk is None:
+                        entreprise.save()
+                    prospection = _creer_prospection(request.user, entreprise, donnees)
+                    HistoriqueStatut.objects.create(
+                        prospection=prospection,
+                        ancien_statut="",
+                        nouveau_statut=prospection.statut,
+                        auteur=request.user,
+                        date_associee=_valeur_date_associee(prospection, prospection.statut),
+                    )
+            except IntegrityError:
+                form.add_error(
+                    "entreprise_nom",
+                    "Cette entreprise fait déjà l'objet d'une prospection pour votre compte.",
+                )
+                return _rendre_formulaire_prospection(
+                    request, form, entreprise_form, "Nouvelle prospection"
+                )
+            return redirect("entreprises:detail", pk=prospection.pk)
+    else:
+        form = ProspectionForm(initial={
+            "entreprise_nom": request.GET.get("entreprise_nom", ""),
+            "source": request.GET.get("source", ""),
+        })
+        entreprise_form = EntrepriseForm(initial={
+            "nom": request.GET.get("entreprise_nom", ""),
+            "ville": request.GET.get("ville", ""),
+            "secteur": request.GET.get("secteur", ""),
+        })
+    return _rendre_formulaire_prospection(request, form, entreprise_form, "Nouvelle prospection")
+
+
+def _creer_prospection(eleve, entreprise, donnees):
+    valeurs = {
+        champ: donnees.get(champ)
+        for champ in (
+            "statut", "type_contrat", "notes", "source", "date_relance", "date_candidature",
+            "date_mise_en_attente", "date_refus", "date_acceptation",
+        )
+    }
+    valeurs["date_entretien"] = _datetime_entretien(donnees.get("date_entretien"))
+    prospection = Prospection.objects.create(eleve=eleve, entreprise=entreprise, **valeurs)
+    verifier_et_attribuer_badges(eleve)
+    return prospection
+
+
+def _enregistrer_formulaire_prospection(prospection, donnees, request):
+    ancien_statut = prospection.statut
+    nouveau_statut = donnees["statut"]
+    prospection.statut = nouveau_statut
+    prospection.type_contrat = donnees["type_contrat"]
+    for champ in (
+        "notes", "source", "date_relance", "date_candidature", "date_mise_en_attente",
+        "date_refus", "date_acceptation",
+    ):
+        setattr(prospection, champ, donnees.get(champ))
+    prospection.date_entretien = _datetime_entretien(donnees.get("date_entretien"))
+    prospection.save()
+
+    if ancien_statut != nouveau_statut:
+        HistoriqueStatut.objects.create(
+            prospection=prospection,
+            ancien_statut=ancien_statut,
+            nouveau_statut=nouveau_statut,
+            auteur=request.user,
+            date_associee=_valeur_date_associee(prospection, nouveau_statut),
+        )
+        log_action(
+            JournalAction.Action.CHANGEMENT_STATUT,
+            utilisateur=request.user,
+            cible=prospection,
+            details={
+                "prospection_id": prospection.pk,
+                "ancien_statut": ancien_statut,
+                "nouveau_statut": nouveau_statut,
+            },
+            request=request,
+        )
+    verifier_et_attribuer_badges(prospection.eleve)
+
+
+@login_required
+def entreprise_update(request, pk):
+    if request.user.role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+    prospection = _prospection_pour_action(request, pk)
+    if request.method == "POST":
+        form = ProspectionForm(request.POST, prospection=prospection)
+        if form.is_valid():
+            entreprise_selectionnee = form.cleaned_data.get("entreprise_id")
+            if entreprise_selectionnee != prospection.entreprise:
+                form.add_error("entreprise_nom", "L'entreprise d'une prospection existante ne peut pas être remplacée ici.")
+            else:
+                with transaction.atomic():
+                    _enregistrer_formulaire_prospection(prospection, form.cleaned_data, request)
+                return redirect("entreprises:detail", pk=prospection.pk)
+    else:
+        form = ProspectionForm(prospection=prospection)
+    return _rendre_formulaire_prospection(
+        request,
+        form,
+        EntrepriseForm(instance=prospection.entreprise),
+        f"Modifier la prospection de {prospection.entreprise.nom}",
+        prospection=prospection,
+    )
+
+
+@login_required
+def entreprise_delete(request, pk):
+    if request.user.role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+    prospection = _prospection_pour_action(request, pk)
+    if request.method == "POST":
+        prospection.delete()
+        if request.user.role == Utilisateur.Role.ELEVE:
+            return redirect("entreprises:dashboard")
+        return redirect("entreprises:prospections_toutes")
+    return render(request, "entreprises/entreprise_confirm_delete.html", {
+        "prospection": prospection,
+        "breadcrumb_items": [
+            ("Accueil", "/"),
+            ("Dashboard", "/dashboard/"),
+            (prospection.entreprise.nom, f"/entreprises/{prospection.pk}/"),
+            ("Supprimer", ""),
+        ],
+    })
+
+
+@login_required
+def prospection_create_tout_role(request):
+    """Crée une prospection pour un propriétaire autorisé par le rôle."""
+    if request.user.role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+
+    initial_prospection = {
+        "entreprise_nom": request.GET.get("entreprise_nom", ""),
+        "source": request.GET.get("source", ""),
+    }
+    initial_entreprise = {
+        "nom": request.GET.get("entreprise_nom", ""),
+        "ville": request.GET.get("ville", ""),
+        "secteur": request.GET.get("secteur", ""),
+    }
+    form = ProspectionFormToutRole(
+        request.POST or None,
+        request=request,
+        initial=initial_prospection,
+    )
+    entreprise_form = EntrepriseForm(request.POST or None, initial=initial_entreprise)
+
+    def rendre():
+        return render(request, "entreprises/prospection_form_tout_role.html", {
+            "form": form,
+            "entreprise_form": entreprise_form,
+            "allow_new_entreprise": True,
+        })
+
+    if request.method == "POST" and form.is_valid():
+        proprietaire = form.cleaned_data["proprietaire"]
+        entreprise = form.cleaned_data.get("entreprise_id")
+        if entreprise is None:
+            if not entreprise_form.is_valid():
+                return rendre()
+            nom_autocomplete = form.cleaned_data["entreprise_nom"].strip()
+            if entreprise_form.cleaned_data["nom"].strip().casefold() != nom_autocomplete.casefold():
+                form.add_error(
+                    "entreprise_nom",
+                    "Le nom doit correspondre aux informations de l'entreprise.",
+                )
+                return rendre()
+            entreprise = entreprise_form.save(commit=False)
+
+        if entreprise.pk and Prospection.objects.filter(
+            eleve=proprietaire, entreprise=entreprise,
+        ).exists():
+            messages.info(request, "Ce propriétaire a déjà une prospection pour cette entreprise.")
+            return redirect("entreprises:prospections_toutes")
+
+        try:
+            with transaction.atomic():
+                if entreprise.pk is None:
+                    entreprise.save()
+                prospection = _creer_prospection(proprietaire, entreprise, form.cleaned_data)
+                HistoriqueStatut.objects.create(
+                    prospection=prospection,
+                    ancien_statut="",
+                    nouveau_statut=prospection.statut,
+                    auteur=request.user,
+                    date_associee=_valeur_date_associee(prospection, prospection.statut),
+                )
+                if request.user != proprietaire:
+                    log_action(
+                        JournalAction.Action.ACTION_STAFF_ELEVE,
+                        utilisateur=request.user,
+                        cible=prospection,
+                        details={
+                            "prospection_id": prospection.pk,
+                            "proprietaire_id": proprietaire.pk,
+                            "action": "ajout_prospection",
+                        },
+                        request=request,
+                    )
+        except IntegrityError:
+            form.add_error(
+                "entreprise_nom",
+                "Ce propriétaire a déjà une prospection pour cette entreprise.",
+            )
+            return rendre()
+
+        messages.success(request, "La prospection a été créée.")
+        return redirect("entreprises:prospections_toutes")
+
+    return rendre()
+
+
+@login_required
+def entreprise_detail(request, pk):
+    prospection = get_object_or_404(
+        _prospections_reference_visibles(request.user).filter(pk=pk), pk=pk,
+    )
+    historique = prospection.historique.select_related("auteur").order_by("-date_changement")
+    return render(
+        request,
+        "entreprises/entreprise_detail.html",
+        {
+            "prospection": prospection,
+            "historique": historique,
+            "breadcrumb_items": [
+                ("Accueil", "/"),
+                ("Dashboard", "/dashboard/"),
+                (prospection.entreprise.nom, ""),
+            ],
+        },
+    )
+
+
+@login_required
+def entreprise_changer_statut(request, pk):
+    if request.user.role not in {
+        Utilisateur.Role.ELEVE,
+        Utilisateur.Role.SUPERVISEUR,
+        Utilisateur.Role.ADMIN,
+    }:
+        raise PermissionDenied
+    prospection = _prospection_pour_action(request, pk, autoriser_scope=True)
+    if request.method == "POST":
+        form = ChangementStatutForm(request.POST)
+        if form.is_valid():
+            ancien_statut = prospection.statut
+            nouveau_statut = form.cleaned_data["nouveau_statut"]
+            date_associee = form.cleaned_data.get("date_associee")
+            with transaction.atomic():
+                prospection.statut = nouveau_statut
+                champ_date = CHAMPS_DATE_STATUT.get(nouveau_statut)
+                if champ_date:
+                    valeur_date = date_associee
+                    if champ_date == "date_entretien" and date_associee:
+                        valeur_date = _datetime_entretien(date_associee)
+                    setattr(prospection, champ_date, valeur_date)
+                prospection.save()
+                HistoriqueStatut.objects.create(
+                    prospection=prospection,
+                    ancien_statut=ancien_statut,
+                    nouveau_statut=nouveau_statut,
+                    auteur=request.user,
+                    commentaire=form.cleaned_data.get("commentaire", ""),
+                    date_associee=date_associee,
+                )
+                log_action(
+                    JournalAction.Action.CHANGEMENT_STATUT,
+                    utilisateur=request.user,
+                    cible=prospection,
+                    details={
+                        "prospection_id": prospection.pk,
+                        "ancien_statut": ancien_statut,
+                        "nouveau_statut": nouveau_statut,
+                    },
+                    request=request,
+                )
+            if ancien_statut != nouveau_statut:
+                notifier_changement_statut(
+                    prospection, request.user, ancien_statut, nouveau_statut,
+                )
+            verifier_et_attribuer_badges(prospection.eleve)
+            return redirect("entreprises:detail", pk=prospection.pk)
+    else:
+        form = ChangementStatutForm(initial={"nouveau_statut": prospection.statut})
+    return render(
+        request,
+        "entreprises/entreprise_form.html",
+        {
+            "form": form,
+            "entreprise_form": None,
+            "titre": f"Changer le statut de {prospection.entreprise.nom}",
+            "prospection": prospection,
+            "allow_new_entreprise": False,
+            "changement_statut": True,
+            "breadcrumb_items": [
+                ("Accueil", "/"),
+                ("Dashboard", "/dashboard/"),
+                (prospection.entreprise.nom, f"/entreprises/{prospection.pk}/"),
+                ("Changer le statut", ""),
+            ],
+        },
+    )
