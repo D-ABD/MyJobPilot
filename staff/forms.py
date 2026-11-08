@@ -1,10 +1,10 @@
 """Formulaires des actions staff sur les élèves."""
 from django import forms
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
 
 from comptes.models import Centre, Utilisateur
 from comptes.scope_utils import centres_du_superviseur
+from core.utils import _MOTIF_CODES_ROME, normaliser_codes_rome
 from entreprises.forms import ProspectionForm
 from entreprises.models import TypeContrat
 from core.models import Objectif
@@ -29,15 +29,17 @@ class CodesRomeForm(forms.Form):
         label="Codes ROME",
         required=False,
         max_length=255,
-        validators=[RegexValidator(
-            regex=r"\A[A-Z]\d{4}(?:\s*,\s*[A-Z]\d{4})*\Z",
-            message="Saisissez un ou plusieurs codes ROME valides, séparés par des virgules (ex. M1805,I1401).",
-        )],
+        strip=False,
         widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex. M1805,I1401"}),
     )
 
     def clean_codes_rome(self):
-        codes = [code.strip() for code in self.cleaned_data["codes_rome"].split(",") if code.strip()]
+        valeur = normaliser_codes_rome(self.cleaned_data["codes_rome"])
+        if valeur and not _MOTIF_CODES_ROME.fullmatch(valeur):
+            raise forms.ValidationError(
+                "Saisissez un ou plusieurs codes ROME valides, séparés par des virgules (ex. M1805,I1401)."
+            )
+        codes = [code.strip() for code in valeur.split(",") if code.strip()]
         if len(codes) > 3:
             raise forms.ValidationError("Maximum 3 codes ROME par recherche.")
         return ",".join(codes)

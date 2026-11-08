@@ -4,6 +4,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from comptes.models import Centre, Formation, Utilisateur
+from core.forms import OffresAlternanceForm
 
 
 class RechercheRomeTests(TestCase):
@@ -27,6 +28,38 @@ class RechercheRomeTests(TestCase):
             codes_rome=codes_rome,
             is_valide=True,
         )
+
+    def _formulaire_codes(self, code_rome):
+        return OffresAlternanceForm(data={
+            "code_rome": code_rome,
+            "ville": "75001",
+            "rayon": "30",
+            "tri": "recent",
+        })
+
+    def test_code_rome_avec_espace_insecable_est_accepte(self):
+        form = self._formulaire_codes("K1801\xa0")
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["code_rome"], "K1801")
+
+    def test_code_rome_avec_bom_est_accepte(self):
+        form = self._formulaire_codes("\ufeffK1801")
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["code_rome"], "K1801")
+
+    def test_code_rome_avec_espaces_multiples_est_normalise(self):
+        form = self._formulaire_codes("K1801 , I1401")
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["code_rome"], "K1801,I1401")
+
+    def test_code_rome_avec_caractere_controle_reste_invalide(self):
+        form = self._formulaire_codes("K1801\x00")
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("code_rome", form.errors)
 
     @patch("core.views.rechercher_entreprises_lba", return_value=[])
     @patch("core.views.rechercher_offres_lba", return_value=[])

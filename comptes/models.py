@@ -1,9 +1,10 @@
 """Modèles du socle : référentiels, comptes, consentement et journal."""
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
+
+from core.utils import _MOTIF_CODES_ROME, normaliser_codes_rome
 
 
 class Centre(models.Model):
@@ -80,10 +81,6 @@ class Utilisateur(AbstractUser):
         max_length=255,
         blank=True,
         default="",
-        validators=[RegexValidator(
-            regex=r"\A[A-Z]\d{4}(?:\s*,\s*[A-Z]\d{4})*\Z",
-            message="Saisissez un ou plusieurs codes ROME valides, séparés par des virgules (ex. M1805,I1401).",
-        )],
     )
     centre = models.ForeignKey(
         Centre,
@@ -129,8 +126,17 @@ class Utilisateur(AbstractUser):
         return hasattr(self, "consentement")
 
     def clean(self):
-        """Vérifie les rattachements obligatoires selon le rôle."""
+        """Vérifie les codes ROME et les rattachements selon le rôle."""
+        # Le validateur du champ est retiré pour normaliser avant validation.
+        # full_clean() doit donc être appelé pour valider codes_rome : les
+        # ModelForm (dont l'admin Django) l'appellent automatiquement, mais un
+        # Utilisateur.objects.create() direct n'effectue pas cette validation.
+        self.codes_rome = normaliser_codes_rome(self.codes_rome)
         super().clean()
+        if self.codes_rome and not _MOTIF_CODES_ROME.fullmatch(self.codes_rome):
+            raise ValidationError({
+                "codes_rome": "Saisissez un ou plusieurs codes ROME valides, séparés par des virgules (ex. M1805,I1401)."
+            })
         if self.role in {self.Role.ELEVE, self.Role.SUPERVISEUR} and not self.centre_id:
             raise ValidationError({"centre": "Un centre est obligatoire pour ce rôle."})
         if self.role == self.Role.ELEVE and not self.formation_id:
