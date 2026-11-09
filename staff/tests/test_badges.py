@@ -47,6 +47,15 @@ class BadgesFicheSuperviseurTests(TestCase):
         response = self.client.get(reverse("staff:detail_eleve", args=[self.hors_scope.pk]))
         self.assertEqual(response.status_code, 403)
 
+    def test_detail_eleve_superviseur_affiche_les_trois_progressions(self):
+        self.client.force_login(self.superviseur)
+        response = self.client.get(reverse("staff:detail_eleve", args=[self.eleve.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "📋 Prospections")
+        self.assertContains(response, "📝 Candidatures")
+        self.assertContains(response, "🔄 Relances")
+        self.assertNotContains(response, reverse("core:mes_badges"))
+
     def test_detail_eleve_superviseur_affiche_niveau_et_xp(self):
         self.client.force_login(self.superviseur)
         response = self.client.get(reverse("staff:detail_eleve", args=[self.eleve.pk]))

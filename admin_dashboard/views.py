@@ -19,7 +19,12 @@ from django.views.decorators.http import require_POST
 from comptes.models import Centre, JournalAction, ScopeSuperviseur
 from comptes.notifications import notifier_changement_statut
 from comptes.utils import invalidate_user_sessions, log_action
-from core.gamification import calculer_progression_utilisateur, verifier_et_attribuer_badges
+from core.gamification import (
+    calculer_derniers_badges,
+    calculer_progression_categories,
+    calculer_progression_utilisateur,
+    verifier_et_attribuer_badges,
+)
 from core.models import Objectif
 from core.stats import (
     PERIODES_DASHBOARD,
@@ -459,6 +464,8 @@ def _contexte_eleve_detail(eleve, type_contrat="tous"):
         "eleve": eleve,
         **progression["resume_badges"],
         "progression": progression,
+        "progression_categories": calculer_progression_categories(eleve),
+        "derniers_badges": calculer_derniers_badges(eleve, 5),
         "prospections": prospections,
         "historique_relances": Relance.objects.filter(
             prospection__eleve=eleve

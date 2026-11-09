@@ -22,7 +22,12 @@ from comptes.scope_utils import centres_du_superviseur, verifier_superviseur
 from core.stats import calculer_stats_eleve
 from comptes.utils import log_action
 from core.filters import FiltreMixin
-from core.gamification import calculer_progression_utilisateur, verifier_et_attribuer_badges
+from core.gamification import (
+    calculer_derniers_badges,
+    calculer_progression_categories,
+    calculer_progression_utilisateur,
+    verifier_et_attribuer_badges,
+)
 
 from .forms import (
     ChangementStatutForm, EntrepriseForm, ProspectionForm, ProspectionFormToutRole,
@@ -697,6 +702,8 @@ def dashboard_eleve(request):
         "relances": cockpit["relances"],
         **progression["resume_badges"],
         "progression": progression,
+        "progression_categories": calculer_progression_categories(request.user),
+        "derniers_badges": calculer_derniers_badges(request.user, 5),
     }
     return render(request, "entreprises/dashboard.html", contexte)
 

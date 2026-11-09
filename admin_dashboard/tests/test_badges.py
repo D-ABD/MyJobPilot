@@ -42,3 +42,12 @@ class BadgesFicheAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Niveau : Novice")
         self.assertContains(response, "0 XP")
+
+    def test_fiche_eleve_admin_affiche_les_trois_progressions(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin_dashboard:eleve_detail", args=[self.eleve.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "📋 Prospections")
+        self.assertContains(response, "📝 Candidatures")
+        self.assertContains(response, "🔄 Relances")
+        self.assertNotContains(response, reverse("core:mes_badges"))

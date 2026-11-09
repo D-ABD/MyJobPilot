@@ -37,6 +37,8 @@
     </div>
   </section>
 
+  {% include "partials/_progression_categories.html" with afficher_lien_tous_badges=True %}
+
   <section class="cockpit-charts mb-4" aria-labelledby="titre-graphiques-eleve">
     <h2 class="h4" id="titre-graphiques-eleve">Votre progression récente</h2>
     {{ charts|json_script:"cockpit-chart-data" }}

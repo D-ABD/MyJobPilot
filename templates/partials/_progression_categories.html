@@ -1,0 +1,89 @@
+<section class="mb-4" aria-label="Progression des badges par catégorie">
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-md-4">
+      {% with bloc=progression_categories.prospections %}
+        <section class="card h-100" aria-label="Progression des prospections">
+          <div class="card-body">
+            <h3 class="h5">📋 Prospections</h3>
+            <p>{{ bloc.compteur_actuel }} contactées</p>
+            {% if bloc.tous_obtenus %}
+              <p class="small">Tous les badges de cette catégorie obtenus 🎉</p>
+            {% elif bloc.prochain_badge %}
+              <p class="mb-1">Prochain badge : <strong>{{ bloc.prochain_badge.nom }}</strong></p>
+              <p class="small mb-2">{{ bloc.compteur_actuel }} / {{ bloc.seuil_cible }} · Il manque {{ bloc.manque }} pour {{ bloc.prochain_badge.nom }}</p>
+            {% else %}
+              <p class="small mb-2">Aucun prochain badge disponible.</p>
+            {% endif %}
+            <div class="progress" role="progressbar" aria-label="Progression vers le prochain badge Prospections" aria-valuenow="{{ bloc.progression_pourcentage }}" aria-valuemin="0" aria-valuemax="100" style="height: 8px">
+              <div class="progress-bar{% if bloc.tous_obtenus %} bg-success{% endif %}" style="width: {{ bloc.progression_pourcentage }}%"></div>
+            </div>
+          </div>
+        </section>
+      {% endwith %}
+    </div>
+    <div class="col-12 col-md-4">
+      {% with bloc=progression_categories.candidatures %}
+        <section class="card h-100" aria-label="Progression des candidatures">
+          <div class="card-body">
+            <h3 class="h5">📝 Candidatures</h3>
+            <p>{{ bloc.compteur_actuel }} envoyées</p>
+            {% if bloc.tous_obtenus %}
+              <p class="small">Tous les badges de cette catégorie obtenus 🎉</p>
+            {% elif bloc.prochain_badge %}
+              <p class="mb-1">Prochain badge : <strong>{{ bloc.prochain_badge.nom }}</strong></p>
+              <p class="small mb-2">{{ bloc.compteur_actuel }} / {{ bloc.seuil_cible }} · Il manque {{ bloc.manque }} pour {{ bloc.prochain_badge.nom }}</p>
+            {% else %}
+              <p class="small mb-2">Aucun prochain badge disponible.</p>
+            {% endif %}
+            <div class="progress" role="progressbar" aria-label="Progression vers le prochain badge Candidatures" aria-valuenow="{{ bloc.progression_pourcentage }}" aria-valuemin="0" aria-valuemax="100" style="height: 8px">
+              <div class="progress-bar{% if bloc.tous_obtenus %} bg-success{% endif %}" style="width: {{ bloc.progression_pourcentage }}%"></div>
+            </div>
+          </div>
+        </section>
+      {% endwith %}
+    </div>
+    <div class="col-12 col-md-4">
+      {% with bloc=progression_categories.relances %}
+        <section class="card h-100" aria-label="Progression des relances">
+          <div class="card-body">
+            <h3 class="h5">🔄 Relances</h3>
+            <p>{{ bloc.compteur_actuel }} faites</p>
+            {% if bloc.tous_obtenus %}
+              <p class="small">Tous les badges de cette catégorie obtenus 🎉</p>
+            {% elif bloc.prochain_badge %}
+              <p class="mb-1">Prochain badge : <strong>{{ bloc.prochain_badge.nom }}</strong></p>
+              <p class="small mb-2">{{ bloc.compteur_actuel }} / {{ bloc.seuil_cible }} · Il manque {{ bloc.manque }} pour {{ bloc.prochain_badge.nom }}</p>
+            {% else %}
+              <p class="small mb-2">Aucun prochain badge disponible.</p>
+            {% endif %}
+            <div class="progress" role="progressbar" aria-label="Progression vers le prochain badge Relances" aria-valuenow="{{ bloc.progression_pourcentage }}" aria-valuemin="0" aria-valuemax="100" style="height: 8px">
+              <div class="progress-bar{% if bloc.tous_obtenus %} bg-success{% endif %}" style="width: {{ bloc.progression_pourcentage }}%"></div>
+            </div>
+          </div>
+        </section>
+      {% endwith %}
+    </div>
+  </div>
+
+  <section class="card" aria-labelledby="titre-derniers-badges">
+    <div class="card-body">
+      <h3 class="h5" id="titre-derniers-badges">Derniers badges obtenus</h3>
+      {% if derniers_badges %}
+        <ul class="list-unstyled mb-0">
+          {% for attribution in derniers_badges %}
+            <li class="mb-1">
+              {% if attribution.badge.icone %}<i class="{{ attribution.badge.icone }}" aria-hidden="true"></i>{% else %}🏅{% endif %}
+              <strong>{{ attribution.badge.nom }}</strong>
+              <span class="text-body-secondary">· {{ attribution.badge.get_categorie_display }} · {{ attribution.date_obtention|date:"d/m/Y" }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-body-secondary mb-0">Aucun badge pour l'instant.</p>
+      {% endif %}
+      {% if afficher_lien_tous_badges %}
+        <a class="btn btn-sm btn-outline-primary mt-3" href="{% url 'core:mes_badges' %}">Voir tous les badges</a>
+      {% endif %}
+    </div>
+  </section>
+</section>

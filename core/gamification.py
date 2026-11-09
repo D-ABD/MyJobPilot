@@ -173,6 +173,93 @@ def progression_badges(utilisateur):
     return compter_progression(utilisateur)
 
 
+_COMPTEUR_PAR_TYPE_BADGE = {
+    Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT: "prospections_contactees",
+    Badge.TypeCondition.CANDIDATURES_COUNT: "candidatures",
+    Badge.TypeCondition.RELANCES_COUNT: "relances",
+}
+
+
+def calculer_prochain_badge(utilisateur, type_condition, compteurs=None):
+    """Retourne le prochain badge actif à atteindre dans une catégorie."""
+    if compteurs is None:
+        compteurs = compter_progression(utilisateur)
+    compteur_actuel = compteurs.get(_COMPTEUR_PAR_TYPE_BADGE.get(type_condition), 0)
+    badges = list(
+        Badge.objects.filter(est_actif=True, type_condition=type_condition)
+        .order_by("seuil", "ordre_affichage", "pk")
+    )
+    if not badges:
+        return {
+            "prochain_badge": None,
+            "compteur_actuel": compteur_actuel,
+            "seuil_cible": None,
+            "manque": 0,
+            "progression": 1.0,
+            "progression_pourcentage": 100,
+            "tous_obtenus": True,
+        }
+
+    obtenus_ids = set(
+        BadgeObtenu.objects.filter(utilisateur=utilisateur, badge__in=badges)
+        .values_list("badge_id", flat=True)
+    )
+    prochain = next(
+        (
+            badge for badge in badges
+            if badge.pk not in obtenus_ids and badge.seuil > compteur_actuel
+        ),
+        None,
+    )
+    if prochain is None:
+        tous_obtenus = len(obtenus_ids) == len(badges)
+        return {
+            "prochain_badge": None,
+            "compteur_actuel": compteur_actuel,
+            "seuil_cible": None,
+            "manque": 0,
+            "progression": 1.0 if tous_obtenus else 0.0,
+            "progression_pourcentage": 100 if tous_obtenus else 0,
+            "tous_obtenus": tous_obtenus,
+        }
+
+    progression = min(compteur_actuel / prochain.seuil, 1.0)
+    return {
+        "prochain_badge": prochain,
+        "compteur_actuel": compteur_actuel,
+        "seuil_cible": prochain.seuil,
+        "manque": max(prochain.seuil - compteur_actuel, 0),
+        "progression": progression,
+        "progression_pourcentage": round(progression * 100),
+        "tous_obtenus": False,
+    }
+
+
+def calculer_progression_categories(utilisateur):
+    """Calcule les trois progressions à partir d'un seul jeu de compteurs."""
+    compteurs = compter_progression(utilisateur)
+    return {
+        "prospections": calculer_prochain_badge(
+            utilisateur, Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT, compteurs=compteurs
+        ),
+        "candidatures": calculer_prochain_badge(
+            utilisateur, Badge.TypeCondition.CANDIDATURES_COUNT, compteurs=compteurs
+        ),
+        "relances": calculer_prochain_badge(
+            utilisateur, Badge.TypeCondition.RELANCES_COUNT, compteurs=compteurs
+        ),
+    }
+
+
+def calculer_derniers_badges(utilisateur, limite=5):
+    """Retourne les attributions récentes en chargeant les badges en une requête."""
+    return list(
+        BadgeObtenu.objects.filter(utilisateur=utilisateur)
+        .select_related("badge")
+        .order_by("-date_obtention")[:limite]
+    )
+
+
 def resume_badges(utilisateur):
     """Données compactes pour les cartes de dashboard et les fiches staff."""
     obtenus = list(

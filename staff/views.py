@@ -14,7 +14,12 @@ from comptes.models import Centre, JournalAction, TypeNotification, Utilisateur
 from comptes.notifications import creer_notification
 from comptes.scope_utils import centres_du_superviseur, superviser_eleve, verifier_superviseur
 from comptes.utils import log_action
-from core.gamification import calculer_progression_utilisateur, verifier_et_attribuer_badges
+from core.gamification import (
+    calculer_derniers_badges,
+    calculer_progression_categories,
+    calculer_progression_utilisateur,
+    verifier_et_attribuer_badges,
+)
 from core.stats import (
     PERIODES_DASHBOARD,
     calculer_atteinte_objectif,
@@ -348,6 +353,8 @@ def _rendre_detail_eleve(request, eleve, prospection_form=None, entreprise_form=
             "eleve": eleve,
             **progression["resume_badges"],
             "progression": progression,
+            "progression_categories": calculer_progression_categories(eleve),
+            "derniers_badges": calculer_derniers_badges(eleve, 5),
             "prospections": prospections,
             "historique_relances": Relance.objects.filter(
                 prospection__eleve=eleve

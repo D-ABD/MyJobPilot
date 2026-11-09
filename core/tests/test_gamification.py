@@ -1,10 +1,14 @@
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
+from unittest.mock import patch
 
 from comptes.models import Utilisateur
 from core.gamification import (
+    calculer_derniers_badges,
     calculer_niveau,
+    calculer_prochain_badge,
+    calculer_progression_categories,
     calculer_progression_utilisateur,
     calculer_xp,
     verifier_et_attribuer_badges,
@@ -424,3 +428,175 @@ class XPTemplatesTests(TestCase):
         self.assertContains(response, "Niveau : Novice")
         self.assertContains(response, "0 XP")
         self.assertContains(response, "Progression vers le niveau suivant")
+
+
+class ProgressionBadgesCategoriesTests(TestCase):
+    def setUp(self):
+        self.eleve = Utilisateur.objects.create_user(
+            username="categories-badges-eleve", password="test",
+            role=Utilisateur.Role.ELEVE, is_valide=True,
+        )
+        self.compteurs = {
+            "prospections_contactees": 0,
+            "candidatures": 0,
+            "relances": 0,
+        }
+
+    def test_calculer_prochain_badge_progression_simple(self):
+        badge = Badge.objects.get(slug="prospection-35")
+        compteurs = {**self.compteurs, "prospections_contactees": 25}
+
+        resultat = calculer_prochain_badge(
+            self.eleve, Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+            compteurs=compteurs,
+        )
+
+        self.assertEqual(resultat["prochain_badge"], badge)
+        self.assertEqual(resultat["manque"], 10)
+        self.assertEqual(resultat["progression"], 25 / 35)
+
+    def test_calculer_prochain_badge_candidature(self):
+        resultat = calculer_prochain_badge(
+            self.eleve, Badge.TypeCondition.CANDIDATURES_COUNT,
+            compteurs=self.compteurs,
+        )
+        self.assertEqual(resultat["prochain_badge"].slug, "candidature-3")
+        self.assertEqual(resultat["seuil_cible"], 3)
+
+    def test_calculer_prochain_badge_relance(self):
+        resultat = calculer_prochain_badge(
+            self.eleve, Badge.TypeCondition.RELANCES_COUNT,
+            compteurs=self.compteurs,
+        )
+        self.assertEqual(resultat["prochain_badge"].slug, "relance-1")
+        self.assertEqual(resultat["seuil_cible"], 1)
+
+    def test_calculer_prochain_badge_ignore_les_badges_deja_obtenus(self):
+        badges = list(Badge.objects.filter(
+            type_condition=Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+            seuil__in=(10, 20),
+        ))
+        BadgeObtenu.objects.bulk_create([
+            BadgeObtenu(utilisateur=self.eleve, badge=badge) for badge in badges
+        ])
+        compteurs = {**self.compteurs, "prospections_contactees": 22}
+
+        resultat = calculer_prochain_badge(
+            self.eleve, Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+            compteurs=compteurs,
+        )
+
+        self.assertEqual(resultat["prochain_badge"].slug, "prospection-35")
+
+    def test_calculer_prochain_badge_tous_obtenus(self):
+        badges = list(Badge.objects.filter(
+            est_actif=True,
+            type_condition=Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+        ))
+        BadgeObtenu.objects.bulk_create([
+            BadgeObtenu(utilisateur=self.eleve, badge=badge) for badge in badges
+        ])
+        compteurs = {**self.compteurs, "prospections_contactees": 150}
+
+        resultat = calculer_prochain_badge(
+            self.eleve, Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+            compteurs=compteurs,
+        )
+
+        self.assertIsNone(resultat["prochain_badge"])
+        self.assertTrue(resultat["tous_obtenus"])
+        self.assertEqual(resultat["progression"], 1.0)
+
+    def test_calculer_prochain_badge_aucun_badge_actif(self):
+        Badge.objects.filter(
+            type_condition=Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+        ).update(est_actif=False)
+
+        resultat = calculer_prochain_badge(
+            self.eleve, Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+            compteurs=self.compteurs,
+        )
+
+        self.assertIsNone(resultat["prochain_badge"])
+        self.assertTrue(resultat["tous_obtenus"])
+
+    def test_calculer_prochain_badge_requete_badges_active_independante_du_nombre(self):
+        with patch("core.gamification.compter_progression", return_value=self.compteurs):
+            with self.assertNumQueries(2):
+                resultat = calculer_prochain_badge(
+                    self.eleve, Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+                    compteurs=self.compteurs,
+                )
+                str(resultat["prochain_badge"])
+
+    def test_calculer_prochain_badge_requete_badges_obtenus_unique(self):
+        with patch("core.gamification.compter_progression", return_value=self.compteurs):
+            with self.assertNumQueries(2):
+                calculer_prochain_badge(
+                    self.eleve, Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+                    compteurs=self.compteurs,
+                )
+
+    def test_calculer_progression_categories_retourne_les_trois_familles(self):
+        with patch("core.gamification.compter_progression", return_value=self.compteurs) as compter:
+            progression = calculer_progression_categories(self.eleve)
+
+        compter.assert_called_once_with(self.eleve)
+        self.assertEqual(set(progression), {"prospections", "candidatures", "relances"})
+        self.assertEqual(progression["prospections"]["compteur_actuel"], 0)
+
+    def test_calculer_derniers_badges_limite_a_cinq(self):
+        badges = [
+            Badge.objects.create(
+                slug=f"dernier-badge-limite-{index}",
+                categorie=Badge.Categorie.PROSPECTION,
+                nom=f"Dernier badge {index}",
+                type_condition=Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+            )
+            for index in range(10)
+        ]
+        BadgeObtenu.objects.bulk_create([
+            BadgeObtenu(utilisateur=self.eleve, badge=badge) for badge in badges
+        ])
+        self.assertEqual(len(calculer_derniers_badges(self.eleve, 5)), 5)
+
+    def test_calculer_derniers_badges_ordre_decroissant(self):
+        anciens = Badge.objects.create(
+            slug="dernier-badge-ancien", categorie=Badge.Categorie.PROSPECTION,
+            nom="Badge ancien", type_condition=Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+        )
+        recents = Badge.objects.create(
+            slug="dernier-badge-recent", categorie=Badge.Categorie.PROSPECTION,
+            nom="Badge récent", type_condition=Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT,
+        )
+        ancien = BadgeObtenu.objects.create(utilisateur=self.eleve, badge=anciens)
+        recent = BadgeObtenu.objects.create(utilisateur=self.eleve, badge=recents)
+        BadgeObtenu.objects.filter(pk=ancien.pk).update(date_obtention="2020-01-01T00:00:00Z")
+        BadgeObtenu.objects.filter(pk=recent.pk).update(date_obtention="2025-01-01T00:00:00Z")
+
+        resultat = calculer_derniers_badges(self.eleve)
+
+        self.assertEqual(resultat[0].badge, recents)
+        self.assertEqual(resultat[1].badge, anciens)
+
+    def test_calculer_derniers_badges_charge_en_une_requete(self):
+        badge = Badge.objects.create(
+            slug="dernier-badge-une-requete", categorie=Badge.Categorie.SUIVI,
+            nom="Badge joint", type_condition=Badge.TypeCondition.RELANCES_COUNT,
+        )
+        BadgeObtenu.objects.create(utilisateur=self.eleve, badge=badge)
+
+        with self.assertNumQueries(1):
+            resultats = calculer_derniers_badges(self.eleve)
+            noms = [attribution.badge.nom for attribution in resultats]
+
+        self.assertEqual(noms, ["Badge joint"])
+
+    def test_calculer_derniers_badges_garde_badge_desactive(self):
+        badge = Badge.objects.create(
+            slug="dernier-badge-desactive", categorie=Badge.Categorie.SUIVI,
+            nom="Badge archivé", type_condition=Badge.TypeCondition.RELANCES_COUNT,
+            est_actif=False,
+        )
+        BadgeObtenu.objects.create(utilisateur=self.eleve, badge=badge)
+        self.assertEqual(calculer_derniers_badges(self.eleve)[0].badge, badge)

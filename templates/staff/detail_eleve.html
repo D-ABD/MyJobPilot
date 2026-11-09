@@ -40,7 +40,7 @@
       {% if progression.niveau.est_max %}<p class="small">Niveau maximum atteint</p>{% else %}<p class="small">{{ progression.niveau.xp_pour_suivant }} XP pour {{ progression.niveau.niveau_suivant_nom|default:"le prochain niveau" }}</p>{% endif %}
       <div class="progress mb-2" role="progressbar" aria-label="Progression XP de l'élève" aria-valuenow="{{ progression.niveau.progression_pourcentage }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width: {{ progression.niveau.progression_pourcentage }}%"></div></div>
       <p class="mb-1"><strong>{{ points_total }} points</strong> · {{ badges_obtenus_count }}/{{ badges_total_count }} badges</p>
-      {% if badges_obtenus %}<ul class="mb-0">{% for attribution in badges_obtenus %}<li>{{ attribution.badge.nom }} — obtenu le {{ attribution.date_obtention|date:"d/m/Y" }}</li>{% endfor %}</ul>{% else %}<p class="small text-body-secondary mb-0">Aucun badge obtenu pour le moment.</p>{% endif %}
+      {% include "partials/_progression_categories.html" with afficher_lien_tous_badges=False %}
       {% if historique_relances %}<p class="small text-body-secondary mb-0">{{ historique_relances|length }} événement{{ historique_relances|length|pluralize:"s" }} de relance récent{{ historique_relances|length|pluralize:"s" }}</p>{% endif %}
     </div>
   </section>
