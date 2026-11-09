@@ -165,6 +165,18 @@ def verifier_et_attribuer_badges(utilisateur):
 
     if nouveaux:
         BadgeObtenu.objects.bulk_create(nouveaux, ignore_conflicts=True)
+        # Import local : comptes.notifications dépend des modèles de comptes.
+        from comptes.models import TypeNotification
+        from comptes.notifications import creer_notification
+
+        for attribution in nouveaux:
+            badge = attribution.badge
+            creer_notification(
+                destinataire=utilisateur,
+                type=TypeNotification.BADGE_OBTENU,
+                message=f"🏆 Badge débloqué : {badge.nom}",
+                lien=f"/mon-compte/badges/#badge-{badge.slug}",
+            )
     return nouveaux
 
 
@@ -258,6 +270,43 @@ def calculer_derniers_badges(utilisateur, limite=5):
         .select_related("badge")
         .order_by("-date_obtention")[:limite]
     )
+
+
+def verifier_et_notifier_progression(utilisateur):
+    """Notifie une seule fois quand l'élève approche d'un badge actif."""
+    from comptes.models import Notification, TypeNotification
+    from comptes.notifications import creer_notification
+
+    progression_categories = calculer_progression_categories(utilisateur)
+    liens_deja_notifies = set(
+        Notification.objects.filter(
+            destinataire=utilisateur,
+            type=TypeNotification.PROGRESSION_BADGE,
+        ).values_list("lien", flat=True)
+    )
+    notifications_creees = []
+
+    for categorie in ("prospections", "candidatures", "relances"):
+        progression = progression_categories[categorie]
+        manque = progression["manque"]
+        badge = progression["prochain_badge"]
+        if progression["tous_obtenus"] or badge is None or not 0 < manque <= 5:
+            continue
+
+        lien = f"/mon-compte/badges/#badge-{badge.slug}"
+        if lien in liens_deja_notifies:
+            continue
+        notification = creer_notification(
+            destinataire=utilisateur,
+            type=TypeNotification.PROGRESSION_BADGE,
+            message=f"Plus que {manque} pour débloquer {badge.nom} !",
+            lien=lien,
+        )
+        if notification is not None:
+            notifications_creees.append(notification)
+            liens_deja_notifies.add(lien)
+
+    return notifications_creees
 
 
 def resume_badges(utilisateur):

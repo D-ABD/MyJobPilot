@@ -27,6 +27,7 @@ from core.gamification import (
     calculer_progression_categories,
     calculer_progression_utilisateur,
     verifier_et_attribuer_badges,
+    verifier_et_notifier_progression,
 )
 
 from .forms import (
@@ -451,6 +452,7 @@ def mes_relance_creer(request):
             reverse("entreprises:detail", args=[prospection.pk]),
         )
     verifier_et_attribuer_badges(prospection.eleve)
+    verifier_et_notifier_progression(prospection.eleve)
     messages.success(request, f"La relance pour {prospection.entreprise.nom} a été enregistrée.")
     return redirect("entreprises:mes_relances")
 
@@ -658,6 +660,7 @@ def prospections_toutes(request):
 def dashboard_eleve(request):
     _verifier_eleve(request)
     verifier_et_attribuer_badges(request.user)
+    verifier_et_notifier_progression(request.user)
     progression = calculer_progression_utilisateur(request.user)
     queryset = Prospection.objects.filter(eleve=request.user).select_related("entreprise")
     filtreur = FiltresDashboard()

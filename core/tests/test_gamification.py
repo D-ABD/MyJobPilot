@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from unittest.mock import patch
 
-from comptes.models import Utilisateur
+from comptes.models import Notification, TypeNotification, Utilisateur
 from core.gamification import (
     calculer_derniers_badges,
     calculer_niveau,
@@ -12,6 +12,7 @@ from core.gamification import (
     calculer_progression_utilisateur,
     calculer_xp,
     verifier_et_attribuer_badges,
+    verifier_et_notifier_progression,
 )
 from core.models import Badge, BadgeObtenu, Niveau
 from entreprises.models import Entreprise, Prospection, Relance, Statut
@@ -187,8 +188,9 @@ class AttributionBadgesTests(TestCase):
         self.assertEqual(Badge.objects.count(), 17)
         for index in range(100):
             self.creer_prospection(index, Statut.REFUS)
-        with self.assertNumQueries(3):
-            verifier_et_attribuer_badges(self.eleve)
+        with patch("comptes.notifications.creer_notification"):
+            with self.assertNumQueries(3):
+                verifier_et_attribuer_badges(self.eleve)
         for index in range(33):
             Badge.objects.create(
                 slug=f"synthetique-{index}", categorie=Badge.Categorie.PROSPECTION,
@@ -197,8 +199,9 @@ class AttributionBadgesTests(TestCase):
                 seuil=1,
             )
         self.assertEqual(Badge.objects.count(), 50)
-        with self.assertNumQueries(3):
-            verifier_et_attribuer_badges(self.eleve)
+        with patch("comptes.notifications.creer_notification"):
+            with self.assertNumQueries(3):
+                verifier_et_attribuer_badges(self.eleve)
 
 
 class BadgesPageTests(TestCase):
@@ -600,3 +603,183 @@ class ProgressionBadgesCategoriesTests(TestCase):
         )
         BadgeObtenu.objects.create(utilisateur=self.eleve, badge=badge)
         self.assertEqual(calculer_derniers_badges(self.eleve)[0].badge, badge)
+
+
+class GamificationNotificationsTests(TestCase):
+    def setUp(self):
+        self.eleve = Utilisateur.objects.create_user(
+            username="notifications-gamification-eleve", password="test",
+            role=Utilisateur.Role.ELEVE, is_valide=True,
+        )
+
+    def _badge(self, slug, type_condition, seuil=1):
+        return Badge.objects.create(
+            slug=slug,
+            categorie=(
+                Badge.Categorie.PROSPECTION
+                if type_condition == Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT
+                else Badge.Categorie.CANDIDATURE
+                if type_condition == Badge.TypeCondition.CANDIDATURES_COUNT
+                else Badge.Categorie.SUIVI
+            ),
+            nom=f"Badge {slug}",
+            type_condition=type_condition,
+            seuil=seuil,
+        )
+
+    def _progressions(self, **overrides):
+        return {
+            categorie: {
+                "prochain_badge": overrides.get(categorie),
+                "manque": 0 if categorie not in overrides else overrides.get(f"{categorie}_manque", 1),
+                "tous_obtenus": categorie not in overrides,
+            }
+            for categorie in ("prospections", "candidatures", "relances")
+        }
+
+    def test_verifier_et_attribuer_badges_cree_notification_badge_obtenu(self):
+        badge = Badge.objects.get(slug="prospection-10")
+        Badge.objects.exclude(pk=badge.pk).update(est_actif=False)
+        for index in range(10):
+            Prospection.objects.create(
+                eleve=self.eleve,
+                entreprise=Entreprise.objects.create(nom=f"Notification badge {index}"),
+                statut=Statut.A_RELANCER,
+            )
+
+        verifier_et_attribuer_badges(self.eleve)
+
+        notification = Notification.objects.get(destinataire=self.eleve)
+        self.assertEqual(notification.type, TypeNotification.BADGE_OBTENU)
+        self.assertEqual(notification.message, f"🏆 Badge débloqué : {badge.nom}")
+
+    def test_verifier_et_attribuer_badges_pas_de_notification_si_deja_obtenu(self):
+        badge = Badge.objects.get(slug="prospection-10")
+        Badge.objects.exclude(pk=badge.pk).update(est_actif=False)
+        BadgeObtenu.objects.create(utilisateur=self.eleve, badge=badge)
+        for index in range(10):
+            Prospection.objects.create(
+                eleve=self.eleve,
+                entreprise=Entreprise.objects.create(nom=f"Badge déjà obtenu {index}"),
+                statut=Statut.A_RELANCER,
+            )
+
+        verifier_et_attribuer_badges(self.eleve)
+
+        self.assertFalse(Notification.objects.exists())
+
+    def test_verifier_et_attribuer_badges_notification_lien_contient_slug(self):
+        badge = Badge.objects.get(slug="prospection-10")
+        Badge.objects.exclude(pk=badge.pk).update(est_actif=False)
+        for index in range(10):
+            Prospection.objects.create(
+                eleve=self.eleve,
+                entreprise=Entreprise.objects.create(nom=f"Slug notification {index}"),
+                statut=Statut.A_RELANCER,
+            )
+
+        verifier_et_attribuer_badges(self.eleve)
+
+        self.assertEqual(
+            Notification.objects.get(destinataire=self.eleve).lien,
+            "/mon-compte/badges/#badge-prospection-10",
+        )
+
+    def test_verifier_et_notifier_progression_envoie_si_manque_5(self):
+        badge = self._badge(
+            "progression-exactement-cinq", Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT
+        )
+        with patch("core.gamification.calculer_progression_categories", return_value=self._progressions(
+            prospections=badge, prospections_manque=5,
+        )):
+            notifications = verifier_et_notifier_progression(self.eleve)
+        self.assertEqual(len(notifications), 1)
+        self.assertIn("Plus que 5", notifications[0].message)
+
+    def test_verifier_et_notifier_progression_envoie_si_manque_moins_5(self):
+        badge = self._badge(
+            "progression-trois-restants", Badge.TypeCondition.CANDIDATURES_COUNT
+        )
+        with patch("core.gamification.calculer_progression_categories", return_value=self._progressions(
+            candidatures=badge, candidatures_manque=3,
+        )):
+            notifications = verifier_et_notifier_progression(self.eleve)
+        self.assertEqual(len(notifications), 1)
+        self.assertIn("Plus que 3", notifications[0].message)
+
+    def test_verifier_et_notifier_progression_pas_si_manque_plus_5(self):
+        badge = self._badge(
+            "progression-six-restants", Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT
+        )
+        with patch("core.gamification.calculer_progression_categories", return_value=self._progressions(
+            prospections=badge, prospections_manque=6,
+        )):
+            notifications = verifier_et_notifier_progression(self.eleve)
+        self.assertEqual(notifications, [])
+        self.assertFalse(Notification.objects.exists())
+
+    def test_verifier_et_notifier_progression_pas_si_deja_envoyee(self):
+        badge = self._badge(
+            "progression-deja-envoyee", Badge.TypeCondition.PROSPECTIONS_CONTACTEES_COUNT
+        )
+        lien = f"/mon-compte/badges/#badge-{badge.slug}"
+        Notification.objects.create(
+            destinataire=self.eleve,
+            type=TypeNotification.PROGRESSION_BADGE,
+            message="Déjà notifiée",
+            lien=lien,
+        )
+        with patch("core.gamification.calculer_progression_categories", return_value=self._progressions(
+            prospections=badge, prospections_manque=2,
+        )):
+            notifications = verifier_et_notifier_progression(self.eleve)
+        self.assertEqual(notifications, [])
+        self.assertEqual(Notification.objects.filter(lien=lien).count(), 1)
+
+    def test_verifier_et_notifier_progression_pas_si_tous_obtenus(self):
+        with patch("core.gamification.calculer_progression_categories", return_value={
+            categorie: {"prochain_badge": None, "manque": 0, "tous_obtenus": True}
+            for categorie in ("prospections", "candidatures", "relances")
+        }):
+            notifications = verifier_et_notifier_progression(self.eleve)
+        self.assertEqual(notifications, [])
+        self.assertFalse(Notification.objects.exists())
+
+    def test_verifier_et_notifier_progression_requetes_bornees(self):
+        for index in range(5):
+            Prospection.objects.create(
+                eleve=self.eleve,
+                entreprise=Entreprise.objects.create(nom=f"Fenêtre de progression {index}"),
+                statut=Statut.A_RELANCER,
+            )
+
+        with self.assertNumQueries(12):
+            notifications = verifier_et_notifier_progression(self.eleve)
+
+        self.assertEqual(len(notifications), 3)
+        self.assertEqual(
+            Notification.objects.filter(
+                destinataire=self.eleve, type=TypeNotification.PROGRESSION_BADGE,
+            ).count(),
+            3,
+        )
+
+    def test_mes_badges_cree_notifications_progression(self):
+        for index in range(5):
+            Prospection.objects.create(
+                eleve=self.eleve,
+                entreprise=Entreprise.objects.create(nom=f"Page badges progression {index}"),
+                statut=Statut.A_RELANCER,
+            )
+        self.client.force_login(self.eleve)
+
+        response = self.client.get(reverse("core:mes_badges"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            Notification.objects.filter(
+                destinataire=self.eleve, type=TypeNotification.PROGRESSION_BADGE,
+            ).count(),
+            3,
+        )
+        self.assertContains(response, 'id="badge-prospection-10"')

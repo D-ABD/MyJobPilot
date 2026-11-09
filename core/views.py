@@ -21,7 +21,11 @@ from comptes.scope_utils import centres_du_superviseur
 from .external_apis import rechercher_entreprises_lba, rechercher_offres_lba
 from .forms import OffresAlternanceForm, TacheForm
 from .models import Badge, OffreEnregistree, Tache
-from .gamification import calculer_progression_utilisateur, verifier_et_attribuer_badges
+from .gamification import (
+    calculer_progression_utilisateur,
+    verifier_et_attribuer_badges,
+    verifier_et_notifier_progression,
+)
 from documents.models import Document
 from entreprises.models import Prospection
 
@@ -497,6 +501,7 @@ def mes_badges(request):
     if request.user.role != Utilisateur.Role.ELEVE:
         raise PermissionDenied
     verifier_et_attribuer_badges(request.user)
+    verifier_et_notifier_progression(request.user)
     progression = calculer_progression_utilisateur(request.user)
     resume = progression["resume_badges"]
     obtenus = sorted(

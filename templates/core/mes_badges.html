@@ -24,7 +24,7 @@
       <div class="row g-3">
         {% for attribution in categorie.obtenus %}
           <div class="col-12 col-md-6 col-lg-4">
-            <article class="card h-100 border-success">
+            <article id="badge-{{ attribution.badge.slug }}" class="card h-100 border-success">
               <div class="card-body">
                 <div class="d-flex align-items-center gap-2">
                   {% if attribution.badge.icone %}<i class="{{ attribution.badge.icone }}" aria-hidden="true"></i>{% endif %}
@@ -38,7 +38,7 @@
         {% endfor %}
         {% for element in categorie.a_obtenir %}
           <div class="col-12 col-md-6 col-lg-4">
-            <article class="card h-100 text-body-secondary">
+            <article id="badge-{{ element.badge.slug }}" class="card h-100 text-body-secondary">
               <div class="card-body">
                 <div class="d-flex align-items-center gap-2">
                   {% if element.badge.icone %}<i class="{{ element.badge.icone }} opacity-50" aria-hidden="true"></i>{% endif %}

@@ -137,6 +137,17 @@ class MesRelanceCreerTests(TestCase):
         self.poster(self.eleve)
         self.assertTrue(BadgeObtenu.objects.filter(utilisateur=self.eleve, badge=badge).exists())
 
+    def test_mes_relance_creer_cree_notifications_progression(self):
+        self.poster(self.eleve)
+
+        notification = Notification.objects.filter(
+            destinataire=self.eleve,
+            type=TypeNotification.PROGRESSION_BADGE,
+        ).first()
+
+        self.assertIsNotNone(notification)
+        self.assertIn("#badge-", notification.lien)
+
     def test_date_relance_vide_efface_lecheance(self):
         self.poster(self.eleve, date_relance="")
         self.prospection.refresh_from_db()

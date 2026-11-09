@@ -300,6 +300,8 @@ class TypeNotification(models.TextChoices):
     COMMENTAIRE = "commentaire", "Nouveau commentaire"
     DOCUMENT = "document", "Nouveau document"
     AJOUT_PROSPECTION = "ajout_prospection", "Nouvelle prospection"
+    BADGE_OBTENU = "badge_obtenu", "Badge obtenu"
+    PROGRESSION_BADGE = "progression_badge", "Progression vers un badge"
 
 
 class Notification(models.Model):
