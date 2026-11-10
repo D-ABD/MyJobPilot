@@ -4,104 +4,124 @@
 {% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
 <h1 class="h2 mb-4">Mes relances</h1>
 
-<section class="mb-5" aria-labelledby="titre-relances-retard">
-  <h2 class="h4" id="titre-relances-retard">En retard <span class="badge text-bg-danger">{{ total_en_retard }}</span></h2>
+<section class="relances-section" aria-labelledby="titre-relances-retard">
+  <div class="relances-header urgent">
+    <div class="relances-header-icon urgent" aria-hidden="true"><i class="bi bi-exclamation-circle-fill"></i></div>
+    <div>
+      <h2 class="relances-title" id="titre-relances-retard">En retard</h2>
+      <p class="relances-subtitle">Échéances dépassées</p>
+    </div>
+    <span class="relances-count">{{ total_en_retard }}</span>
+  </div>
   {% if relances_en_retard %}
-    <div class="table-responsive">
-      <table class="table table-striped align-middle">
-        <caption class="visually-hidden">Mes relances de prospection en retard</caption>
-        <thead><tr><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Date prévue</th><th scope="col">Retard</th><th scope="col">Actions</th></tr></thead>
-        <tbody>
-          {% for relance in relances_en_retard %}
-            <tr>
-              <td>{{ relance.prospection.entreprise.nom }}</td>
-              <td>{{ relance.prospection.entreprise.ville|default:"—" }}</td>
-              <td>{{ relance.prospection.date_relance|date:"d/m/Y" }}</td>
-              <td>{{ relance.jours_retard }} jour{{ relance.jours_retard|pluralize:"s" }}</td>
-              <td class="d-flex flex-wrap gap-2">
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' relance.prospection.pk %}">Voir la prospection</a>
-                <form method="post" action="{% url 'entreprises:mes_relance_creer' %}" class="d-flex flex-wrap gap-2 align-items-end">
-                  {% csrf_token %}
-                  <input type="hidden" name="prospection_id" value="{{ relance.prospection.pk }}">
-                  <label class="visually-hidden" for="type-relance-retard-{{ relance.prospection.pk }}">Type de relance</label>
-                  <select class="form-select form-select-sm" id="type-relance-retard-{{ relance.prospection.pk }}" name="type">
-                    <option value="prospection">Prospection</option><option value="candidature">Candidature</option>
-                  </select>
-                  <label class="visually-hidden" for="date-relance-retard-{{ relance.prospection.pk }}">Nouvelle échéance facultative</label>
-                  <input class="form-control form-control-sm" type="date" id="date-relance-retard-{{ relance.prospection.pk }}" name="date_relance">
-                  <button class="btn btn-sm btn-outline-success" type="submit">Relancer</button>
-                </form>
-                <form method="post" action="{% url 'entreprises:mes_relances_terminer' relance.prospection.pk %}">
-                  {% csrf_token %}
-                  <button class="btn btn-sm btn-success" type="submit">Terminer la relance</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="relances-list">
+      {% for relance in relances_en_retard %}
+        <article class="relance-row">
+          <div class="relance-main">
+            <div class="relance-company">{{ relance.prospection.entreprise.nom }}</div>
+            <div class="relance-location">{{ relance.prospection.entreprise.ville|default:"—" }}</div>
+          </div>
+          <div class="relance-date-group">
+            <time class="relance-date overdue" datetime="{{ relance.prospection.date_relance|date:'Y-m-d' }}">{{ relance.prospection.date_relance|date:"d/m/Y" }}</time>
+            <span class="relance-delay">{{ relance.jours_retard }} jour{{ relance.jours_retard|pluralize:"s" }} de retard</span>
+          </div>
+          <div class="relance-actions">
+            <a class="btn-secondary-custom" href="{% url 'entreprises:detail' relance.prospection.pk %}"><i class="bi bi-eye" aria-hidden="true"></i> Voir la prospection</a>
+            <form method="post" action="{% url 'entreprises:mes_relance_creer' %}" class="relance-action-form">
+              {% csrf_token %}
+              <input type="hidden" name="prospection_id" value="{{ relance.prospection.pk }}">
+              <label class="visually-hidden" for="type-relance-retard-{{ relance.prospection.pk }}">Type de relance</label>
+              <select class="form-select-custom" id="type-relance-retard-{{ relance.prospection.pk }}" name="type">
+                <option value="prospection">Prospection</option><option value="candidature">Candidature</option>
+              </select>
+              <label class="visually-hidden" for="date-relance-retard-{{ relance.prospection.pk }}">Nouvelle échéance facultative</label>
+              <input class="form-input-custom" type="date" id="date-relance-retard-{{ relance.prospection.pk }}" name="date_relance">
+              <button class="btn-accent-custom" type="submit"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Relancer</button>
+            </form>
+            <form method="post" action="{% url 'entreprises:mes_relances_terminer' relance.prospection.pk %}">
+              {% csrf_token %}
+              <button class="btn-secondary-custom" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Terminer la relance</button>
+            </form>
+          </div>
+        </article>
+      {% endfor %}
     </div>
     {% if page_obj.paginator.num_pages > 1 %}
-      <nav aria-label="Pagination des relances en retard">
-        <ul class="pagination">
-          {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a></li>{% endif %}
-          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span></li>
-          {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li>{% endif %}
-        </ul>
+      <nav class="relances-pagination" aria-label="Pagination des relances en retard">
+        {% if page_obj.has_previous %}<a class="btn-secondary-custom" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}"><i class="bi bi-chevron-left" aria-hidden="true"></i> Précédent</a>{% endif %}
+        <span>Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="btn-secondary-custom" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant <i class="bi bi-chevron-right" aria-hidden="true"></i></a>{% endif %}
       </nav>
     {% endif %}
   {% else %}
-    <p class="text-body-secondary">Aucune relance en retard.</p>
+    <p class="empty-state p-4 mb-0">Aucune relance en retard.</p>
   {% endif %}
 </section>
 
-<section aria-labelledby="titre-relances-a-venir">
-  <h2 class="h4" id="titre-relances-a-venir">À venir <span class="badge text-bg-warning">{{ total_a_venir }}</span></h2>
+<section class="relances-section" aria-labelledby="titre-relances-a-venir">
+  <div class="relances-header upcoming">
+    <div class="relances-header-icon upcoming" aria-hidden="true"><i class="bi bi-calendar-check"></i></div>
+    <div>
+      <h2 class="relances-title" id="titre-relances-a-venir">À venir</h2>
+      <p class="relances-subtitle">Relances prévues dans les 30 prochains jours</p>
+    </div>
+    <span class="relances-count">{{ total_a_venir }}</span>
+  </div>
   {% if relances_a_venir %}
-    <div class="table-responsive">
-      <table class="table table-striped align-middle">
-        <caption class="visually-hidden">Mes relances prévues dans les 30 prochains jours</caption>
-        <thead><tr><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Date de relance</th><th scope="col">Échéance</th><th scope="col">Détail</th></tr></thead>
-        <tbody>
-          {% for relance in relances_a_venir %}
-            <tr>
-              <td>{{ relance.prospection.entreprise.nom }}</td>
-              <td>{{ relance.prospection.entreprise.ville|default:"—" }}</td>
-              <td>{{ relance.prospection.date_relance|date:"d/m/Y" }}</td>
-              <td>{% if relance.jours_avant == 0 %}Aujourd'hui{% else %}Dans {{ relance.jours_avant }} jour{{ relance.jours_avant|pluralize:"s" }}{% endif %}</td>
-              <td class="d-flex flex-wrap gap-2 align-items-center">
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' relance.prospection.pk %}">Voir la prospection</a>
-                <form method="post" action="{% url 'entreprises:mes_relance_creer' %}" class="d-flex flex-wrap gap-2 align-items-center">
-                  {% csrf_token %}<input type="hidden" name="prospection_id" value="{{ relance.prospection.pk }}">
-                  <label class="visually-hidden" for="type-relance-avenir-{{ relance.prospection.pk }}">Type de relance</label>
-                  <select class="form-select form-select-sm" id="type-relance-avenir-{{ relance.prospection.pk }}" name="type"><option value="prospection">Prospection</option><option value="candidature">Candidature</option></select>
-                  <label class="visually-hidden" for="date-relance-avenir-{{ relance.prospection.pk }}">Nouvelle échéance facultative</label>
-                  <input class="form-control form-control-sm" type="date" id="date-relance-avenir-{{ relance.prospection.pk }}" name="date_relance">
-                  <button class="btn btn-sm btn-outline-success" type="submit">Relancer</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="relances-list">
+      {% for relance in relances_a_venir %}
+        <article class="relance-row">
+          <div class="relance-main">
+            <div class="relance-company">{{ relance.prospection.entreprise.nom }}</div>
+            <div class="relance-location">{{ relance.prospection.entreprise.ville|default:"—" }}</div>
+          </div>
+          <div class="relance-date-group">
+            <time class="relance-date" datetime="{{ relance.prospection.date_relance|date:'Y-m-d' }}">{{ relance.prospection.date_relance|date:"d/m/Y" }}</time>
+            <span class="relance-delay">{% if relance.jours_avant == 0 %}Aujourd'hui{% else %}Dans {{ relance.jours_avant }} jour{{ relance.jours_avant|pluralize:"s" }}{% endif %}</span>
+          </div>
+          <div class="relance-actions">
+            <a class="btn-secondary-custom" href="{% url 'entreprises:detail' relance.prospection.pk %}"><i class="bi bi-eye" aria-hidden="true"></i> Voir la prospection</a>
+            <form method="post" action="{% url 'entreprises:mes_relance_creer' %}" class="relance-action-form">
+              {% csrf_token %}
+              <input type="hidden" name="prospection_id" value="{{ relance.prospection.pk }}">
+              <label class="visually-hidden" for="type-relance-avenir-{{ relance.prospection.pk }}">Type de relance</label>
+              <select class="form-select-custom" id="type-relance-avenir-{{ relance.prospection.pk }}" name="type"><option value="prospection">Prospection</option><option value="candidature">Candidature</option></select>
+              <label class="visually-hidden" for="date-relance-avenir-{{ relance.prospection.pk }}">Nouvelle échéance facultative</label>
+              <input class="form-input-custom" type="date" id="date-relance-avenir-{{ relance.prospection.pk }}" name="date_relance">
+              <button class="btn-accent-custom" type="submit"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Relancer</button>
+            </form>
+          </div>
+        </article>
+      {% endfor %}
     </div>
   {% else %}
-    <p class="text-body-secondary">Aucune relance prévue dans les 30 prochains jours.</p>
+    <p class="empty-state p-4 mb-0">Aucune relance prévue dans les 30 prochains jours.</p>
   {% endif %}
 </section>
 
-<section class="mt-5" aria-labelledby="titre-historique-relances">
-  <h2 class="h4" id="titre-historique-relances">Historique des relances réellement effectuées</h2>
+<section class="relances-section history" aria-labelledby="titre-historique-relances">
+  <div class="relances-header history">
+    <div class="relances-header-icon history" aria-hidden="true"><i class="bi bi-clock-history"></i></div>
+    <div>
+      <h2 class="relances-title" id="titre-historique-relances">Historique des relances réellement effectuées</h2>
+      <p class="relances-subtitle">Événements enregistrés</p>
+    </div>
+    <span class="relances-count">{{ historique_relances|length }} événements</span>
+  </div>
   {% if historique_relances %}
-    <ul class="list-group">
+    <div class="relances-list">
       {% for evenement in historique_relances %}
-        <li class="list-group-item">
-          <strong>{{ evenement.get_type_display }}</strong> — {{ evenement.prospection.entreprise.nom }}
-          <time datetime="{{ evenement.date_relance|date:'c' }}">{{ evenement.date_relance|date:"d/m/Y H:i" }}</time>
-          {% if evenement.contenu %}<p class="mb-0">{{ evenement.contenu }}</p>{% endif %}
-        </li>
+        <article class="relance-row history">
+          <div class="relance-main">
+            <div class="relance-company">{{ evenement.prospection.entreprise.nom }}</div>
+            <div class="relance-location">{{ evenement.get_type_display }}{% if evenement.contenu %} — {{ evenement.contenu }}{% endif %}</div>
+          </div>
+          <time class="relance-date" datetime="{{ evenement.date_relance|date:'c' }}">{{ evenement.date_relance|date:"d/m/Y H:i" }}</time>
+        </article>
       {% endfor %}
-    </ul>
-  {% else %}<p class="text-body-secondary">Aucune relance enregistrée pour le moment.</p>{% endif %}
+    </div>
+  {% else %}
+    <p class="empty-state p-4 mb-0">Aucune relance enregistrée pour le moment.</p>
+  {% endif %}
 </section>
 {% endblock %}

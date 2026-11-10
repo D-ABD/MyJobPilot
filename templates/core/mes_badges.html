@@ -2,53 +2,73 @@
 {% block title %}Mes badges — MyJobPilot{% endblock %}
 {% block content %}
 <section aria-labelledby="titre-mes-badges">
-  <h1 class="h2 mb-2" id="titre-mes-badges">Mes badges</h1>
-  <section class="card mb-4" aria-label="Ma progression">
-    <div class="card-body">
-      <h2 class="h4">🏆 Niveau : {{ progression.niveau.nom }}</h2>
-      {% if progression.niveau.est_max %}
-        <p>{{ progression.xp }} XP · Niveau maximum atteint</p>
-      {% else %}
-        <p>{{ progression.xp }} XP · {{ progression.niveau.xp_pour_suivant }} XP pour atteindre {{ progression.niveau.niveau_suivant_nom|default:"le prochain niveau" }}</p>
-      {% endif %}
-      <div class="progress mb-3" role="progressbar" aria-label="Progression vers le niveau suivant" aria-valuenow="{{ progression.niveau.progression_pourcentage }}" aria-valuemin="0" aria-valuemax="100">
-        <div class="progress-bar" style="width: {{ progression.niveau.progression_pourcentage }}%"></div>
+  <h1 class="h2 mb-4" id="titre-mes-badges">Mes badges</h1>
+
+  <section class="hero-xp mb-5" aria-label="Ma progression">
+    <div class="hero-xp-content">
+      <div class="hero-level">
+        <div class="hero-level-icon" aria-hidden="true"><i class="bi bi-trophy-fill"></i></div>
+        <div>
+          <div class="hero-xp-eyebrow">Mon niveau</div>
+          <h2 class="hero-level-name mb-0">Niveau : {{ progression.niveau.nom }}</h2>
+        </div>
       </div>
-      <p class="mb-0">{{ progression.points }} points · {{ progression.badges_obtenus }}/{{ progression.badges_total }} badges obtenus</p>
+      <div class="hero-xp-total"><span class="hero-xp-number">{{ progression.xp }}</span><span>XP</span></div>
+    </div>
+    {% if progression.niveau.est_max %}
+      <p class="hero-xp-subtitle"><i class="bi bi-trophy-fill" aria-hidden="true"></i> Niveau maximum atteint</p>
+    {% else %}
+      <p class="hero-xp-subtitle">{{ progression.niveau.xp_pour_suivant }} XP pour atteindre {{ progression.niveau.niveau_suivant_nom|default:"le prochain niveau" }}</p>
+    {% endif %}
+    <div class="hero-progress-bar" role="progressbar" aria-label="Progression vers le niveau suivant" aria-valuenow="{{ progression.niveau.progression_pourcentage }}" aria-valuemin="0" aria-valuemax="100">
+      <span class="hero-progress-fill" style="width: {{ progression.niveau.progression_pourcentage }}%;"></span>
+    </div>
+    <div class="hero-xp-footer">
+      <span>{{ progression.points }} points</span>
+      <span>{{ progression.badges_obtenus }}/{{ progression.badges_total }} badges obtenus</span>
     </div>
   </section>
 
   {% for categorie in categories_badges %}
-    <section class="mb-5" aria-labelledby="categorie-{{ categorie.valeur }}">
-      <h2 class="h4" id="categorie-{{ categorie.valeur }}">{{ categorie.libelle }}</h2>
-      <div class="row g-3">
+    <section class="badges-section" aria-labelledby="categorie-{{ categorie.valeur }}">
+      <h2 class="badges-section-title {% if categorie.valeur == 'prospection' %}prospection{% elif categorie.valeur == 'candidature' %}candidature{% else %}relance{% endif %}" id="categorie-{{ categorie.valeur }}">{{ categorie.libelle }}</h2>
+      <div class="badges-grid">
         {% for attribution in categorie.obtenus %}
-          <div class="col-12 col-md-6 col-lg-4">
-            <article id="badge-{{ attribution.badge.slug }}" class="card h-100 border-success">
-              <div class="card-body">
-                <div class="d-flex align-items-center gap-2">
-                  {% if attribution.badge.icone %}<i class="{{ attribution.badge.icone }}" aria-hidden="true"></i>{% endif %}
-                  <h3 class="h6 mb-0">{{ attribution.badge.nom }}</h3>
-                </div>
-                {% if attribution.badge.description %}<p class="mt-2 mb-1">{{ attribution.badge.description }}</p>{% endif %}
-                <p class="small text-body-secondary mb-0">Obtenu le {{ attribution.date_obtention|date:"d/m/Y" }} · {{ attribution.badge.valeur_points }} points</p>
-              </div>
-            </article>
-          </div>
+          <article id="badge-{{ attribution.badge.slug }}" class="badge-card">
+            <div class="badge-icon-lg {% if categorie.valeur == 'prospection' %}prospection{% elif categorie.valeur == 'candidature' %}candidature{% else %}relance{% endif %}" aria-hidden="true">
+              {% if attribution.badge.icone %}
+                <i class="{{ attribution.badge.icone }}"></i>
+              {% elif categorie.valeur == 'prospection' %}
+                <i class="bi bi-briefcase-fill"></i>
+              {% elif categorie.valeur == 'candidature' %}
+                <i class="bi bi-file-earmark-check-fill"></i>
+              {% else %}
+                <i class="bi bi-arrow-repeat"></i>
+              {% endif %}
+            </div>
+            <h3 class="badge-name-lg">{{ attribution.badge.nom }}</h3>
+            {% if attribution.badge.description %}<p class="badge-desc">{{ attribution.badge.description }}</p>{% endif %}
+            <p class="badge-date">Obtenu le {{ attribution.date_obtention|date:"d/m/Y" }} · {{ attribution.badge.valeur_points }} points</p>
+          </article>
         {% endfor %}
+
         {% for element in categorie.a_obtenir %}
-          <div class="col-12 col-md-6 col-lg-4">
-            <article id="badge-{{ element.badge.slug }}" class="card h-100 text-body-secondary">
-              <div class="card-body">
-                <div class="d-flex align-items-center gap-2">
-                  {% if element.badge.icone %}<i class="{{ element.badge.icone }} opacity-50" aria-hidden="true"></i>{% endif %}
-                  <h3 class="h6 mb-0">{{ element.badge.nom }}</h3>
-                </div>
-                {% if element.badge.description %}<p class="mt-2 mb-1">{{ element.badge.description }}</p>{% endif %}
-                <p class="small mb-0">Progression : {{ element.progression }}/{{ element.badge.seuil }}</p>
-              </div>
-            </article>
-          </div>
+          <article id="badge-{{ element.badge.slug }}" class="badge-card locked">
+            <div class="badge-icon-lg {% if categorie.valeur == 'prospection' %}prospection{% elif categorie.valeur == 'candidature' %}candidature{% else %}relance{% endif %}" aria-hidden="true">
+              {% if element.badge.icone %}
+                <i class="{{ element.badge.icone }}"></i>
+              {% elif categorie.valeur == 'prospection' %}
+                <i class="bi bi-briefcase-fill"></i>
+              {% elif categorie.valeur == 'candidature' %}
+                <i class="bi bi-file-earmark-check-fill"></i>
+              {% else %}
+                <i class="bi bi-arrow-repeat"></i>
+              {% endif %}
+            </div>
+            <h3 class="badge-name-lg">{{ element.badge.nom }}</h3>
+            {% if element.badge.description %}<p class="badge-desc">{{ element.badge.description }}</p>{% endif %}
+            <p class="badge-progress">Progression : {{ element.progression }}/{{ element.badge.seuil }}</p>
+          </article>
         {% endfor %}
       </div>
     </section>

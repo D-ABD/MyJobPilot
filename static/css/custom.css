@@ -403,3 +403,142 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* Lot 23d : échéances de relance et page des badges. */
+.relances-section {
+  margin-bottom: var(--space-6);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.relances-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-left: 4px solid var(--brand-500);
+  background: var(--surface-muted);
+}
+.relances-header.urgent { border-left-color: var(--danger); }
+.relances-header.upcoming { border-left-color: var(--info); }
+.relances-header.history { border-left-color: var(--border-strong); }
+.relances-header-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 1.1rem;
+}
+.relances-header-icon.urgent { background: var(--rose-50); color: var(--danger); }
+.relances-header-icon.upcoming { background: var(--sky-50); color: var(--info); }
+.relances-header-icon.history { background: var(--surface-raised); color: var(--text-muted); }
+.relances-title { margin: 0; color: var(--text); font-size: 1rem; font-weight: 700; }
+.relances-subtitle { margin: 2px 0 0; color: var(--text-muted); font-size: .82rem; }
+.relances-count {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: .82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.relances-list { padding: 0 var(--space-5); }
+.relance-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border);
+}
+.relance-row:last-child { border-bottom: 0; }
+.relance-main { min-width: 12rem; flex: 1 1 12rem; }
+.relance-company { color: var(--text); font-weight: 700; }
+.relance-location { margin-top: 3px; color: var(--text-muted); font-size: .82rem; }
+.relance-date-group { display: grid; justify-items: start; gap: var(--space-1); }
+.relance-date {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: .82rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.relance-date.overdue { background: var(--rose-50); color: var(--danger); }
+.relance-delay { color: var(--text-muted); font-size: .78rem; }
+.relance-actions { display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.relance-action-form { display: flex; flex: 1 1 27rem; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.relance-action-form .form-select-custom { width: auto; min-width: 9rem; }
+.relance-action-form .form-input-custom { width: auto; min-width: 10rem; }
+.relances-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3); padding: var(--space-4); color: var(--text-secondary); font-size: .86rem; }
+
+.badges-section { margin: 0 0 var(--space-8); }
+.badges-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0 0 var(--space-3);
+  border-bottom: 2px solid var(--border);
+  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 750;
+}
+.badges-section-title::before { width: 10px; height: 10px; border-radius: 50%; background: var(--brand-500); content: ""; }
+.badges-section-title.prospection::before { background: var(--brand-500); }
+.badges-section-title.candidature::before { background: var(--violet-500); }
+.badges-section-title.relance::before { background: var(--accent-500); }
+.badges-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: var(--space-4); }
+.badge-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--space-5);
+  scroll-margin-top: 6rem;
+}
+.badge-card.locked { background: var(--surface-muted); box-shadow: none; }
+.badge-icon-lg {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  margin-bottom: var(--space-4);
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 1.35rem;
+}
+.badge-icon-lg.prospection { background: var(--brand-50); color: var(--brand-600); }
+.badge-icon-lg.candidature { background: var(--violet-50); color: var(--violet-500); }
+.badge-icon-lg.relance { background: var(--accent-50); color: var(--success); }
+.badge-card.locked .badge-icon-lg { filter: grayscale(1); opacity: .62; }
+.badge-name-lg { margin: 0 0 var(--space-2); color: var(--text); font-size: 1rem; font-weight: 750; }
+.badge-desc { margin: 0 0 var(--space-3); color: var(--text-secondary); font-size: .86rem; line-height: 1.5; }
+.badge-date,
+.badge-progress { margin: auto 0 0; color: var(--text-muted); font-size: .8rem; }
+.badge-progress { padding: 6px 10px; border-radius: var(--radius-pill); background: var(--surface-raised); color: var(--text-secondary); font-weight: 650; }
+
+[data-bs-theme="dark"] .relances-section { border-color: var(--border); background: var(--surface); }
+[data-bs-theme="dark"] .relances-header { background: var(--surface-muted); }
+[data-bs-theme="dark"] .badge-card.locked { background: var(--surface-muted); }
+[data-bs-theme="dark"] .badge-progress { background: var(--surface-raised); }
+
+@media (max-width: 767.98px) {
+  .relances-header { padding: var(--space-3) var(--space-4); }
+  .relances-list { padding: 0 var(--space-4); }
+  .relance-row { align-items: flex-start; gap: var(--space-3); }
+  .relance-actions,
+  .relance-action-form { flex: 1 1 100%; }
+  .relance-action-form .form-select-custom,
+  .relance-action-form .form-input-custom { flex: 1 1 100%; width: 100%; }
+  .relance-actions > form:last-child { flex: 1 1 auto; }
+}
