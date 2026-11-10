@@ -2,13 +2,27 @@
   <div class="row g-3">
     {% for kpi in kpis %}
       <div class="col-6 col-xl-3">
-        <article class="card h-100 cockpit-kpi border-start border-4 border-{{ kpi.variant|default:'primary' }}">
-          <div class="card-body">
-            <h2 class="h6 text-body-secondary">{{ kpi.label }}</h2>
-            <p class="display-6 mb-0">{{ kpi.value }}</p>
-            {% if kpi.detail %}<p class="small text-body-secondary mb-0 mt-2">{{ kpi.detail }}</p>{% endif %}
-          </div>
-        </article>
+        {% if dashboard_style == "eleve" %}
+          <article class="kpi-card h-100">
+            <div class="kpi-icon" aria-hidden="true">
+              {% if forloop.counter == 1 %}<i class="bi bi-buildings"></i>
+              {% elif forloop.counter == 2 %}<i class="bi bi-send-check"></i>
+              {% elif forloop.counter == 3 %}<i class="bi bi-calendar2-check"></i>
+              {% else %}<i class="bi bi-reply-all"></i>{% endif %}
+            </div>
+            <h2 class="kpi-label">{{ kpi.label }}</h2>
+            <p class="kpi-value">{{ kpi.value }}</p>
+            {% if kpi.detail %}<p class="kpi-detail">{{ kpi.detail }}</p>{% endif %}
+          </article>
+        {% else %}
+          <article class="card h-100 cockpit-kpi border-start border-4 border-{{ kpi.variant|default:'primary' }}">
+            <div class="card-body">
+              <h2 class="h6 text-body-secondary">{{ kpi.label }}</h2>
+              <p class="display-6 mb-0">{{ kpi.value }}</p>
+              {% if kpi.detail %}<p class="small text-body-secondary mb-0 mt-2">{{ kpi.detail }}</p>{% endif %}
+            </div>
+          </article>
+        {% endif %}
       </div>
     {% endfor %}
   </div>

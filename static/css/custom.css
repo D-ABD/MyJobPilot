@@ -185,7 +185,28 @@ body {
   color: var(--text);
 }
 .kpi-card { padding: var(--space-5); }
+.kpi-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  margin-bottom: var(--space-4);
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 1.15rem;
+}
+.kpi-label { margin: 0 0 var(--space-2); color: var(--text-secondary); font-size: .82rem; font-weight: 600; }
+.kpi-value { margin: 0; color: var(--text); font-size: clamp(1.65rem, 3vw, 2.2rem); font-weight: 750; letter-spacing: -.035em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kpi-detail { margin: var(--space-3) 0 0; color: var(--text-muted); font-size: .8rem; }
 .progress-block { padding: var(--space-5); }
+.progress-block-content { min-width: 0; }
+.progress-block h3 { margin-bottom: var(--space-4); font-weight: 700; }
+.progress-bar-custom { height: 9px; overflow: hidden; border-radius: var(--radius-pill); background: var(--surface-muted); }
+.progress-fill-custom { display: block; height: 100%; border-radius: inherit; background: var(--brand-500); transition: width .25s ease; }
+.latest-badges-card { margin-top: var(--space-3); }
+.latest-badge-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); padding: 9px 0; border-bottom: 1px solid var(--border); }
+.latest-badge-row:last-child { border-bottom: 0; }
 .table-card { overflow: hidden; }
 .badge-card { padding: var(--space-4); }
 .filter-bar { padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
@@ -207,14 +228,41 @@ body {
 .form-select-custom:focus,
 .form-textarea-custom:focus { border-color: var(--brand-400); outline: 3px solid color-mix(in srgb, var(--brand-300) 30%, transparent); }
 .hero-xp { padding: clamp(20px, 4vw, 36px); border-radius: var(--radius-lg); background: linear-gradient(115deg, var(--brand-700), var(--brand-500)); color: var(--on-brand); box-shadow: var(--shadow-md); }
+.hero-xp-content { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.hero-level { display: flex; align-items: center; gap: var(--space-3); }
+.hero-level-icon { display: grid; width: 50px; height: 50px; flex: 0 0 50px; place-items: center; border: 1px solid color-mix(in srgb, var(--on-brand) 28%, transparent); border-radius: var(--radius-md); background: color-mix(in srgb, var(--on-brand) 12%, transparent); font-size: 1.35rem; }
+.hero-xp-eyebrow { color: color-mix(in srgb, var(--on-brand) 75%, transparent); font-size: .74rem; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+.hero-level-name { color: var(--on-brand); font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 750; }
+.hero-xp-total { display: flex; align-items: baseline; gap: var(--space-2); color: color-mix(in srgb, var(--on-brand) 82%, transparent); font-weight: 600; }
+.hero-xp-number { color: var(--on-brand); font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.hero-xp-subtitle { margin: var(--space-3) 0 var(--space-2); color: color-mix(in srgb, var(--on-brand) 88%, transparent); font-size: .88rem; }
+.hero-xp-subtitle i { margin-right: var(--space-1); }
+.hero-progress-bar { height: 9px; overflow: hidden; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--on-brand) 25%, transparent); }
+.hero-progress-fill { display: block; width: 100%; height: 100%; transform-origin: left center; border-radius: inherit; background: var(--on-brand); }
+.hero-xp-footer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin-top: var(--space-3); color: color-mix(in srgb, var(--on-brand) 88%, transparent); font-size: .82rem; }
+.hero-xp-footer a { margin-left: auto; color: var(--on-brand); font-weight: 650; text-decoration: none; }
+.hero-xp-footer a:hover { text-decoration: underline; }
 .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid transparent; border-radius: var(--radius-pill); font-size: .76rem; font-weight: 650; }
 .status-badge.contact { background: var(--sky-50); color: var(--info); }
 .status-badge.relancer { background: var(--amber-50); color: var(--warning); }
 .status-badge.candidature { background: var(--violet-50); color: var(--violet-500); }
+.status-badge.attente { background: var(--sky-50); color: var(--sky-500); }
 .status-badge.entretien { background: var(--sky-100); color: var(--info); }
 .status-badge.accepte { background: var(--accent-50); color: var(--success); }
 .status-badge.refus { background: var(--rose-50); color: var(--danger); }
 .status-badge.terminee { background: var(--surface-muted); color: var(--text-muted); }
+.status-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: currentColor; }
+.status-badge.contact .status-dot { background: var(--text-muted); }
+.status-badge.relancer .status-dot { background: var(--warning); }
+.status-badge.candidature .status-dot { background: var(--violet-500); }
+.status-badge.attente .status-dot { background: var(--sky-500); }
+.status-badge.entretien .status-dot { background: var(--sky-500); }
+.status-badge.accepte .status-dot { background: var(--success); }
+.status-badge.refus .status-dot { background: var(--danger); }
+.status-badge.terminee .status-dot { background: var(--text-muted); }
+.company-cell { min-width: 11rem; font-weight: 650; }
+.company-cell a { color: var(--brand-600); text-decoration: none; }
+.company-cell a:hover { text-decoration: underline; }
 
 /* Classes historiques utilisées par les pages internes : conservées et tokenisées. */
 .table-responsive { overflow-x: auto; }
@@ -286,6 +334,10 @@ body {
   .page-content { padding: var(--space-4); }
   .dashboard-table { min-width: 44rem; }
   .sidebar { width: min(var(--sidebar-width), calc(100vw - 48px)); }
+  .hero-xp-content { align-items: flex-start; flex-direction: column; }
+  .hero-xp-total { gap: var(--space-1); }
+  .hero-xp-footer { gap: var(--space-3); }
+  .hero-xp-footer a { width: 100%; margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }

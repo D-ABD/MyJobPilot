@@ -1,4 +1,4 @@
-<div class="table-responsive dashboard-table-wrap">
+<div class="table-responsive dashboard-table-wrap table-card">
   <table class="table table-hover align-middle dashboard-table">
     <caption class="visually-hidden">Prospections de {{ user.get_full_name|default:user.username }}</caption>
     <thead class="table-light">
@@ -15,24 +15,28 @@
     <tbody>
       {% for prospection in prospections %}
         <tr>
-          <th scope="row">
+          <th scope="row" class="company-cell">
             <a href="{% url 'entreprises:detail' prospection.pk %}">{{ prospection.entreprise.nom }}</a>
           </th>
           <td>{{ prospection.entreprise.secteur|default:"—" }}</td>
           <td>{{ prospection.entreprise.ville|default:"—" }}</td>
           <td>
             {% if prospection.statut == "a_contacter" %}
-              <span class="badge text-bg-secondary badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+              <span class="status-badge contact badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span>
             {% elif prospection.statut == "a_relancer" %}
-              <span class="badge text-bg-warning badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+              <span class="status-badge relancer badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span>
             {% elif prospection.statut == "candidature_envoyee" %}
-              <span class="badge text-bg-info badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+              <span class="status-badge candidature badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span>
             {% elif prospection.statut == "en_attente" %}
-              <span class="badge text-bg-primary badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+              <span class="status-badge attente badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span>
+            {% elif prospection.statut == "entretien_programme" %}
+              <span class="status-badge entretien badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span>
             {% elif prospection.statut == "refus" %}
-              <span class="badge text-bg-danger badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
-            {% else %}
-              <span class="badge text-bg-success badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+              <span class="status-badge refus badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span>
+            {% elif prospection.statut == "accepte" %}
+              <span class="status-badge accepte badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span>
+            {% elif prospection.statut == "terminee" %}
+              <span class="status-badge terminee badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span>
             {% endif %}
           </td>
           <td>{{ prospection.get_type_contrat_display }}</td>
