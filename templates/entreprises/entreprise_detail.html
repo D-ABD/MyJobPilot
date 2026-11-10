@@ -8,16 +8,16 @@
     <div>
       <p class="text-body-secondary mb-1">Prospection</p>
       <h1 class="h2" id="titre-entreprise">{{ prospection.entreprise.nom }}</h1>
-      <span class="badge text-bg-primary badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span>
+      <span class="status-badge {% if prospection.statut == 'a_contacter' %}contact{% elif prospection.statut == 'a_relancer' %}relancer{% elif prospection.statut == 'candidature_envoyee' %}candidature{% elif prospection.statut == 'en_attente' %}attente{% elif prospection.statut == 'entretien_programme' %}entretien{% elif prospection.statut == 'refus' %}refus{% elif prospection.statut == 'accepte' %}accepte{% elif prospection.statut == 'terminee' %}terminee{% endif %} badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span>
     </div>
     <div class="d-flex flex-wrap align-content-start gap-2" role="group" aria-label="Actions sur la prospection">
-      {% if request.user.role == "admin" or request.user == prospection.eleve %}<a class="btn btn-outline-primary" href="{% url 'entreprises:update' prospection.pk %}">Modifier</a>{% endif %}
-      {% if request.user.role == "admin" or request.user == prospection.eleve or request.user.role == "superviseur" %}<a class="btn btn-outline-secondary" href="{% url 'entreprises:changer_statut' prospection.pk %}">Changer de statut</a>{% endif %}
-      {% if request.user.role == "admin" or request.user == prospection.eleve %}<a class="btn btn-outline-danger" href="{% url 'entreprises:delete' prospection.pk %}">Supprimer</a>{% endif %}
+      {% if request.user.role == "admin" or request.user == prospection.eleve %}<a class="btn btn-primary-custom" href="{% url 'entreprises:update' prospection.pk %}">Modifier</a>{% endif %}
+      {% if request.user.role == "admin" or request.user == prospection.eleve or request.user.role == "superviseur" %}<a class="btn btn-secondary-custom" href="{% url 'entreprises:changer_statut' prospection.pk %}">Changer de statut</a>{% endif %}
+      {% if request.user.role == "admin" or request.user == prospection.eleve %}<a class="btn btn-danger-custom" href="{% url 'entreprises:delete' prospection.pk %}">Supprimer</a>{% endif %}
     </div>
   </div>
 
-  <div class="card mb-4">
+  <div class="table-card detail-card mb-4">
     <div class="card-header"><h2 class="h5 mb-0">Informations de l'entreprise</h2></div>
     <dl class="row card-body mb-0">
       <dt class="col-sm-4">Secteur</dt><dd class="col-sm-8">{{ prospection.entreprise.secteur|default:"—" }}</dd>
@@ -34,7 +34,7 @@
     </dl>
   </div>
 
-  <div class="card mb-4">
+  <div class="table-card detail-card mb-4">
     <div class="card-header"><h2 class="h5 mb-0">Ma démarche</h2></div>
     <dl class="row card-body mb-0">
       <dt class="col-sm-4">Type de contrat</dt><dd class="col-sm-8">{{ prospection.get_type_contrat_display }}</dd>
@@ -49,7 +49,7 @@
     </dl>
   </div>
 
-  <div class="card">
+  <div class="table-card detail-card">
     <div class="card-header"><h2 class="h5 mb-0">Historique des statuts</h2></div>
     {% if historique %}
       <div class="table-responsive">

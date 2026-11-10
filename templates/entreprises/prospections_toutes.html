@@ -2,37 +2,38 @@
 {% block title %}Prospections — MyJobPilot{% endblock %}
 {% block content %}
 <section aria-labelledby="titre-prospections">
+  {# Style migré pour tous les rôles en 23c. Les conditions d'action (permissions) restent inchangées. #}
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
       <h1 class="h2 mb-1" id="titre-prospections">{{ titre_prospections }}</h1>
       <p class="text-body-secondary mb-0">Prospections accessibles selon votre rôle et votre périmètre.</p>
     </div>
-    <a class="btn btn-primary" href="{% url 'entreprises:prospection_create_tout_role' %}">Nouvelle prospection</a>
+    <a class="btn btn-primary-custom" href="{% url 'entreprises:prospection_create_tout_role' %}">Nouvelle prospection</a>
   </div>
-  <form method="get" class="card card-body mb-4" aria-label="Filtres des prospections">
+  <form method="get" class="filter-bar mb-4" aria-label="Filtres des prospections">
     {% if mode_prospections %}<input type="hidden" name="{{ mode_prospections }}" value="1">{% endif %}
     <div class="row g-3 align-items-end">
       <div class="col-12 col-md-6 col-lg-3">
         <label class="form-label" for="filtre-statut-toutes">Statut</label>
-        <select class="form-select" id="filtre-statut-toutes" name="statut">
+        <select class="form-select filter-select" id="filtre-statut-toutes" name="statut">
           <option value="tous" {% if filtre_statut == "tous" %}selected{% endif %}>Tous les statuts</option>
           {% for code, libelle in statuts %}<option value="{{ code }}" {% if filtre_statut == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-12 col-md-6 col-lg-3">
         <label class="form-label" for="filtre-type-toutes">Type de contrat</label>
-        <select class="form-select" id="filtre-type-toutes" name="type_contrat">
+        <select class="form-select filter-select" id="filtre-type-toutes" name="type_contrat">
           <option value="tous" {% if filtre_type_contrat == "tous" %}selected{% endif %}>Tous les types</option>
           {% for code, libelle in types_contrat %}<option value="{{ code }}" {% if filtre_type_contrat == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-12 col-md-6 col-lg-3">
         <label class="form-label" for="filtre-q-toutes">Entreprise</label>
-        <input class="form-control" type="search" id="filtre-q-toutes" name="q" value="{{ filtre_q }}">
+        <input class="form-control filter-input" type="search" id="filtre-q-toutes" name="q" value="{{ filtre_q }}">
       </div>
       <div class="col-6 col-md-3 col-lg-1">
         <label class="form-label" for="filtre-tri-toutes">Tri</label>
-        <select class="form-select" id="filtre-tri-toutes" name="tri">
+        <select class="form-select filter-select" id="filtre-tri-toutes" name="tri">
           <option value="date_creation" {% if filtre_tri == "date_creation" %}selected{% endif %}>Création</option>
           <option value="-date_modification" {% if filtre_tri == "-date_modification" %}selected{% endif %}>Modification</option>
           <option value="entreprise__nom" {% if filtre_tri == "entreprise__nom" %}selected{% endif %}>Entreprise</option>
@@ -41,20 +42,20 @@
       </div>
       <div class="col-6 col-md-3 col-lg-1">
         <label class="form-label" for="filtre-ordre-toutes">Ordre</label>
-        <select class="form-select" id="filtre-ordre-toutes" name="ordre">
+        <select class="form-select filter-select" id="filtre-ordre-toutes" name="ordre">
           <option value="asc" {% if filtre_ordre == "asc" %}selected{% endif %}>Croissant</option>
           <option value="desc" {% if filtre_ordre == "desc" %}selected{% endif %}>Décroissant</option>
         </select>
       </div>
       <div class="col-12 d-flex gap-2">
-        <button class="btn btn-primary" type="submit">Filtrer</button>
-        <a class="btn btn-outline-secondary" href="{{ url_reset }}">Réinitialiser</a>
+        <button class="btn btn-primary-custom" type="submit">Filtrer</button>
+        <a class="btn btn-secondary-custom" href="{{ url_reset }}">Réinitialiser</a>
       </div>
     </div>
   </form>
   <p class="text-body-secondary" aria-live="polite">{{ total_count }} prospection{{ total_count|pluralize:"s" }}</p>
   {% if prospections %}
-    <div class="table-responsive">
+    <div class="table-responsive table-card">
       <table class="table table-hover align-middle">
         <caption class="visually-hidden">Prospections visibles par {{ request.user.username }}</caption>
         <thead class="table-light"><tr><th scope="col">Propriétaire</th><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Statut</th><th scope="col">Type de contrat</th><th scope="col">Modifiée le</th><th scope="col">Actions</th></tr></thead>
@@ -62,23 +63,23 @@
           {% for prospection in prospections %}
             <tr>
               <td>{{ prospection.eleve.get_full_name|default:prospection.eleve.username }}</td>
-              <th scope="row">{{ prospection.entreprise.nom }}</th>
+              <th scope="row" class="company-cell">{{ prospection.entreprise.nom }}</th>
               <td>{{ prospection.entreprise.ville|default:"—" }}</td>
-              <td><span class="badge badge-statut-{{ prospection.statut }}">{{ prospection.get_statut_display }}</span></td>
+              <td><span class="status-badge {% if prospection.statut == 'a_contacter' %}contact{% elif prospection.statut == 'a_relancer' %}relancer{% elif prospection.statut == 'candidature_envoyee' %}candidature{% elif prospection.statut == 'en_attente' %}attente{% elif prospection.statut == 'entretien_programme' %}entretien{% elif prospection.statut == 'refus' %}refus{% elif prospection.statut == 'accepte' %}accepte{% elif prospection.statut == 'terminee' %}terminee{% endif %} badge-statut-{{ prospection.statut }}"><span class="status-dot" aria-hidden="true"></span>{{ prospection.get_statut_display }}</span></td>
               <td>{{ prospection.get_type_contrat_display }}</td>
               <td><time datetime="{{ prospection.date_modification|date:'c' }}">{{ prospection.date_modification|date:"d/m/Y H:i" }}</time></td>
               <td><div class="table-actions" role="group" aria-label="Actions pour {{ prospection.entreprise.nom }}">
                 {% if request.user.role == "admin" %}
-                  <a class="btn btn-sm btn-outline-primary" href="{% url 'admin_dashboard:prospection_detail' prospection.pk %}">Détail</a>
+                  <a class="btn btn-sm btn-secondary-custom" href="{% url 'admin_dashboard:prospection_detail' prospection.pk %}">Détail</a>
                 {% else %}
-                  <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:detail' prospection.pk %}">Détail</a>
+                  <a class="btn btn-sm btn-secondary-custom" href="{% url 'entreprises:detail' prospection.pk %}">Détail</a>
                 {% endif %}
                 {% if request.user.role == "admin" or request.user == prospection.eleve %}
-                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'entreprises:update' prospection.pk %}">Modifier</a>
-                  <a class="btn btn-sm btn-outline-danger" href="{% url 'entreprises:delete' prospection.pk %}">Supprimer</a>
+                  <a class="btn btn-sm btn-secondary-custom" href="{% url 'entreprises:update' prospection.pk %}">Modifier</a>
+                  <a class="btn btn-sm btn-danger-custom" href="{% url 'entreprises:delete' prospection.pk %}">Supprimer</a>
                 {% endif %}
                 {% if request.user.role == "admin" or request.user == prospection.eleve or request.user.role == "superviseur" %}
-                  <a class="btn btn-sm btn-outline-info" href="{% url 'entreprises:changer_statut' prospection.pk %}">Changer le statut</a>
+                  <a class="btn btn-sm btn-secondary-custom" href="{% url 'entreprises:changer_statut' prospection.pk %}">Changer le statut</a>
                 {% endif %}
               </div></td>
             </tr>
@@ -86,16 +87,7 @@
         </tbody>
       </table>
     </div>
-    {% if page_obj.paginator.num_pages > 1 %}
-      <nav aria-label="Pagination des prospections">
-        <ul class="pagination">
-          {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page=1">Première</a></li>{% endif %}
-          {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a></li>{% endif %}
-          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span></li>
-          {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li><li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.paginator.num_pages }}">Dernière</a></li>{% endif %}
-        </ul>
-      </nav>
-    {% endif %}
+    {% include "entreprises/_pagination.html" with pagination_titre="Pagination des prospections" %}
   {% elif total_count %}
     <p class="alert alert-info" role="status">Aucun résultat pour ces filtres.</p>
   {% else %}

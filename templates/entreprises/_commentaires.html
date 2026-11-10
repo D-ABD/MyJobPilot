@@ -1,30 +1,32 @@
-<section class="card mt-4" aria-labelledby="titre-commentaires-{{ prospection.pk }}">
-  <div class="card-header">
+{# Migré en 23c — l'habillage est visible aussi sur la fiche
+   staff/detail_eleve. 23f uniformisera le reste de la fiche. #}
+<section class="table-card comments-card mt-4" aria-labelledby="titre-commentaires-{{ prospection.pk }}">
+  <div class="comments-card-header">
     <h2 class="h5 mb-0" id="titre-commentaires-{{ prospection.pk }}">Commentaires</h2>
   </div>
-  <div class="card-body">
+  <div class="comments-card-body">
     {% for commentaire in prospection.commentaires.all %}
-      <article class="border-bottom pb-3 mb-3">
-        <div class="d-flex justify-content-between gap-3">
+      <article class="comment-item">
+        <div class="comment-meta">
           <p class="mb-1"><strong>{{ commentaire.auteur.get_full_name|default:commentaire.auteur.username }}</strong></p>
           <time class="small text-body-secondary" datetime="{{ commentaire.date|date:'c' }}">{{ commentaire.date|date:"d/m/Y H:i" }}</time>
         </div>
-        <p class="mb-2">{{ commentaire.contenu|linebreaksbr }}</p>
+        <p class="comment-content">{{ commentaire.contenu|linebreaksbr }}</p>
         {% if request.user.role == "admin" or commentaire.auteur_id == request.user.id %}
           <form method="post" action="{% url 'entreprises:commentaire_supprimer' commentaire.pk %}">
             {% csrf_token %}
-            <button class="btn btn-sm btn-outline-danger" type="submit">Supprimer</button>
+            <button class="btn btn-sm btn-danger-custom" type="submit">Supprimer</button>
           </form>
         {% endif %}
       </article>
     {% empty %}
       <p class="text-body-secondary">Aucun commentaire pour cette prospection.</p>
     {% endfor %}
-    <form method="post" action="{% url 'entreprises:commentaire_ajouter' prospection.pk %}">
+    <form method="post" action="{% url 'entreprises:commentaire_ajouter' prospection.pk %}" class="comment-form">
       {% csrf_token %}
       <label class="form-label" for="commentaire-{{ prospection.pk }}">Ajouter un commentaire</label>
-      <textarea class="form-control mb-2" id="commentaire-{{ prospection.pk }}" name="contenu" rows="3" required></textarea>
-      <button class="btn btn-primary" type="submit">Publier</button>
+      <textarea class="form-control form-textarea-custom mb-2" id="commentaire-{{ prospection.pk }}" name="contenu" rows="3" required></textarea>
+      <button class="btn btn-primary-custom" type="submit">Publier</button>
     </form>
   </div>
 </section>

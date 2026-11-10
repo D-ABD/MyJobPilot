@@ -8,35 +8,35 @@
       <p class="text-body-secondary mb-0">Référentiel des entreprises liées aux prospections accessibles selon votre rôle.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-      {% if request.user.role == "admin" %}<a class="btn btn-primary" href="{% url 'entreprises:reference_create' %}">Nouvelle entreprise</a>{% endif %}
-      <a class="btn btn-outline-primary" href="{% url 'entreprises:export_csv' %}?{{ request.GET.urlencode }}">Exporter en CSV</a>
-      <a class="btn btn-outline-secondary" href="{% url 'api_entreprises' %}?{{ request.GET.urlencode }}">API JSON</a>
+      {% if request.user.role == "admin" %}<a class="btn btn-primary-custom" href="{% url 'entreprises:reference_create' %}">Nouvelle entreprise</a>{% endif %}
+      <a class="btn btn-primary-custom" href="{% url 'entreprises:export_csv' %}?{{ request.GET.urlencode }}">Exporter en CSV</a>
+      <a class="btn btn-secondary-custom" href="{% url 'api_entreprises' %}?{{ request.GET.urlencode }}">API JSON</a>
     </div>
   </div>
 
-  <form method="get" class="card card-body mb-4" aria-label="Filtres des entreprises">
+  <form method="get" class="filter-bar mb-4" aria-label="Filtres des entreprises">
     <div class="row g-3 align-items-end">
       <div class="col-12 col-md-6">
         <label class="form-label" for="filtre-entreprise-q">Recherche</label>
-        <input class="form-control" id="filtre-entreprise-q" type="search" name="q" value="{{ filtre_q }}" placeholder="Nom, secteur ou ville">
+        <input class="form-control filter-input" id="filtre-entreprise-q" type="search" name="q" value="{{ filtre_q }}" placeholder="Nom, secteur ou ville">
       </div>
       <div class="col-12 col-md-6 col-lg-2">
         <label class="form-label" for="filtre-entreprise-secteur">Secteur</label>
-        <select class="form-select" id="filtre-entreprise-secteur" name="secteur">
+        <select class="form-select filter-select" id="filtre-entreprise-secteur" name="secteur">
           <option value="">Tous les secteurs</option>
           {% for valeur in secteurs %}<option value="{{ valeur }}" {% if filtre_secteur == valeur %}selected{% endif %}>{{ valeur }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-12 col-md-6 col-lg-2">
         <label class="form-label" for="filtre-entreprise-ville">Ville</label>
-        <select class="form-select" id="filtre-entreprise-ville" name="ville">
+        <select class="form-select filter-select" id="filtre-entreprise-ville" name="ville">
           <option value="">Toutes les villes</option>
           {% for valeur in villes %}<option value="{{ valeur }}" {% if filtre_ville == valeur %}selected{% endif %}>{{ valeur }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-6 col-md-3 col-lg-2">
         <label class="form-label" for="filtre-entreprise-tri">Tri</label>
-        <select class="form-select" id="filtre-entreprise-tri" name="tri">
+        <select class="form-select filter-select" id="filtre-entreprise-tri" name="tri">
           <option value="nom" {% if tri == "nom" %}selected{% endif %}>Nom</option>
           <option value="ville" {% if tri == "ville" %}selected{% endif %}>Ville</option>
           <option value="date_creation" {% if tri == "date_creation" %}selected{% endif %}>Date d'ajout</option>
@@ -44,21 +44,21 @@
       </div>
       <div class="col-6 col-md-3 col-lg-2">
         <label class="form-label" for="filtre-entreprise-ordre">Ordre</label>
-        <select class="form-select" id="filtre-entreprise-ordre" name="ordre">
+        <select class="form-select filter-select" id="filtre-entreprise-ordre" name="ordre">
           <option value="asc" {% if ordre == "asc" %}selected{% endif %}>Croissant</option>
           <option value="desc" {% if ordre == "desc" %}selected{% endif %}>Décroissant</option>
         </select>
       </div>
       <div class="col-12 d-flex flex-wrap gap-2">
-        <button class="btn btn-primary" type="submit">Filtrer</button>
-        <a class="btn btn-outline-secondary" href="/entreprises-reference/">Réinitialiser les filtres</a>
+        <button class="btn btn-primary-custom" type="submit">Filtrer</button>
+        <a class="btn btn-secondary-custom" href="/entreprises-reference/">Réinitialiser les filtres</a>
       </div>
     </div>
   </form>
 
   <p class="text-body-secondary" aria-live="polite">{{ total_count }} entreprise{{ total_count|pluralize:"s" }}</p>
   {% if entreprises %}
-    <div class="table-responsive">
+    <div class="table-responsive table-card">
       <table class="table table-hover align-middle">
         <caption class="visually-hidden">Entreprises visibles par {{ request.user.username }}</caption>
         <thead class="table-light">
@@ -74,38 +74,24 @@
         <tbody>
           {% for entreprise in entreprises %}
             <tr>
-              <th scope="row">{{ entreprise.nom }}</th>
+              <th scope="row" class="company-cell">{{ entreprise.nom }}</th>
               <td>{{ entreprise.secteur|default:"—" }}</td>
               <td>{{ entreprise.ville|default:"—" }}</td>
               <td><time datetime="{{ entreprise.date_creation|date:'c' }}">{{ entreprise.date_creation|date:"d/m/Y" }}</time></td>
               <td>{{ entreprise.nb_prospections }}</td>
-              <td class="d-flex flex-wrap gap-1">
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'entreprises:reference_detail' entreprise.pk %}">Voir détails</a>
+              <td><div class="table-actions">
+                <a class="btn btn-sm btn-secondary-custom" href="{% url 'entreprises:reference_detail' entreprise.pk %}">Voir détails</a>
                 {% if request.user.role == "admin" %}
-                  <a class="btn btn-sm btn-outline-secondary" href="{% url 'entreprises:reference_update' entreprise.pk %}">Modifier</a>
-                  <a class="btn btn-sm btn-outline-danger" href="{% url 'entreprises:reference_delete' entreprise.pk %}">Supprimer</a>
+                  <a class="btn btn-sm btn-secondary-custom" href="{% url 'entreprises:reference_update' entreprise.pk %}">Modifier</a>
+                  <a class="btn btn-sm btn-danger-custom" href="{% url 'entreprises:reference_delete' entreprise.pk %}">Supprimer</a>
                 {% endif %}
-              </td>
+              </div></td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    {% if page_obj.paginator.num_pages > 1 %}
-      <nav aria-label="Pagination des entreprises">
-        <ul class="pagination flex-wrap">
-          {% if page_obj.has_previous %}
-            <li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page=1">Première</a></li>
-            <li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédente</a></li>
-          {% endif %}
-          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span></li>
-          {% if page_obj.has_next %}
-            <li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivante</a></li>
-            <li class="page-item"><a class="page-link" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.paginator.num_pages }}">Dernière</a></li>
-          {% endif %}
-        </ul>
-      </nav>
-    {% endif %}
+    {% include "entreprises/_pagination.html" with pagination_titre="Pagination des entreprises" %}
   {% else %}
     <div class="text-center border rounded p-5" role="status">
       <i class="bi bi-inbox fs-1 text-body-secondary" aria-hidden="true"></i>
