@@ -9,5 +9,6 @@ class NavigationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         lien = f'href="{reverse("core:offres_alternance")}"'
         contenu = response.content.decode()
-        self.assertEqual(contenu.count(lien), 2)
-        self.assertEqual(contenu.count("Offres d'alternance"), 2)
+        # Sidebar unifiée depuis Lot 23a — le lien n'apparaît plus qu'une fois, dans la sidebar partagée.
+        self.assertEqual(contenu.count(lien), 1)
+        self.assertEqual(contenu.count("Offres d'alternance"), 1)

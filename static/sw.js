@@ -1,8 +1,9 @@
-const CACHE_NAME = "myjobpilot-shell-v3";
+const CACHE_NAME = "myjobpilot-shell-v4";
 const SHELL_ASSETS = [
   "/",
   "/offline/",
   "/static/css/custom.css",
+  "/static/css/tokens.css",
   "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
   "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
 ];

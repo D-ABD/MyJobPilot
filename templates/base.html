@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Application de prospection d'alternance MyJobPilot">
-  <meta name="theme-color" content="#0d6efd">
+  <meta name="theme-color" content="#18213a">
   <link rel="manifest" href="{% url 'manifest' %}">
   <title>{% block title %}MyJobPilot{% endblock %}</title>
   <script>
@@ -19,285 +19,254 @@
   </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{% static 'css/tokens.css' %}" rel="stylesheet">
   <link href="{% static 'css/custom.css' %}" rel="stylesheet">
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
-  <header>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary" aria-label="Navigation principale">
-      <div class="container">
-        <a class="navbar-brand" href="{% url 'comptes:accueil' %}">MyJobPilot</a>
-        <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuPrincipalMobile" aria-controls="menuPrincipalMobile" aria-label="Ouvrir le menu">
-          <span class="navbar-toggler-icon"></span>
+  <div class="app-shell">
+    <button class="sidebar-overlay" type="button" aria-label="Fermer la navigation" hidden></button>
+    <aside class="sidebar" id="app-sidebar" aria-label="Navigation principale">
+      <a class="sidebar-brand" href="{% url 'comptes:accueil' %}">
+        <span class="sidebar-brand-mark" aria-hidden="true"><i class="bi bi-compass-fill"></i></span>
+        <span>MyJobPilot</span>
+      </a>
+
+      {% if user.is_authenticated %}
+        <nav aria-label="Navigation principale">
+          <section class="sidebar-section" aria-labelledby="nav-principal-label">
+            <h2 class="sidebar-section-title" id="nav-principal-label">Principal</h2>
+            {% if user.role == "eleve" and user.is_valide %}
+              <a class="nav-link-custom" href="{% url 'entreprises:dashboard' %}"><i class="bi bi-house-door" aria-hidden="true"></i>Mon dashboard</a>
+            {% elif user.role == "superviseur" or user.role == "admin" %}
+              <a class="nav-link-custom" href="{% url 'entreprises:hub' %}"><i class="bi bi-grid" aria-hidden="true"></i>Hub</a>
+            {% endif %}
+            <a class="nav-link-custom" href="{% url 'entreprises:prospections_toutes' %}"><i class="bi bi-kanban" aria-hidden="true"></i>Prospections</a>
+            <a class="nav-link-custom" href="{% url 'entreprises:reference' %}"><i class="bi bi-building" aria-hidden="true"></i>Entreprises</a>
+            <a class="nav-link-custom" href="{% url 'core:taches_liste' %}"><i class="bi bi-check2-square" aria-hidden="true"></i>Mes tâches<span id="taches-count" class="badge rounded-pill text-bg-warning nav-counter d-none" aria-live="polite">0</span><span id="taches-count-mobile" class="visually-hidden">0</span></a>
+            <a class="nav-link-custom" href="{% url 'entreprises:mes_relances' %}" title="0 en retard, 0 à venir"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Mes relances<span id="relances-count" class="badge rounded-pill text-bg-danger nav-counter d-none" aria-live="polite">0</span><span id="relances-count-mobile" class="visually-hidden">0</span></a>
+            <a class="nav-link-custom" href="{% url 'objectifs:liste' %}"><i class="bi bi-bullseye" aria-hidden="true"></i>Objectifs</a>
+            {% if user.role == "superviseur" %}
+              <a class="nav-link-custom" href="{% url 'staff:dashboard' %}"><i class="bi bi-people" aria-hidden="true"></i>Mes élèves</a>
+            {% elif user.role == "admin" %}
+              <a class="nav-link-custom" href="{% url 'admin_dashboard:dashboard' %}"><i class="bi bi-speedometer2" aria-hidden="true"></i>Dashboard admin</a>
+            {% endif %}
+          </section>
+
+          <section class="sidebar-section" aria-labelledby="nav-decouvrir-label">
+            <h2 class="sidebar-section-title" id="nav-decouvrir-label">Découvrir</h2>
+            <a class="nav-link-custom" href="{% url 'core:offres_alternance' %}"><i class="bi bi-briefcase" aria-hidden="true"></i>Offres d'alternance</a>
+            <a class="nav-link-custom" href="{% url 'core:mes_offres_enregistrees' %}"><i class="bi bi-bookmark" aria-hidden="true"></i>Mes offres enregistrées</a>
+          </section>
+
+          <section class="sidebar-section" aria-labelledby="nav-compte-label">
+            <h2 class="sidebar-section-title" id="nav-compte-label">Compte</h2>
+            <a class="nav-link-custom" href="{% url 'comptes:notifications' %}"><i class="bi bi-bell" aria-hidden="true"></i>Notifications<span id="notifications-count-mobile" class="badge rounded-pill text-bg-danger nav-counter{% if not notifications_non_lues %} d-none{% endif %}" aria-live="polite">{{ notifications_non_lues }}</span></a>
+            <a class="nav-link-custom" href="{% url 'comptes:mon_compte' %}"><i class="bi bi-person-circle" aria-hidden="true"></i>Mon profil</a>
+            {% if user.role == "eleve" %}
+              <a class="nav-link-custom" href="{% url 'documents:list' %}"><i class="bi bi-folder2" aria-hidden="true"></i>Mes documents</a>
+              <a class="nav-link-custom" href="{% url 'rgpd:demandes_rgpd_list' %}"><i class="bi bi-shield-check" aria-hidden="true"></i>Mes demandes RGPD</a>
+            {% elif user.role == "admin" %}
+              <a class="nav-link-custom" href="{% url 'rgpd:admin_demandes_rgpd_list' %}"><i class="bi bi-shield-check" aria-hidden="true"></i>Demandes RGPD</a>
+            {% endif %}
+          </section>
+        </nav>
+      {% else %}
+        <nav class="sidebar-section" aria-label="Navigation publique">
+          <h2 class="sidebar-section-title">Découvrir</h2>
+          <a class="nav-link-custom" href="{% url 'core:offres_alternance' %}"><i class="bi bi-briefcase" aria-hidden="true"></i>Offres d'alternance</a>
+          <h2 class="sidebar-section-title mt-4">Compte</h2>
+          <a class="nav-link-custom" href="{% url 'comptes:connexion' %}"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>Connexion</a>
+          <a class="nav-link-custom" href="{% url 'comptes:inscription' %}"><i class="bi bi-person-plus" aria-hidden="true"></i>Inscription</a>
+        </nav>
+      {% endif %}
+
+      <div class="sidebar-spacer"></div>
+      {% if user.is_authenticated %}
+        <div class="sidebar-user">
+          <span class="sidebar-user-avatar" aria-hidden="true">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>
+          <div class="min-w-0 flex-grow-1">
+            <div class="sidebar-user-name">{{ user.get_full_name|default:user.username }}</div>
+            <div class="sidebar-user-role">{{ user.get_role_display|default:"Compte actif" }}</div>
+          </div>
+        </div>
+        <form method="post" action="{% url 'comptes:deconnexion' %}" class="mt-2">
+          {% csrf_token %}
+          <button class="nav-link-custom w-100 border-0 bg-transparent text-start" type="submit" aria-label="Se déconnecter"><i class="bi bi-box-arrow-left" aria-hidden="true"></i>Déconnexion</button>
+        </form>
+      {% endif %}
+      <div class="mobile-only mt-3">
+        <button id="theme-toggle-mobile" class="nav-link-custom w-100 border-0 bg-transparent text-start" type="button" aria-label="Changer de thème" title="Changer de thème">
+          <i class="bi bi-moon-fill" id="theme-icon-mobile" aria-hidden="true"></i><span>Mode sombre / clair</span>
         </button>
-
-        <div class="navbar-collapse d-none d-lg-flex" id="menuPrincipalDesktop">
-          {% if user.is_authenticated %}
-            <form class="d-flex ms-lg-3 me-auto" role="search" action="{% url 'core:recherche' %}" method="get">
-              <input class="form-control me-2" type="search" name="q" placeholder="Rechercher..." aria-label="Rechercher">
-              <button class="btn btn-outline-light" type="submit">Rechercher</button>
-            </form>
-          {% endif %}
-          <ul class="navbar-nav ms-auto align-items-lg-center">
-            <li class="nav-item"><a class="nav-link" href="{% url 'core:offres_alternance' %}"><i class="bi bi-briefcase me-1" aria-hidden="true"></i>Offres d'alternance</a></li>
-            {% if user.is_authenticated %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}" aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i><span class="visually-hidden">Notifications</span> <span id="notifications-count" class="badge rounded-pill text-bg-danger{% if not notifications_non_lues %} d-none{% endif %}" aria-live="polite">{{ notifications_non_lues }}</span></a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:reference' %}">Entreprises</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'core:taches_liste' %}">Mes tâches <span id="taches-count" class="badge rounded-pill text-bg-warning d-none" aria-live="polite">0</span></a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'core:mes_offres_enregistrees' %}">Mes offres enregistrées</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:mes_relances' %}" title="0 en retard, 0 à venir">Mes relances <span id="relances-count" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'objectifs:liste' %}">Objectifs</a></li>
-              {% if user.role == "superviseur" or user.role == "admin" %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:hub' %}">Hub</a></li>
-              {% elif user.role == "eleve" and user.is_valide %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:dashboard' %}">Mon dashboard</a></li>
-              {% endif %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'comptes:mon_compte' %}">Mon profil</a></li>
-              {% if user.role == "eleve" %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'documents:list' %}">Mes documents</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'rgpd:demandes_rgpd_list' %}">Mes demandes RGPD</a></li>
-              {% elif user.role == "superviseur" %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'staff:dashboard' %}">Mes élèves</a></li>
-              {% elif user.role == "admin" %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'admin_dashboard:dashboard' %}">Dashboard admin</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'rgpd:admin_demandes_rgpd_list' %}">Demandes RGPD</a></li>
-              {% endif %}
-              <li class="nav-item">
-                <form method="post" action="{% url 'comptes:deconnexion' %}" class="d-inline">
-                  {% csrf_token %}
-                  <button class="nav-link btn btn-link text-white text-decoration-none" type="submit" aria-label="Se déconnecter">Déconnexion</button>
-                </form>
-              </li>
-            {% else %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'comptes:connexion' %}">Connexion</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'comptes:inscription' %}">Inscription</a></li>
-            {% endif %}
-            <li class="nav-item ms-lg-2">
-              <button id="theme-toggle" class="btn btn-outline-light btn-sm" type="button" aria-label="Changer de thème" title="Changer de thème">
-                <i class="bi bi-moon-fill" id="theme-icon" aria-hidden="true"></i>
-              </button>
-            </li>
-          </ul>
-        </div>
-
-        <div class="offcanvas offcanvas-end text-bg-primary d-lg-none" tabindex="-1" id="menuPrincipalMobile" aria-labelledby="titreMenuMobile">
-          <div class="offcanvas-header">
-            <h2 class="offcanvas-title fs-5" id="titreMenuMobile">Menu</h2>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Fermer le menu"></button>
-          </div>
-          <div class="offcanvas-body">
-            {% if user.is_authenticated %}
-              <form class="d-flex mb-3" role="search" action="{% url 'core:recherche' %}" method="get">
-                <input class="form-control me-2" type="search" name="q" placeholder="Rechercher..." aria-label="Rechercher">
-                <button class="btn btn-outline-light" type="submit">Rechercher</button>
-              </form>
-            {% endif %}
-            <ul class="navbar-nav">
-              <li class="nav-item"><a class="nav-link" href="{% url 'core:offres_alternance' %}"><i class="bi bi-briefcase me-1" aria-hidden="true"></i>Offres d'alternance</a></li>
-              {% if user.is_authenticated %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:notifications' %}"><i class="bi bi-bell" aria-hidden="true"></i> Notifications <span id="notifications-count-mobile" class="badge rounded-pill text-bg-danger{% if not notifications_non_lues %} d-none{% endif %}" aria-live="polite">{{ notifications_non_lues }}</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:prospections_toutes' %}">Prospections</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:reference' %}">Entreprises</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'core:taches_liste' %}">Mes tâches <span id="taches-count-mobile" class="badge rounded-pill text-bg-warning d-none" aria-live="polite">0</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'core:mes_offres_enregistrees' %}">Mes offres enregistrées</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:mes_relances' %}" title="0 en retard, 0 à venir">Mes relances <span id="relances-count-mobile" class="badge rounded-pill text-bg-danger d-none" aria-live="polite">0</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'objectifs:liste' %}">Objectifs</a></li>
-                {% if user.role == "superviseur" or user.role == "admin" %}
-                  <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:hub' %}">Hub</a></li>
-                {% elif user.role == "eleve" and user.is_valide %}
-                  <li class="nav-item"><a class="nav-link" href="{% url 'entreprises:dashboard' %}">Mon dashboard</a></li>
-                {% endif %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:mon_compte' %}">Mon profil</a></li>
-                {% if user.role == "eleve" %}
-                  <li class="nav-item"><a class="nav-link" href="{% url 'documents:list' %}">Mes documents</a></li>
-                  <li class="nav-item"><a class="nav-link" href="{% url 'rgpd:demandes_rgpd_list' %}">Mes demandes RGPD</a></li>
-                {% elif user.role == "superviseur" %}
-                  <li class="nav-item"><a class="nav-link" href="{% url 'staff:dashboard' %}">Mes élèves</a></li>
-                {% elif user.role == "admin" %}
-                  <li class="nav-item"><a class="nav-link" href="{% url 'admin_dashboard:dashboard' %}">Dashboard admin</a></li>
-                  <li class="nav-item"><a class="nav-link" href="{% url 'rgpd:admin_demandes_rgpd_list' %}">Demandes RGPD</a></li>
-                {% endif %}
-                <li class="nav-item mt-2">
-                  <form method="post" action="{% url 'comptes:deconnexion' %}">
-                    {% csrf_token %}
-                    <button class="btn btn-outline-light" type="submit" aria-label="Se déconnecter">Déconnexion</button>
-                  </form>
-                </li>
-              {% else %}
-                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:connexion' %}">Connexion</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'comptes:inscription' %}">Inscription</a></li>
-              {% endif %}
-              <li class="nav-item mt-2">
-                <button id="theme-toggle-mobile" class="btn btn-outline-light btn-sm" type="button" aria-label="Changer de thème" title="Changer de thème">
-                  <i class="bi bi-moon-fill" id="theme-icon-mobile" aria-hidden="true"></i>
-                  <span class="ms-1">Mode sombre / clair</span>
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
       </div>
-    </nav>
-  </header>
-  <main class="container py-4">
-    {% if messages %}
-      <div aria-label="Messages de notification">
-        {% for message in messages %}
-          <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show d-flex align-items-start gap-2" role="alert">
-            {% if message.tags == "success" %}
-              <i class="bi bi-check-circle" aria-hidden="true"></i>
-            {% elif message.tags == "error" %}
-              <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
-            {% elif message.tags == "warning" %}
-              <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
-            {% else %}
-              <i class="bi bi-info-circle" aria-hidden="true"></i>
-            {% endif %}
-            <span class="flex-grow-1">{{ message }}</span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer le message"></button>
+    </aside>
+
+    <div class="app-main">
+      <header class="topbar">
+        <button class="icon-btn mobile-only" id="sidebar-toggle" type="button" aria-label="Ouvrir la navigation" aria-expanded="false" aria-controls="app-sidebar">
+          <i class="bi bi-list fs-4" aria-hidden="true"></i>
+        </button>
+        <div class="topbar-heading">{% block page_heading %}MyJobPilot{% endblock %}</div>
+        {% if user.is_authenticated %}
+          <form class="topbar-search" role="search" action="{% url 'core:recherche' %}" method="get">
+            <label class="visually-hidden" for="global-search">Rechercher</label>
+            <div class="input-group">
+              <input class="form-control" id="global-search" type="search" name="q" placeholder="Rechercher...">
+              <button class="btn btn-outline-secondary" type="submit" aria-label="Lancer la recherche"><i class="bi bi-search" aria-hidden="true"></i></button>
+            </div>
+          </form>
+          <div class="topbar-actions">
+            <a class="icon-btn position-relative" href="{% url 'comptes:notifications' %}" aria-label="Notifications">
+              <i class="bi bi-bell" aria-hidden="true"></i>
+              <span id="notifications-count" class="badge rounded-pill text-bg-danger position-absolute top-0 start-100 translate-middle{% if not notifications_non_lues %} d-none{% endif %}" aria-live="polite">{{ notifications_non_lues }}</span>
+            </a>
+            <button id="theme-toggle" class="icon-btn" type="button" aria-label="Changer de thème" title="Changer de thème">
+              <i class="bi bi-moon-fill" id="theme-icon" aria-hidden="true"></i>
+            </button>
           </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-    {% block content %}{% endblock %}
-  </main>
-  <footer class="container py-3 border-top">
-    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 text-body-secondary">
-      <p class="mb-0">© 2026 MyJobPilot · MyJobPilot v0.8.4</p>
-      <nav aria-label="Liens de pied de page" class="d-flex flex-wrap gap-3">
-        <a href="{% url 'rgpd:confidentialite' %}">Politique de confidentialité</a>
-        <a href="mailto:adiattalud@gmail.com">Contact</a>
-      </nav>
+        {% else %}
+          <div class="topbar-actions">
+            <a class="icon-btn" href="{% url 'comptes:connexion' %}" aria-label="Connexion"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i></a>
+            <button id="theme-toggle" class="icon-btn" type="button" aria-label="Changer de thème" title="Changer de thème"><i class="bi bi-moon-fill" id="theme-icon" aria-hidden="true"></i></button>
+          </div>
+          <span id="notifications-count" class="visually-hidden" aria-live="polite">0</span>
+          <span id="notifications-count-mobile" class="visually-hidden" aria-live="polite">0</span>
+          <span id="taches-count" class="visually-hidden">0</span><span id="taches-count-mobile" class="visually-hidden">0</span>
+          <span id="relances-count" class="visually-hidden">0</span><span id="relances-count-mobile" class="visually-hidden">0</span>
+        {% endif %}
+      </header>
+
+      <main class="page-content container-fluid">
+        {% if messages %}
+          <div aria-label="Messages de notification">
+            {% for message in messages %}
+              <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show d-flex align-items-start gap-2" role="alert">
+                {% if message.tags == "success" %}
+                  <i class="bi bi-check-circle" aria-hidden="true"></i>
+                {% elif message.tags == "error" %}
+                  <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                {% elif message.tags == "warning" %}
+                  <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                {% else %}
+                  <i class="bi bi-info-circle" aria-hidden="true"></i>
+                {% endif %}
+                <span class="flex-grow-1">{{ message }}</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer le message"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </main>
+      <footer class="app-footer">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+          <p class="mb-0">© 2026 MyJobPilot · MyJobPilot v0.8.4</p>
+          <nav aria-label="Liens de pied de page" class="d-flex flex-wrap gap-3">
+            <a href="{% url 'rgpd:confidentialite' %}">Politique de confidentialité</a>
+            <a href="mailto:adiattalud@gmail.com">Contact</a>
+          </nav>
+        </div>
+      </footer>
     </div>
-  </footer>
+  </div>
+
   {% if user.is_authenticated %}
   <script>
     (() => {
-      const badges = [
-        document.getElementById("taches-count"),
-        document.getElementById("taches-count-mobile")
-      ].filter(Boolean);
+      const badges = [document.getElementById("taches-count"), document.getElementById("taches-count-mobile")].filter(Boolean);
       if (!badges.length) return;
       const actualiserCompteur = async () => {
         try {
-          const response = await fetch("{% url 'core:taches_compteur' %}", {
-            headers: {"Accept": "application/json"},
-            credentials: "same-origin"
-          });
+          const response = await fetch("{% url 'core:taches_compteur' %}", {headers: {"Accept": "application/json"}, credentials: "same-origin"});
           if (!response.ok) return;
           const donnees = await response.json();
-          badges.forEach((badge) => {
-            badge.textContent = String(donnees.count);
-            badge.classList.toggle("d-none", donnees.count === 0);
-          });
+          badges.forEach((badge) => { badge.textContent = String(donnees.count); badge.classList.toggle("d-none", donnees.count === 0); });
         } catch (_) {}
       };
-      actualiserCompteur();
-      window.setInterval(actualiserCompteur, 60000);
+      actualiserCompteur(); window.setInterval(actualiserCompteur, 60000);
     })();
   </script>
   {% endif %}
   {% if user.is_authenticated and user.role == "eleve" %}
   <script>
     (() => {
-      const badges = [
-        document.getElementById("relances-count"),
-        document.getElementById("relances-count-mobile")
-      ].filter(Boolean);
+      const badges = [document.getElementById("relances-count"), document.getElementById("relances-count-mobile")].filter(Boolean);
       if (!badges.length) return;
       const actualiserCompteur = async () => {
         try {
-          const response = await fetch("{% url 'entreprises:mes_relances_compteur' %}", {
-            headers: {"Accept": "application/json"},
-            credentials: "same-origin"
-          });
+          const response = await fetch("{% url 'entreprises:mes_relances_compteur' %}", {headers: {"Accept": "application/json"}, credentials: "same-origin"});
           if (!response.ok) return;
           const donnees = await response.json();
-          const enRetard = Number(donnees.en_retard || 0);
-          const aVenir = Number(donnees.a_venir || 0);
-          badges.forEach((badge) => {
-            badge.textContent = String(enRetard);
-            badge.classList.toggle("d-none", enRetard === 0);
-            badge.parentElement.title = `${enRetard} en retard, ${aVenir} à venir`;
-          });
+          const enRetard = Number(donnees.en_retard || 0); const aVenir = Number(donnees.a_venir || 0);
+          badges.forEach((badge) => { badge.textContent = String(enRetard); badge.classList.toggle("d-none", enRetard === 0); });
+          document.querySelectorAll('[href="{% url 'entreprises:mes_relances' %}"]').forEach((link) => { link.title = `${enRetard} en retard, ${aVenir} à venir`; });
         } catch (_) {}
       };
-      actualiserCompteur();
-      window.setInterval(actualiserCompteur, 60000);
+      actualiserCompteur(); window.setInterval(actualiserCompteur, 60000);
     })();
   </script>
   {% endif %}
   {% if user.is_authenticated %}
   <script>
     (() => {
-      const badges = [
-        document.getElementById("notifications-count"),
-        document.getElementById("notifications-count-mobile")
-      ].filter(Boolean);
+      const badges = [document.getElementById("notifications-count"), document.getElementById("notifications-count-mobile")].filter(Boolean);
       if (!badges.length) return;
       const actualiserCompteur = async () => {
         try {
-          const response = await fetch("{% url 'comptes:notifications_unread_count' %}", {
-            headers: {"Accept": "application/json"},
-            credentials: "same-origin"
-          });
+          const response = await fetch("{% url 'comptes:notifications_unread_count' %}", {headers: {"Accept": "application/json"}, credentials: "same-origin"});
           if (!response.ok) return;
           const donnees = await response.json();
-          badges.forEach((badge) => {
-            badge.textContent = String(donnees.count);
-            badge.classList.toggle("d-none", donnees.count === 0);
-          });
+          badges.forEach((badge) => { badge.textContent = String(donnees.count); badge.classList.toggle("d-none", donnees.count === 0); });
         } catch (_) {}
       };
-      actualiserCompteur();
-      window.setInterval(actualiserCompteur, 60000);
+      actualiserCompteur(); window.setInterval(actualiserCompteur, 60000);
     })();
   </script>
   {% endif %}
   <script>
     (() => {
       const root = document.documentElement;
-      const buttons = [
-        document.getElementById("theme-toggle"),
-        document.getElementById("theme-toggle-mobile")
-      ].filter(Boolean);
+      const buttons = [document.getElementById("theme-toggle"), document.getElementById("theme-toggle-mobile")].filter(Boolean);
+      const icons = [document.getElementById("theme-icon"), document.getElementById("theme-icon-mobile")].filter(Boolean);
       const actualiserTheme = (theme) => {
         root.setAttribute("data-bs-theme", theme);
         buttons.forEach((button) => {
-          const icon = button.querySelector("i");
           const sombre = theme === "dark";
           button.setAttribute("aria-label", sombre ? "Passer au thème clair" : "Passer au thème sombre");
           button.setAttribute("title", sombre ? "Passer au thème clair" : "Passer au thème sombre");
-          icon.classList.toggle("bi-moon-fill", !sombre);
-          icon.classList.toggle("bi-sun-fill", sombre);
         });
+        icons.forEach((icon) => { const sombre = theme === "dark"; icon.classList.toggle("bi-moon-fill", !sombre); icon.classList.toggle("bi-sun-fill", sombre); });
         if (window.Chart && window.Chart.instances) {
           const couleurTexte = theme === "dark" ? "#dee2e6" : "#666";
           const couleurGrille = theme === "dark" ? "#495057" : "rgba(0, 0, 0, .1)";
           Object.values(window.Chart.instances).forEach((chart) => {
             chart.options.color = couleurTexte;
-            if (chart.options.plugins?.legend?.labels) {
-              chart.options.plugins.legend.labels.color = couleurTexte;
-            }
-            Object.values(chart.options.scales || {}).forEach((scale) => {
-              if (scale.ticks) scale.ticks.color = couleurTexte;
-              if (scale.grid) scale.grid.color = couleurGrille;
-              if (scale.border) scale.border.color = couleurGrille;
-            });
+            if (chart.options.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = couleurTexte;
+            Object.values(chart.options.scales || {}).forEach((scale) => { if (scale.ticks) scale.ticks.color = couleurTexte; if (scale.grid) scale.grid.color = couleurGrille; if (scale.border) scale.border.color = couleurGrille; });
             chart.update();
           });
         }
       };
       let themeInitial = "light";
-      try {
-        if (localStorage.getItem("theme") === "dark") themeInitial = "dark";
-      } catch (_) {}
+      try { if (localStorage.getItem("theme") === "dark") themeInitial = "dark"; } catch (_) {}
       actualiserTheme(themeInitial);
       buttons.forEach((button) => button.addEventListener("click", () => {
         const nouveauTheme = root.getAttribute("data-bs-theme") === "dark" ? "light" : "dark";
-        actualiserTheme(nouveauTheme);
-        try { localStorage.setItem("theme", nouveauTheme); } catch (_) {}
+        actualiserTheme(nouveauTheme); try { localStorage.setItem("theme", nouveauTheme); } catch (_) {}
       }));
+    })();
+  </script>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const toggle = document.getElementById("sidebar-toggle");
+      const overlay = document.querySelector(".sidebar-overlay");
+      if (!toggle || !overlay) return;
+      const close = () => { root.removeAttribute("data-sidebar-open"); toggle.setAttribute("aria-expanded", "false"); overlay.hidden = true; };
+      toggle.addEventListener("click", () => { root.setAttribute("data-sidebar-open", "true"); toggle.setAttribute("aria-expanded", "true"); overlay.hidden = false; });
+      overlay.addEventListener("click", close);
+      document.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
     })();
   </script>
   <script>
@@ -305,6 +274,7 @@
       window.addEventListener("load", () => navigator.serviceWorker.register("{% url 'service_worker' %}").catch(() => {}));
     }
   </script>
+  {% block extra_js %}{% endblock %}
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
