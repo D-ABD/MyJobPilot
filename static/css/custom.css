@@ -400,6 +400,7 @@ body {
 [data-bs-theme="dark"] .btn-danger-custom { color: var(--on-brand); }
 
 @media (min-width: 968px) {
+  .mobile-only { display: none !important; }
   .desktop-only { display: inline-grid; }
   .sidebar { transform: translateX(0); }
   .sidebar-overlay { display: none; }
@@ -407,7 +408,7 @@ body {
   [data-sidebar-collapsed="true"] .app-main { margin-left: 0; }
 }
 @media (max-width: 967.98px) {
-  .desktop-only { display: none; }
+  .desktop-only { display: none !important; }
   .mobile-only { display: block; }
   .icon-btn.mobile-only { display: inline-grid; }
   .sidebar { transform: translateX(-100%); }
