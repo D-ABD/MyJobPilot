@@ -1,0 +1,1203 @@
+MyJobPilot — Architecture et référence technique
+État documenté : commit 2389db5543f8b9ad7d8c5bf40fca543b23d62740 (2389db5), tag v0.22.4-lot22d, daté du 9 novembre 2026 à 19:02 UTC.
+Tests : 559 méthodes test_ recensées dans les fichiers de tests. Le résultat « 559 tests verts » correspond à la validation fournie pour cet état ; la suite n’a pas été relancée pendant la préparation de ce document.
+Périmètre : description du code versionné à ce commit. Les paramètres réels du VPS et le contenu de sa base ne sont pas tous visibles dans le dépôt ; ils sont signalés « À vérifier » lorsqu’il le faut.
+Dépôt laissé intact.
+
+1. Vue d’ensemble
+Projet
+MyJobPilot est une application Django de suivi de recherche d’alternance et d’accompagnement d’élèves. Elle organise les prospections d’entreprises, les changements de statut, les documents, le suivi par superviseur et la gestion administrative. Les fonctionnalités récentes comprennent la recherche La bonne alternance, les notifications, les objectifs et la gamification.
+
+Publics principaux :
+- Élèves, qui suivent leurs prospections, leurs candidatures, leurs relances et leurs documents.
+- Superviseurs, qui suivent les élèves des centres placés dans leur scope.
+- Administrateurs, qui gèrent les comptes, les référentiels, les scopes et les tableaux de bord.
+Environnements et dépôt
+Élément	Valeur
+Production	https://myjobpilot.adserv.fr
+Dépôt	https://github.com/D-ABD/MyJobPilot
+Branche de référence	main
+Commit documenté	2389db5
+Tag documenté	v0.22.4-lot22d
+Date du commit	9 novembre 2026
+
+
+Stack observée
+Composant	Valeur
+Python	3.12.12 selon l’environnement de développement décrit pour le projet ; version Python du VPS à vérifier
+Django	5.0.6, également mentionné dans les migrations récentes
+Base configurée	DATABASE_URL via dj-database-url ; SQLite par défaut si la variable est absente
+Base de production	À vérifier sur le VPS, vraisemblablement configurée par DATABASE_URL
+API REST	Django REST Framework 3.17.2
+UI	Templates Django, Bootstrap 5.3.3 et Bootstrap Icons 1.11.3 servis par CDN
+Graphiques	Chart.js chargé par CDN dans le partial de graphiques
+Requêtes HTTP	requests==2.34.2 dans requirements.txt
+Autres dépendances principales	psycopg[binary], python-dotenv, dj-database-url, coverage
+Fuseau horaire	Europe/Paris, USE_TZ=True
+
+
+Le projet utilise le système d’authentification Django avec un modèle utilisateur personnalisé. Les paramètres sensibles et les secrets ne sont pas intégrés au code ; ils sont lus depuis l’environnement ou .env.
+Taille approximative du code
+Comptage des lignes des fichiers Python suivis dans les apps, migrations comprises et tests exclus. C’est un ordre de grandeur, pas un métrique de code métier net.
+App	Fichiers Python hors tests	Lignes estimées
+core	23	2 236
+comptes	31	1 695
+entreprises	20	2 324
+staff	6	680
+documents	9	386
+rgpd	12	398
+admin_dashboard	6	1 153
+
+
+Les templates sont partagés en grande partie dans le répertoire racine templates/. Leur comptage n’est pas inclus dans ce tableau.
+Tests
+App	Méthodes de test recensées
+admin_dashboard	44
+comptes	76
+core	169
+documents	18
+entreprises	163
+rgpd	10
+staff	79
+Total	559
+
+
+Le comptage a été effectué sur les méthodes def test_... des fichiers de test. La validation rapportée pour le commit est de 559 tests passants.
+2. Architecture des apps Django
+Apps installées
+Les apps métier déclarées dans INSTALLED_APPS sont core, comptes, entreprises, staff, documents, rgpd et admin_dashboard. Django admin, auth, contenttypes, sessions, messages et staticfiles sont également installés. rest_framework fournit l’API REST.
+App	Responsabilité	Modèles définis	Tests
+comptes	Utilisateurs, rôles, centres, formations, scopes, journaux, notifications et flux de compte	Centre, Formation, ConsentementRGPD, Utilisateur, JournalAction, ScopeSuperviseur, Notification ; TypeNotification est une énumération	76
+core	Fonctions transverses, objectifs, tâches, offres sauvegardées, badges et niveaux	Tache, Objectif, OffreEnregistree, Badge, BadgeObtenu, Niveau	169
+entreprises	Référentiel entreprises, prospections, historique, commentaires et relances	Entreprise, Prospection, HistoriqueStatut, Commentaire, Relance	163
+staff	Dashboard superviseur, gestion du scope et actions sur les élèves	Aucun modèle Django propre	79
+documents	Stockage et gestion des documents des élèves	Document ; TypeDocument est une énumération	18
+rgpd	Demandes et traitements RGPD, export et purges	DemandeRGPD ; TypeDemande et StatutDemande sont des énumérations	10
+admin_dashboard	Administration métier, imports, exports, tableaux de bord	Aucun modèle Django propre	44
+rest_framework	Infrastructure d’API REST utilisée par les serializers et vues d’API	Modèles fournis par la dépendance, pas par le projet	—
+Apps Django standard	Authentification, sessions, messages, admin, fichiers statiques et contenttypes	Modèles Django standard	—
+
+
+Les nombres de vues ci-dessous sont des inventaires de fonctions principales, pas un décompte exhaustif de chaque helper.
+comptes
+Vues principales : accueil, inscription, connexion, déconnexion, redirection après login, compte personnel et attente de validation. Les vues de notifications sont dans comptes/notification_views.py.
+
+Templates principaux : templates/comptes/connexion.html, deconnexion.html, en_attente.html, inscription.html, mon_compte.html, notifications.html. Les courriels utilisent les templates sous templates/emails/.
+
+Dépendances : core pour la normalisation ROME et les champs des badges ; entreprises pour les notifications liées aux prospections ; Django auth pour l’utilisateur.
+core
+Vues principales : recherche globale, tâches, offres LBA, offres enregistrées et page de badges.
+
+Templates principaux : templates/recherche.html, templates/taches/, templates/offres/, templates/core/mes_badges.html. Des composants partagés se trouvent sous templates/partials/.
+
+Dépendances : comptes pour utilisateurs et notifications ; entreprises pour les prospections et relances ; staff et admin_dashboard pour les données de dashboard via core/stats.py.
+entreprises
+Vues principales : dashboard élève, prospections, référentiel des entreprises, recherche d’entreprises, relances, commentaires, changement de statut et création de prospection par rôle.
+
+Templates principaux : templates/entreprises/, dont dashboard.html, mes_relances.html, hub.html, entreprise_detail.html, les formulaires et les composants de filtres/pagination.
+
+Dépendances : comptes pour rôles, scopes, journaux et notifications ; core pour statistiques et gamification ; staff pour certaines actions staff liées aux élèves.
+staff
+Vues principales : dashboard superviseur, fiche d’un élève, changement de centre et de codes ROME, ajout de prospection et gestion des objectifs.
+
+Templates principaux : templates/staff/dashboard.html, detail_eleve.html, eleve_changer_centre.html, plus les composants de filtres et de pagination.
+
+Dépendances : comptes pour utilisateurs et scopes ; entreprises pour prospections ; core pour objectifs, statistiques et badges ; documents pour les documents d’un élève.
+admin_dashboard
+Vues principales : dashboard admin, listes d’élèves et superviseurs, gestion des comptes et des scopes, fiches détaillées, changement de statut, imports/exports CSV et demandes RGPD.
+
+Templates principaux : templates/admin_dashboard/ : dashboard, fiches élève/superviseur, listes, imports, exports, demandes RGPD et détail de prospection.
+
+Dépendances : toutes les apps métier, notamment comptes, entreprises, core, rgpd et documents.
+documents
+Vues principales : liste, upload, téléchargement, suppression et consultation des documents d’un élève par le staff.
+
+Templates principaux : templates/documents/.
+
+Dépendances : comptes pour utilisateur et contrôle du rôle ; staff pour vérifier le périmètre superviseur.
+rgpd
+Vues principales : liste, création et détail des demandes, traitement admin, export RGPD et page de confidentialité.
+
+Templates principaux : templates/rgpd/ et les templates d’email RGPD sous templates/emails/.
+
+Dépendances : comptes pour utilisateurs et journalisation ; admin_dashboard pour les écrans administratifs partagés.
+Dépendances entre apps
+comptes ──> core (validation ROME, badges/points par import local)
+comptes ──> entreprises (événements et notifications métier)
+
+entreprises ──> comptes (utilisateurs, scopes, notifications, journal)
+entreprises ──> core (stats et gamification)
+
+core ──> comptes (utilisateur, notifications)
+core ──> entreprises (prospection et relance)
+
+staff ──> comptes + entreprises + core + documents
+admin_dashboard ──> comptes + entreprises + core + rgpd
+documents ──> comptes
+rgpd ──> comptes
+
+Les références de modèles utilisent parfois des chaînes Django pour éviter les imports circulaires. Utilisateur.points_total importe BadgeObtenu à l’intérieur de la propriété.
+Templates du projet
+Les templates globaux et partagés résident sous templates/ :
+- templates/base.html, accueil.html, 404.html, offline.html
+- templates/partials/ : navigation, breadcrumbs, boutons de retour, KPI, graphiques et progression
+- templates/objectifs/ : liste, formulaire, confirmation de suppression et tableau réutilisable
+- templates/offres/ : recherche, résultats, pagination et offres enregistrées
+- Répertoires dédiés comptes, core, entreprises, documents, rgpd, staff et admin_dashboard
+Tests et migrations par app
+Les tests sont répartis dans des sous-répertoires tests/ propres aux apps. Les migrations résident également dans chaque app, sous migrations/.
+App	Dernière migration versionnée
+comptes	0012_alter_notification_type.py
+core	0007_seed_niveaux.py
+entreprises	0007_alter_historiquestatut_ancien_statut_and_more.py
+documents	0001_initial.py
+rgpd	0001_initial.py
+staff	Aucune migration propre
+admin_dashboard	Aucune migration propre
+
+
+Le statut des migrations réellement appliquées à la base de production est à vérifier sur le VPS.
+3. Modèles de données
+Les types ci-dessous sont les champs déclarés par l’application. Les modèles Django héritent aussi de champs et gestionnaires standards. Utilisateur hérite de AbstractUser.
+3.1 comptes
+Centre
+Un regroupement d’élèves et de formations auquel les superviseurs peuvent recevoir un accès.
+Champ	Type et règles
+nom	CharField(150), unique
+departement	CharField(100)
+
+
+Meta : tri par nom.
+Méthodes : __str__ retourne nom et département.
+Relations entrantes : Formation.centre, Utilisateur.centre, ScopeSuperviseur.centre.
+Formation
+Formation rattachée à un centre.
+Champ	Type et règles
+centre	FK Centre, PROTECT, related_name="formations"
+nom	CharField(150)
+
+
+Meta : tri par centre puis nom ; contrainte unique (centre, nom).
+Méthodes : __str__ retourne formation et centre.
+Relations entrantes : Utilisateur.formation.
+ConsentementRGPD
+Trace du consentement d’un utilisateur à une version de politique.
+Champ	Type et règles
+utilisateur	OneToOne Utilisateur, CASCADE, related_name="consentement"
+version_politique	CharField(20), défaut "1.0"
+date_consentement	DateTimeField(auto_now_add=True)
+ip	GenericIPAddressField, nullable et blank
+user_agent	TextField, blank
+
+
+Meta : tri par date décroissante.
+Méthodes : __str__ décrit le consentement et son utilisateur.
+Utilisateur
+Compte principal de MyJobPilot, avec rôle, validation, centre et formation. Hérite de AbstractUser.
+Champ déclaré par MyJobPilot	Type et règles
+role	CharField(20), choix eleve / superviseur / admin, défaut eleve
+codes_rome	CharField(255), blank, défaut vide
+centre	FK Centre, PROTECT, nullable et blank, related_name="utilisateurs"
+formation	FK Formation, PROTECT, nullable et blank, related_name="eleves"
+is_valide	booléen, défaut False
+date_validation	DateTimeField, nullable et blank
+valide_par	FK récursive vers Utilisateur, SET_NULL, nullable et blank, related_name="validations_effectuees"
+motif_refus	TextField, blank
+
+
+Champs hérités principaux : username, first_name, last_name, email, password, last_login, is_superuser, is_staff, is_active, date_joined, groupes et permissions utilisateur.
+
+Meta : libellés utilisateur/utilisateurs.
+Méthodes et propriétés :
+- departement : département du centre associé, sinon None.
+- a_consenti_rgpd : indique si un objet de consentement associé existe.
+- points_total : somme des points des badges obtenus.
+- clean() : normalise et valide les codes ROME ; vérifie la cohérence des rattachements centre/formation. Cette validation dépend de full_clean() ; un Utilisateur.objects.create() direct ne l’appelle pas.
+Relations entrantes : prospections, tâches créées/assignées, documents, objectifs, badges obtenus, notifications, relances comme auteur, commentaires, historique de statut, journal, scopes, demandes RGPD et consentement.
+JournalAction
+Historique des actions sensibles et métier.
+Champ	Type et règles
+utilisateur	FK Utilisateur, SET_NULL, nullable et blank, related_name="actions_journalisees"
+action	CharField(40), choix décrits ci-dessous
+cible_type	CharField(100), blank
+cible_id	CharField(100), blank
+details	JSONField, défaut dict, blank
+ip	GenericIPAddressField, nullable et blank
+user_agent	TextField, blank
+date	DateTimeField(auto_now_add=True)
+
+
+Actions définies : login, logout, login_failed, inscription_soumise, compte_valide, compte_refuse, compte_desactive, session_invalidee, changement_statut, scope_cree, acces_scope_refuse, action_staff_eleve, changement_centre, document_upload, document_download, document_supprime, commentaire_cree, export_rgpd, purge_rgpd, consentement_modifie, demande_rgpd_maj, export_csv, import_csv, tache_cree, tache_terminee, tache_supprimee, relance_email_envoye, objectif_cree, objectif_modifie, objectif_supprime.
+
+Meta : tri par date décroissante.
+Méthodes : __str__ retourne le libellé de l’action et sa date.
+ScopeSuperviseur
+Association entre superviseur et centre, active ou désactivée.
+Champ	Type et règles
+superviseur	FK Utilisateur, CASCADE, related_name="scopes"
+centre	FK Centre, CASCADE, related_name="scopes_superviseurs"
+is_active	booléen, défaut True
+date_creation	DateTimeField(auto_now_add=True)
+date_desactivation	DateTimeField, nullable et blank
+cree_par	FK Utilisateur, SET_NULL, nullable et blank, related_name="scopes_crees"
+
+
+Meta : tri par superviseur puis centre ; unicité (superviseur, centre) ; index sur (superviseur, is_active) et (centre, is_active).
+Méthodes : creer() utilise get_or_create et journalise la création ; desactiver() désactive le scope et journalise sa révocation.
+TypeNotification et Notification
+TypeNotification est une énumération TextChoices, pas un modèle séparé.
+
+Valeurs : compte_valide, compte_refuse, statut_change, relance_creee, codes_rome_modifies, commentaire, document, ajout_prospection, badge_obtenu, progression_badge.
+Champ de Notification	Type et règles
+destinataire	FK Utilisateur, CASCADE, related_name="notifications"
+type	CharField(32), choix TypeNotification
+message	CharField(255)
+lien	CharField(255), blank
+lu	booléen, défaut False
+date_creation	DateTimeField(auto_now_add=True)
+
+
+Meta : tri par date décroissante ; index (destinataire, lu, -date_creation).
+Méthodes : __str__ retourne destinataire et début du message.
+3.2 entreprises
+Entreprise
+Référentiel partagé des entreprises prospectables.
+Champ	Type et règles
+nom	CharField(200)
+secteur	CharField(100), blank
+site_web	URLField, blank
+adresse	TextField, blank
+ville	CharField(100), blank
+code_postal	CharField(20), blank
+contact_nom	CharField(100), blank
+contact_email	EmailField, blank
+contact_telephone	CharField(30), blank
+date_creation	DateTimeField(auto_now_add=True)
+
+
+Meta : contrainte unique insensible à la casse sur Lower("nom").
+Méthodes : __str__ retourne le nom.
+Relations entrantes : prospections.
+Statut, TypeContrat
+Énumérations, pas des tables autonomes.
+- Statut: a_contacter (« À contacter »), a_relancer (« À relancer »), terminee (« Terminée »), candidature_envoyee (« Candidature envoyée »), en_attente (« En attente »), entretien_programme (« Entretien programmé »), refus (« Refus »), accepte (« Accepté »).
+- TypeContrat: stage (« Stage »), alternance (« Alternance »).
+Prospection
+Suivi par élève de ses démarches auprès d’une entreprise.
+Champ	Type et règles
+eleve	FK Utilisateur, CASCADE, related_name="prospections"
+entreprise	FK Entreprise, PROTECT, related_name="prospections"
+statut	CharField(30), choix Statut, défaut a_contacter
+type_contrat	CharField(20), choix TypeContrat, défaut alternance
+date_relance	DateField, nullable et blank
+date_derniere_relance_email	DateTimeField, nullable et blank
+date_candidature	DateField, nullable et blank
+date_mise_en_attente	DateField, nullable et blank
+date_entretien	DateTimeField, nullable et blank
+date_refus	DateField, nullable et blank
+date_acceptation	DateField, nullable et blank
+notes	TextField, blank
+source	CharField(100), blank
+date_creation	DateTimeField(auto_now_add=True)
+date_modification	DateTimeField(auto_now=True)
+
+
+Meta : tri par -date_modification ; unicité (eleve, entreprise) ; index (eleve, statut) et (eleve, -date_modification).
+Méthodes : __str__ identifie l’élève et l’entreprise.
+Relations entrantes : commentaires, historique de statut, tâches et relances.
+Relance
+Événement historisé de relance réellement effectuée, distinct d’une échéance Prospection.date_relance.
+Champ	Type et règles
+prospection	FK Prospection, CASCADE, related_name="relances"
+type	CharField(16), prospection ou candidature, défaut prospection
+auteur	FK Utilisateur, SET_NULL, nullable et blank, related_name="relances_effectuees"
+date_relance	DateTimeField(auto_now_add=True)
+contenu	TextField, blank
+
+
+Meta : tri par date décroissante.
+Méthodes : __str__ combine le type et la prospection.
+HistoriqueStatut
+Trace chaque transition de statut d’une prospection.
+Champ	Type et règles
+prospection	FK Prospection, CASCADE, related_name="historique"
+ancien_statut	CharField(30), choix Statut, blank
+nouveau_statut	CharField(30), choix Statut
+date_changement	DateTimeField(auto_now_add=True)
+auteur	FK Utilisateur, SET_NULL, nullable, related_name="changements_statut"
+commentaire	TextField, blank
+date_associee	DateField, nullable et blank
+
+
+Meta : tri par date décroissante.
+Méthodes : __str__ présente l’entreprise et la transition.
+Commentaire
+Commentaire écrit par un utilisateur sur une prospection.
+Champ	Type et règles
+auteur	FK Utilisateur, CASCADE, related_name="commentaires"
+prospection	FK Prospection, CASCADE, related_name="commentaires"
+contenu	TextField
+date	DateTimeField(auto_now_add=True)
+
+
+Meta : tri par date décroissante ; index (prospection, -date).
+Méthodes : __str__ identifie l’auteur et la prospection.
+3.3 core
+Tache
+Tâche assignée à un utilisateur, éventuellement liée à une prospection.
+Champ	Type et règles
+titre	CharField(200)
+description	TextField, blank
+date_echeance	DateField, nullable et blank
+statut	CharField(20), valeurs a_faire, en_cours, terminee, défaut a_faire
+createur	FK utilisateur configuré, CASCADE, related_name="taches_creees"
+assigne_a	FK utilisateur configuré, CASCADE, related_name="taches_assignees"
+prospection	FK Prospection, SET_NULL, nullable et blank, related_name="taches"
+date_creation	DateTimeField(auto_now_add=True)
+date_modification	DateTimeField(auto_now=True)
+
+
+Meta : tri statut, échéance, création décroissante ; index assignataire/statut et assignataire/échéance.
+Méthodes : __str__ retourne le titre.
+Objectif
+Objectif quantitatif d’un élève sur une période.
+Champ	Type et règles
+createur	FK utilisateur configuré, CASCADE, related_name="objectifs_crees"
+eleve	FK utilisateur configuré, CASCADE, related_name="objectifs"
+type	CharField(30) : prospections_semaine ou candidatures_mois
+valeur	PositiveIntegerField
+periode_debut	DateField
+periode_fin	DateField
+date_creation	DateTimeField(auto_now_add=True)
+
+
+Meta : tri par période décroissante puis nom d’élève ; index (eleve, type) et (createur, periode_debut) ; unicité (eleve, type, periode_debut, periode_fin).
+Méthodes : __str__ retourne le libellé du type et l’élève.
+OffreEnregistree
+Copie des données utiles d’une offre LBA conservée en favori par un utilisateur.
+Champ	Type et règles
+utilisateur	FK utilisateur configuré, CASCADE, related_name="offres_enregistrees"
+offre_id_lba	CharField(255)
+titre	CharField(255)
+entreprise	CharField(255), blank, défaut vide
+ville	CharField(255), blank, défaut vide
+url	URLField, blank, défaut vide
+date_publication	DateTimeField, nullable et blank
+date_enregistrement	DateTimeField(auto_now_add=True)
+
+
+Meta : unicité (utilisateur, offre_id_lba), tri par enregistrement décroissant.
+Méthodes : __str__ présente titre et utilisateur.
+Badge
+Définition configurable d’un badge.
+Champ	Type et règles
+slug	SlugField, unique
+categorie	CharField(16) : prospection, candidature, suivi
+nom	CharField(100)
+description	TextField, blank
+icone	CharField(50), blank
+type_condition	CharField(32) : prospections_contactees_count, candidatures_count, relances_count
+seuil	PositiveIntegerField, défaut 1
+valeur_points	PositiveIntegerField, défaut 10
+ordre_affichage	PositiveIntegerField, défaut 0
+est_actif	booléen, défaut True
+
+
+Meta : tri par catégorie, ordre d’affichage puis seuil.
+Méthodes : __str__ retourne le nom.
+Relations entrantes : attributions BadgeObtenu.
+BadgeObtenu
+Attribution persistante et unique d’un badge à un utilisateur.
+Champ	Type et règles
+utilisateur	FK comptes.Utilisateur, CASCADE, related_name="badges_obtenus"
+badge	FK Badge, CASCADE
+date_obtention	DateTimeField(auto_now_add=True)
+
+
+Meta : unicité utilisateur/badge ; tri par date décroissante.
+Méthodes : __str__ présente badge et utilisateur.
+Niveau
+Seuil de niveau basé sur les XP calculés.
+Champ	Type et règles
+nom	CharField(50)
+seuil_min	PositiveIntegerField
+ordre_affichage	PositiveIntegerField, défaut 0
+est_actif	booléen, défaut True
+
+
+Meta : tri par seuil décroissant ; unicité du seuil et du nom.
+Méthodes : __str__ retourne nom et seuil XP.
+3.4 documents
+Document
+Fichier binaire privé appartenant à un élève.
+Champ	Type et règles
+eleve	FK utilisateur configuré, CASCADE, related_name="documents"
+nom	CharField(200)
+type	CharField(30), valeurs cv, lettre, diplome, autre, défaut autre
+contenu	BinaryField
+taille	PositiveIntegerField
+content_type	CharField(100)
+date_upload	DateTimeField(auto_now_add=True)
+
+
+Meta : tri upload décroissant ; index (eleve, -date_upload).
+Méthodes : __str__ présente document et élève.
+Manager : DocumentManager.listing() diffère le chargement de contenu dans les listes.
+3.5 rgpd
+DemandeRGPD
+Demande d’accès, rectification, effacement, portabilité ou opposition.
+Champ	Type et règles
+utilisateur	FK utilisateur configuré, CASCADE, related_name="demandes_rgpd"
+type	CharField(20) : acces, rectification, effacement, portabilite, opposition
+statut	CharField(20) : recue, en_cours, traitee, refusee, défaut recue
+description	TextField, blank
+date_demande	DateTimeField(auto_now_add=True)
+date_traitement	DateTimeField, nullable et blank
+motif_refus	TextField, blank
+traitee_par	FK utilisateur configuré, SET_NULL, nullable et blank, related_name="demandes_traitees"
+
+
+Meta : tri par date de demande décroissante ; index (utilisateur, -date_demande) et (statut, -date_demande).
+Méthodes : __str__ retourne type et utilisateur.
+Relations importantes
+- Utilisateur possède plusieurs Prospection, Document, Notification, BadgeObtenu, Objectif, OffreEnregistree et DemandeRGPD.
+- Prospection appartient à une Entreprise, protège cette entreprise contre suppression (PROTECT) et porte ses commentaires, relances, tâches et historique.
+- Formation et Utilisateur protègent leur Centre et Formation associés contre suppression.
+- Relance.auteur et HistoriqueStatut.auteur sont effaçables sans effacer l’événement : SET_NULL.
+- La suppression d’un utilisateur efface plusieurs de ses données associées via CASCADE. La politique RGPD effective dépend aussi des vues et commandes de purge.
+4. Rôles et permissions
+Rôles
+Rôle	Responsabilité générale
+eleve	Gère ses propres démarches et consulte ses données personnelles
+superviseur	Suit les élèves couverts par ses scopes actifs, sans accès général aux autres centres
+admin	Gère l’ensemble des comptes et données métier dans les vues d’administration
+
+
+Les privilèges Django is_staff et is_superuser restent distincts du rôle métier admin. L’accès à /admin/ est le contrôle Django d’administration ; tous les utilisateurs ayant simplement role="admin" ne sont pas automatiquement garantis d’avoir is_staff=True.
+Scope superviseur
+Un scope est une ligne ScopeSuperviseur(superviseur, centre, is_active). Les élèves du périmètre sont les utilisateurs au rôle élève dont le centre est couvert par au moins un scope actif du superviseur.
+
+Pattern utilitaire exact :
+- centres_du_superviseur(user) retourne les IDs des centres couverts.
+- superviser_eleve(user, eleve) teste l’appartenance de l’élève à un scope actif.
+- verifier_superviseur(request, eleve=None) lève PermissionDenied si l’utilisateur n’est pas un superviseur authentifié ou si l’élève n’est pas dans le scope.
+Django convertit PermissionDenied en réponse 403. Plusieurs vues appliquent en plus un queryset limité au scope, pour éviter qu’un identifiant deviné fournisse des données hors périmètre.
+Matrice indicative des actions
+Action	Élève	Superviseur	Admin
+Voir son dashboard	Oui, ses données	Non sur /dashboard/ élève	Vue admin séparée
+Créer une prospection	Pour lui-même	Pour son scope et selon formulaire	Pour tout élève
+Lire les prospections	Les siennes	Les siennes et celles du scope selon la vue	Toutes
+Modifier/supprimer une prospection	La sienne	Ses propres prospections ; pour l’élève du scope, statut uniquement	Toutes
+Changer le statut	Sa prospection	Dans le scope	Toute prospection
+Créer une relance historisée	Pour ses prospections	Pour soi ou élève dans le scope	Pour tout élève
+Voir la page personnelle de badges	Ses badges	403 sur cette page ; consulte la fiche d’élève du scope	403 sur la page personnelle ; consultation via admin/fiches
+Voir les badges d’un élève	Non	Oui sur fiche élève du scope	Oui sur fiche admin
+Gérer un objectif	Non	Élèves du scope	Tout élève
+Modifier les codes ROME d’un élève	Non	Élèves du scope	Tout utilisateur
+Exporter les listes administratives	Non	Pas d’export global dédié documenté	Oui, exports admin
+Export RGPD	Son export personnel	Pas l’export d’autrui	Traitement des demandes, export personnel via son compte
+
+
+À vérifier selon le formulaire/vue précis pour les variantes de création de prospection et certaines vues historiques : la matrice ci-dessus synthétise le comportement de l’application, elle ne remplace pas la vérification de chaque décorateur et queryset avant une nouvelle fonctionnalité.
+Vues à rôle limité
+- Dashboard superviseur : staff:dashboard, protégé par verifier_superviseur.
+- Détail élève staff : accès superviseur si l’élève est dans un scope actif ; rôle admin autorisé par la vue staff.
+- Admin métier : vues sous admin_dashboard, protégées par administrateur_requis.
+- CRUD du référentiel entreprises : admin uniquement.
+- Page /mon-compte/badges/ : élève uniquement ; les autres rôles reçoivent 403.
+- Tâches : queryset assignataire/propriétaire et permissions spécifiques selon rôle.
+- Documents d’un élève : contrôle personnel pour l’élève et vérification scope pour le superviseur.
+5. Flux utilisateurs principaux
+5.1 Inscription d’un élève, validation, première connexion
+1. L’utilisateur ouvre /comptes/inscription/ (comptes:inscription).
+2. comptes.views.inscription valide InscriptionForm, crée le compte et journalise INSCRIPTION_SOUMISE.
+3. Le compte est initialement non validé (is_valide=False).
+4. L’administrateur le valide ou le refuse depuis les vues admin.
+5. À la connexion (/comptes/connexion/), redirection_apres_login dirige :
+   - l’admin vers /admin/,
+   - le superviseur vers /staff/,
+   - l’élève non validé vers /comptes/en-attente/,
+   - l’élève validé vers /dashboard/.
+Modèles : Utilisateur, JournalAction, éventuellement Notification, ConsentementRGPD.
+Templates : comptes/inscription.html, connexion.html, en_attente.html, puis dashboard élève.
+5.2 Créer une prospection comme élève
+1. Depuis le dashboard /dashboard/, l’élève utilise le formulaire de prospection.
+2. La route /entreprises/nouvelle/ (entreprises:create) sert le parcours élève historique.
+3. La vue vérifie le rôle, l’entreprise sélectionnée/créée et l’absence de doublon élève/entreprise.
+4. Elle crée Prospection et une entrée HistoriqueStatut.
+5. Après succès, elle redirige vers le détail ou le dashboard selon le parcours.
+Modèles : Prospection, Entreprise, HistoriqueStatut, éventuellement JournalAction.
+Templates : entreprises/entreprise_form.html ou parcours multi-rôle prospection_form_tout_role.html, puis détail/dashboard.
+5.3 Changer le statut d’une prospection
+1. L’utilisateur ouvre le détail /entreprises/<id>/.
+2. Il soumet le formulaire de changement de statut vers /entreprises/<id>/statut/.
+3. La vue contrôle propriétaire ou scope superviseur, applique ChangementStatutForm et modifie le statut ainsi que la date métier associée si nécessaire.
+4. Elle crée HistoriqueStatut, journalise le changement et, si un superviseur/admin a modifié le statut d’un élève, crée une notification.
+5. La redirection revient au détail de la prospection.
+Modèles : Prospection, HistoriqueStatut, JournalAction, Notification.
+Template : entreprises/entreprise_form.html.
+5.4 Enregistrer une relance
+1. Depuis /mes-relances/, l’utilisateur envoie le formulaire POST « Relancer » vers /mes-relances/creer/.
+2. mes_relance_creer vérifie l’élève propriétaire, le scope du superviseur ou le rôle admin.
+3. La vue crée Relance, met à jour Prospection.date_relance, et peut faire passer le statut a_relancer à en_attente pour une relance de prospection.
+4. Si l’auteur n’est pas l’élève propriétaire, celui-ci reçoit une notification relance_creee.
+5. La vue attribue les badges atteints, vérifie la progression et redirige vers /mes-relances/.
+5.5 Consulter badges et progression
+1. L’élève ouvre /mon-compte/badges/ (core:mes_badges).
+2. La vue recalcule idempotemment les badges et notifications de progression.
+3. Elle assemble obtenus, à venir, compteurs, XP, niveau, points et progression par catégorie.
+4. Le template core/mes_badges.html présente les résultats et ancres des badges.
+Le dashboard élève appelle aussi ces services à l’ouverture afin de rattraper des attributions dues à des données historiques.
+5.6 Superviseur : suivre un élève
+1. Le superviseur ouvre /staff/.
+2. Le dashboard filtre les élèves par scopes actifs ; filtres centre/élève hors scope refusés.
+3. Il ouvre /staff/eleves/<id>/.
+4. detail_eleve_staff revérifie le scope et assemble prospections, progression, badges et autres informations autorisées.
+5. Il peut effectuer les actions staff permises : codes ROME, centre, ajout de prospection.
+5.7 Admin : gérer les données métier
+1. Le dashboard métier est /admin-dashboard/.
+2. Les vues admin listent et filtrent élèves, centres, superviseurs et données KPI.
+3. L’admin ouvre une fiche élève /admin-dashboard/eleves/<id>/.
+4. Il peut valider/désactiver des comptes, gérer scopes, importer/exporter des données, changer statuts et voir les informations de progression.
+5. La gestion directe des modèles configurables Badge/Niveau/Relance passe par /admin/, sous réserve du statut Django is_staff.
+6. Gamification — Lots 22a à 22d
+Modèles et règles
+Relance
+Événement métier daté. Le champ Prospection.date_relance est une échéance ; Relance enregistre une relance effectuée. Types : prospection, candidature.
+
+La création côté application se fait par le POST mes_relance_creer, pas par un signal. Une relance peut aussi faire évoluer a_relancer vers en_attente. Le modèle est exposé dans l’admin Django.
+Badge et BadgeObtenu
+Badge décrit un badge configurable en administration. Les slugs sont des identifiants stables après création. L’admin peut changer nom, description, icône, seuil, points, ordre et état actif. Les types de condition sont fermés à trois valeurs dans ce lot.
+
+BadgeObtenu enregistre l’attribution et impose l’unicité utilisateur/badge. Désactiver ou modifier le seuil d’un badge ne retire pas les attributions déjà enregistrées.
+17 badges seedés
+Catégorie	Slug / seuils	Noms seedés
+Prospection	prospection-10, -20, -35, -50, -75, -100	Novice, Explorateur, Persévérant, Chasseur, Stratège, Expert
+Candidature	candidature-3, -5, -10, -15, -25	Premier pas, Candidat motivé, Candidat engagé, Candidat déterminé, Candidat confirmé
+Suivi / relance	relance-1, -3, -5, -10, -15, -25	Premier suivi, Relanceur, Insistant, Persévérant, Accrocheur, Roi de la relance
+
+
+Les badges initiaux donnent chacun 10 points. Les migrations seed utilisent get_or_create.
+
+Règles de comptage :
+- Prospections contactées : toutes sauf statuts a_contacter et terminee.
+- Candidatures : statuts candidature_envoyee, en_attente, entretien_programme, refus, accepte.
+- Relances : nombre d’objets Relance liés aux prospections de l’élève.
+terminee signifie une opportunité close ou un contact impossible ; ce n’est pas une prospection « contactée » pour le badge.
+Niveau
+Niveau déterminé à partir des XP, configurable par l’admin.
+Nom seedé	Seuil minimal
+Novice	0
+Explorateur	100
+Persévérant	250
+Chasseur	500
+Stratège	1 000
+Expert	2 000
+Ambassadeur	4 000
+
+
+L’XP n’est pas stocké dans une table de solde ; il est calculé à la demande. Les niveaux inactifs sont exclus du calcul.
+Fonctions de core/gamification.py
+Signature	Rôle
+compter_progression(utilisateur)	Compte prospections contactées, candidatures et relances
+_xp_depuis_compteurs(compteurs)	Convertit les compteurs en XP
+calculer_xp(utilisateur)	Calcule l’XP depuis les compteurs canoniques
+calculer_niveau(xp)	Sélectionne le niveau actif et calcule la progression vers le suivant
+calculer_progression_utilisateur(utilisateur)	Assemble XP, niveau, résumé de badges et compteurs
+verifier_et_attribuer_badges(utilisateur)	Attribue les badges actifs atteints, avec bulk_create idempotent
+progression_badges(utilisateur)	Expose les compteurs servant à la progression
+calculer_prochain_badge(utilisateur, type_condition, compteurs=None)	Renvoie prochain badge, manque et progression
+calculer_progression_categories(utilisateur)	Calcule les trois catégories à partir d’un jeu de compteurs
+calculer_derniers_badges(utilisateur, limite=5)	Charge les attributions récentes avec select_related
+verifier_et_notifier_progression(utilisateur)	Crée une notification de progression si l’élève approche d’un seuil
+resume_badges(utilisateur)	Retourne attributions et total de points
+
+
+Le calcul de XP attribue 10 XP par prospection contactée, 20 par candidature et 10 par relance. Il est recalculé à la volée ; les points, eux, correspondent à la somme des valeurs de points des badges obtenus.
+
+calculer_prochain_badge utilise la formule simple compteur_actuel / seuil_cible, plafonnée à 1.0. Les blocs de progression par catégorie réutilisent les compteurs communs.
+Flux d’attribution et notifications
+- Événements déclencheurs explicites : changement de statut, création de relance, ouverture du dashboard élève et ouverture de la page de badges.
+- Pas de signal Django pour les badges. L’appel explicite suit le modèle retenu pour les notifications.
+- Après attribution, chaque nouveau badge peut créer une notification badge_obtenu liée à /mon-compte/badges/#badge-<slug>.
+- verifier_et_notifier_progression envoie progression_badge quand il reste de 1 à 5 unités avant le prochain seuil. Il récupère les liens déjà notifiés pour éviter de répéter la même notification.
+- Les notifications vont à l’élève concerné, même si le calcul est déclenché par une action staff.
+Points d’appel visibles dans le code :
+- entreprises.views.dashboard_eleve
+- entreprises.views.mes_relance_creer
+- core.views.mes_badges
+Le changement de statut appelle l’attribution des badges ; la vérification de progression est explicitement présente dans les vues ci-dessus.
+Interfaces
+- Dashboard élève : carte XP/niveau, progression par trois catégories et derniers badges.
+- Page badges : templates/core/mes_badges.html.
+- Dashboard élève : templates/entreprises/dashboard.html.
+- Fiche superviseur : templates/staff/detail_eleve.html.
+- Fiche admin : templates/admin_dashboard/eleve_detail.html.
+- Partiel commun : templates/partials/_progression_categories.html.
+- Administration : Badge, BadgeObtenu, Niveau dans core/admin.py, Relance dans entreprises/admin.py.
+Limites et performance
+Le chemin de calcul est optimisé pour éviter une requête par badge, notamment via agrégation, sous-requête, Exists et bulk_create. Toutefois, verifier_et_notifier_progression réévalue trois catégories et interroge les badges et notifications. Le coût observé/estimé peut approcher une douzaine de requêtes selon le nombre de catégories proches d’un seuil et les insertions effectuées. Cette performance reste une dette technique à mesurer sur la base et avec les données de production.
+7. Notifications — Lot 21a et extensions
+Modèle et types
+Notification appartient à comptes. Champs : destinataire, type, message, lien, indicateur lu, date de création.
+
+Les types déclarés sont :
+- compte_valide
+- compte_refuse
+- statut_change
+- relance_creee
+- codes_rome_modifies
+- commentaire
+- document
+- ajout_prospection
+- badge_obtenu
+- progression_badge
+ajout_prospection reste un type historique disponible, mais la création d’une prospection ne notifie plus ; la fonction de compatibilité notifier_ajout_prospection retourne une liste vide.
+Création
+creer_notification(destinataire, type, message, lien="") crée une notification si le destinataire existe et est actif ; message et lien sont tronqués à 255 caractères.
+
+Les notifications métier sont créées par appels explicites dans les vues ou helpers. Aucun signal Django n’est le mécanisme général de notification.
+Consultation et polling
+Routes sous comptes :
+- /notifications/ : liste paginée des notifications personnelles.
+- /notifications/unread-count/ : JSON {count: ...} pour les non lues.
+- /notifications/<pk>/lue/ : POST pour marquer une notification personnelle comme lue.
+- /notifications/tout-lu/ : POST pour tout marquer comme lu.
+- Des routes de compatibilité historiques supplémentaires sont définies pour le marquage lu.
+La cloche est présente dans la navbar desktop et mobile de templates/base.html. Le compteur initial est rendu par le context processor myjobpilot.context_processors.notifications_non_lues. Le JavaScript interroge l’endpoint de compteur toutes les 60 secondes. La vue de marquage vérifie le destinataire et n’autorise une redirection vers le lien que si l’URL est sûre.
+Événements notifiants
+Selon le code actuel :
+- validation ou refus d’un compte ;
+- changement de statut par superviseur/admin, dont passage à a_relancer ;
+- relance créée par un superviseur/admin pour l’élève ;
+- modification des codes ROME par un superviseur ;
+- commentaire ajouté ;
+- document téléversé ;
+- badge obtenu ;
+- approche d’un seuil de badge.
+L’élève ne reçoit pas d’auto-notification pour une relance qu’il crée lui-même.
+8. API La bonne alternance — Lot 20
+Service
+core/external_apis.py interroge l’API La bonne alternance à l’adresse https://api.apprentissage.beta.gouv.fr/api. Les fonctions publiques sont :
+- rechercher_offres_lba(romes, ville, rayon)
+- rechercher_entreprises_lba(romes, ville, rayon)
+La recherche utilise le code postal, les coordonnées récupérées via l’API géographique, le rayon et les codes ROME. Le code ajoute un en-tête Bearer si LBA_API_KEY est définie ; la clé est lue par os.getenv("LBA_API_KEY") et ne doit jamais être codée en dur.
+
+Les erreurs réseau ou de réponse sont journalisées et transformées en liste vide. Les appels ont un timeout de 8 secondes.
+Recherche, tri et pagination
+- /offres-alternance/ est accessible sans authentification.
+- Codes ROME : format lettre + quatre chiffres, jusqu’à trois codes, séparés par virgules.
+- Les codes enregistrés sur l’utilisateur peuvent préremplir le formulaire.
+- La recherche utilise les offres et recruteurs retournés par LBA.
+- Résultats dédoublonnés par identifiant LBA.
+- Tri offres : plus récent, pertinence LBA, ordre saisi des codes. Le tri par code concerne les offres ; les entreprises gardent l’ordre LBA.
+- Pagination distincte pour offres et entreprises, 20 éléments par page, paramètres conservés.
+- Cache Django d’une heure pour les résultats et la géographie.
+- Le champ date de publication est normalisé dans la structure retournée sous _publication_creation.
+Les favoris sont conservés dans OffreEnregistree. Routes : /offres/enregistrer/<id>/, /offres/retirer/<id>/, /mes-offres-enregistrees/. Enregistrer/retirer sont des POST protégés par CSRF et soumis à login. La liste est isolée par utilisateur et paginée.
+
+Templates : templates/offres/recherche.html, _resultats.html, _pagination.html, mes_offres_enregistrees.html.
+
+La normalisation des codes ROME est dans core/utils.py et comptes/utils.py : espaces Unicode autorisés normalisés, BOM retiré, contrôles conservés afin que la validation les rejette.
+
+À vérifier sur le VPS : présence effective de LBA_API_KEY et configuration réelle du cache.
+9. Dashboards et KPI — Lots 19, 21b et 22c
+Dashboard élève
+Route /dashboard/, vue entreprises.views.dashboard_eleve, template templates/entreprises/dashboard.html.
+
+Contenu principal :
+- prospections filtrées, triables et paginées ;
+- compteurs par statut ;
+- KPI et graphiques issus de calculer_stats_eleve ;
+- prochaines échéances de relance ;
+- bloc gamification avec XP/niveau, trois progressions et cinq badges récents ;
+- appels de rattrapage à l’attribution et à la notification de progression.
+Les graphiques de cockpit sont rendus par Chart.js. Le partial templates/partials/_chart_scripts.html charge Chart.js depuis un CDN. Les KPI synthétiques des dashboards de staff/admin incluent aussi des barres CSS.
+Dashboard superviseur
+Route /staff/, vue staff.views.dashboard_staff, template templates/staff/dashboard.html.
+
+Contenu : élèves des centres du scope, filtre période/centre/élève, recherche et tri, statut de validation, type de contrat, statistiques par centre, objectifs actifs, KPI et graphiques.
+
+La fiche élève superviseur est /staff/eleves/<id>/. Elle vérifie le scope et affiche les données autorisées de l’élève, dont les badges et la progression.
+Dashboard admin
+Route /admin-dashboard/, vue admin_dashboard.views.dashboard_admin, template templates/admin_dashboard/dashboard.html.
+
+Filtres : période, centre, superviseur et élève. Les filtres peuvent être combinés ; la vue limite les élèves avant de calculer les indicateurs. La fiche d’un élève se trouve sous /admin-dashboard/eleves/<id>/.
+KPI principaux
+core/stats.py fournit notamment :
+- calculer_kpis_dashboard(eleve_ids, periode="30") : distribution par statut, taux de conversion, échéances de relance à venir et top 5 entreprises.
+- calculer_stats_eleve(eleve) : total prospections, candidatures envoyées, entretiens programmés, taux de réponse, graphiques et prochaines relances.
+- calculer_stats_superviseur(superviseur, eleves=None, periode="all") : élèves suivis, prospections, taux de validation, entretiens, activité et répartition.
+- calculer_stats_admin(eleves=None, superviseurs=None, periode="all") : volumes d’élèves/superviseurs/entreprises, demandes RGPD, graphiques.
+- calculer_atteinte_objectif(objectif) : progression d’objectif.
+Le taux de conversion du dashboard mesure les prospections créées dans la période qui sont actuellement acceptées, non celles acceptées pendant cette période. Le taux de réponse élève exclut les statuts a_contacter et terminee.
+
+Les périodes normalisées sont 7, 30, 90 ou all. Les filtres de dashboard sont bookmarkables via paramètres GET.
+10. Sécurité et RGPD
+Authentification et autorisations
+- Authentification Django avec AUTH_USER_MODEL = "comptes.Utilisateur".
+- Connexion et redirection selon rôle et validation.
+- Middleware comptes.middleware.ValidationCompteMiddleware dans la pile Django.
+- @login_required, require_POST, PermissionDenied, querysets filtrés et utilitaires scope sont utilisés selon les vues.
+- La protection CSRF Django est activée ; les actions de mutation sensibles sont des POST.
+Consentement et demandes RGPD
+ConsentementRGPD conserve version de politique, date, adresse IP et user-agent.
+
+DemandeRGPD suit accès, rectification, effacement, portabilité ou opposition, avec statut, date de traitement et administrateur de traitement.
+
+rgpd.views.export_rgpd fournit l’export personnel. Les exports et opérations pertinentes sont journalisés. Les écrans permettent à l’utilisateur de consulter/créer des demandes et à l’admin de les traiter.
+Rétention et purges
+Paramètres déclarés dans settings.py :
+- compte désactivé : 1 095 jours ;
+- compte non validé : 180 jours ;
+- journal : 1 095 jours.
+Commandes de gestion présentes :
+- comptes/management/commands/purge_journal.py
+- rgpd/management/commands/purge_rgpd.py
+À vérifier : planification effective de ces commandes en production et détails exacts de leurs critères sur le VPS.
+Points de vigilance
+- SECURE_SSL_REDIRECT et les cookies sécurisés sont activés quand DEBUG=False et TESTING=False.
+- TESTING = "test" in sys.argv détecte manage.py test, pas nécessairement pytest.
+- Les exports CSV et RGPD contiennent des données personnelles ; leur portée et leur accès doivent rester strictement contrôlés.
+- Un Utilisateur.objects.create() direct ne lance pas automatiquement clean().
+- L’API LBA dépend d’une clé et de services externes ; la valeur de clé n’est pas dans le dépôt.
+11. Tests et qualité
+Cartographie par fichier
+Le nombre correspond aux méthodes test_... recensées.
+Fichier	Tests
+admin_dashboard/tests/test_badges.py	3
+admin_dashboard/tests/test_exports.py	5
+admin_dashboard/tests/test_pwa.py	4
+admin_dashboard/tests/test_scopes.py	8
+admin_dashboard/tests/test_views.py	24
+comptes/tests/test_emails.py	8
+comptes/tests/test_models.py	17
+comptes/tests/test_notifications.py	13
+comptes/tests/test_purge_journal.py	2
+comptes/tests/test_relances.py	13
+comptes/tests/test_signals.py	1
+comptes/tests/test_utils.py	6
+comptes/tests/test_ux.py	4
+comptes/tests/test_views.py	12
+core/tests/test_dashboard_kpi.py	21
+core/tests/test_external_apis.py	8
+core/tests/test_gamification.py	65
+core/tests/test_navigation.py	1
+core/tests/test_notifications.py	12
+core/tests/test_offres_enregistrees.py	13
+core/tests/test_offres_tri_pagination.py	6
+core/tests/test_recherche.py	12
+core/tests/test_rome.py	11
+core/tests/test_settings.py	2
+core/tests/test_stats.py	7
+core/tests/test_taches.py	11
+documents/tests/test_models.py	2
+documents/tests/test_quotas.py	4
+documents/tests/test_views.py	12
+entreprises/tests/test_api.py	5
+entreprises/tests/test_autocomplete.py	4
+entreprises/tests/test_commentaires.py	11
+entreprises/tests/test_export.py	11
+entreprises/tests/test_filters.py	13
+entreprises/tests/test_hub.py	4
+entreprises/tests/test_import.py	9
+entreprises/tests/test_models.py	12
+entreprises/tests/test_progression_badges_dashboard.py	3
+entreprises/tests/test_progression_notifications.py	1
+entreprises/tests/test_prospection.py	4
+entreprises/tests/test_prospections_tout_role.py	28
+entreprises/tests/test_reference.py	17
+entreprises/tests/test_relance_actions.py	14
+entreprises/tests/test_views.py	27
+rgpd/tests/test_export.py	1
+rgpd/tests/test_models.py	2
+rgpd/tests/test_purge_rgpd.py	3
+rgpd/tests/test_views.py	4
+staff/tests/test_actions.py	15
+staff/tests/test_badges.py	4
+staff/tests/test_codes_rome.py	2
+staff/tests/test_models.py	2
+staff/tests/test_objectifs.py	23
+staff/tests/test_scope_utils.py	16
+staff/tests/test_views.py	17
+Total	559
+
+
+Convention et zones critiques
+Les tests sont des tests Django, généralement basés sur TestCase et self.client, avec données créées dans setUp ou dans les méthodes. Les fichiers sont nommés test_*.py. Il n’y a pas de dossier de factories central évident dans l’inventaire ; les tests construisent leurs données localement.
+
+Zones de tests particulièrement importantes :
+- entreprises/tests/test_prospections_tout_role.py et test_views.py : permissions, scope et CRUD.
+- core/tests/test_dashboard_kpi.py, core/tests/test_stats.py : agrégats et filtres.
+- core/tests/test_gamification.py : attribution, XP, niveaux, progression et notifications.
+- entreprises/tests/test_relance_actions.py : action relancer, isolation et notification.
+- core/tests/test_notifications.py, comptes/tests/test_notifications.py : cloche, endpoint et accès isolé.
+- rgpd/tests/test_export.py et test_views.py : données personnelles et accès.
+- documents/tests/test_views.py : confidentialité des fichiers et autorisations.
+Lancement de la suite : python manage.py test. Une couverture chiffrée par app n’est pas fournie ici ; elle est à mesurer avec coverage.
+12. Déploiement et workflow
+Déploiement automatisé
+.github/workflows/deploy.yml se déclenche sur un push vers main. Le workflow :
+1. se connecte au VPS par SSH via secrets GitHub ;
+2. fait git pull origin main dans /home/myjobpilot/MyJobPilot sous l’utilisateur système myjobpilot ;
+3. active venv et installe requirements.txt ;
+4. vérifie les dépendances avec pip check ;
+5. vérifie les migrations avec makemigrations --check --dry-run ;
+6. exécute manage.py check --deploy ;
+7. applique manage.py migrate ;
+8. lance collectstatic --noinput ;
+9. redémarre le service myjobpilot.
+Ce workflow décrit le déploiement ; il ne contient pas d’étape python manage.py test dans le fichier inspecté. Les tests doivent donc être exécutés séparément avant la mise en production.
+VPS et service
+Le contexte de projet indique le serveur srv781699, les utilisateurs abd et myjobpilot, et le service systemd myjobpilot. Le workflow confirme le chemin /home/myjobpilot/MyJobPilot et le redémarrage de ce service. Le fichier d’unité systemd, les ports, Gunicorn et le proxy frontal ne sont pas stockés dans le dépôt : à vérifier sur le VPS.
+Tags et procédure de travail
+Le commit de référence est tagué v0.22.4-lot22d. Le dépôt montre le workflow de déploiement, mais pas une procédure de versionnage/tag formalisée.
+
+Règles de travail historiques utilisées sur ce projet :
+- tests locaux avant toute publication ;
+- un commit par lot avec message convenu ;
+- publication via la connexion GitHub lorsque le shell n’a pas d’identifiants ;
+- après publication GitHub, git fetch origin main puis git reset --hard origin/main avant le lot suivant ;
+- ne pas construire sur un commit local absent de origin/main ;
+- ne pas forcer un push.
+Le commit c886668 fait partie de l’historique signalé lors des lots de gamification. C’est une leçon de workflow/historique, pas un indicateur que la suite actuelle du commit 2389db5 est rouge.
+13. Dettes techniques et limites connues
+Priorité	Dette / limite	Pourquoi c’est une dette	Effort indicatif	Risque si conservée
+Haute	Modèle Prospection mélange prospection et étapes de candidature	Les statuts avancés et dates de candidature résident sur un même objet ; un modèle Candidature demanderait une migration et une adaptation transversale	Plusieurs jours à quelques semaines selon historique et compatibilité	Moyen à élevé : données et indicateurs ambigus si refonte partielle
+Moyenne	Calculs de progression et notifications à chaque chargement	Le chemin de progression peut effectuer de nombreuses requêtes, et les badges/progressions sont recalculés sur dashboard et page dédiée	1–3 jours pour mesurer, mettre en cache ou optimiser	Moyen : latence si le volume d’élèves et badges augmente
+Moyenne	Une relance n’est pas une candidature indépendante	Relance se rattache à Prospection, avec un type candidature/prospection, sans entité candidature propre	Inclus dans une refonte métier future	Moyen : suivi séparé des relances par candidature impossible
+Moyenne	Couverture réelle inconnue	Le décompte de tests n’indique pas la couverture des branches et des erreurs	0,5–2 jours pour mesurer et cibler	Moyen : chemins limites non testés
+Moyenne	Pas de factories centralisées évidentes	Les données de test répétées via setUp peuvent rendre les tests plus longs à maintenir	1–3 jours	Faible à moyen
+Moyenne	Dépendances front-end CDN	Bootstrap, icônes et Chart.js dépendent de disponibilité réseau/CDN, sans version Chart.js explicitement fixée dans le partial observé	0,5–2 jours	Faible à moyen : rendu dégradé en cas de panne ou changement CDN
+Faible à moyenne	Pied de page affiche MyJobPilot v0.8.4	La version affichée est en dur et ne correspond pas au tag v0.22.4-lot22d	Quelques heures	Faible : confusion pour support et utilisateurs
+Moyenne	Variables de production et configuration VPS hors dépôt	La valeur réelle de DATABASE_URL, le cache et les unités systemd ne sont pas documentés dans le code versionné	0,5–1 jour de documentation	Moyen : dépendance au savoir opérationnel individuel
+Faible	Détection de tests liée à sys.argv	TESTING = "test" in sys.argv ne reconnaît pas nécessairement pytest	Quelques heures	Faible tant que l’exécution reste via manage.py test
+Moyenne	Agrégats de dashboards répétés	Certains tableaux calculent plusieurs ensembles statistiques pour les mêmes filtres ; les coûts doivent être suivis en production	1–3 jours après profilage	Moyen si forte croissance de données
+Faible	Slugs de badges stables mais éditables dans l’admin au moment de la création	Un changement de slug après création casserait les liens d’ancres persistés dans les notifications	Quelques heures pour rendre explicitement immuable au niveau admin	Faible si la règle métier est respectée
+
+
+Le comportement exact du commit c886668 et les circonstances de son état rouge doivent être documentés depuis l’historique Git détaillé si cette information est nécessaire pour audit. L’architecture de ce commit n’est pas à déduire de son seul hash.
+14. Guide de démarrage rapide
+Prérequis
+- Python 3.12 recommandé pour reproduire l’environnement indiqué.
+- Git.
+- Une base SQLite locale suffit au démarrage ; PostgreSQL peut être utilisé via DATABASE_URL.
+Installation
+1. Cloner https://github.com/D-ABD/MyJobPilot.
+2. Créer puis activer un environnement virtuel.
+3. Installer les paquets listés dans requirements.txt.
+4. Créer un fichier .env à la racine.
+Variables référencées dans l’exemple de configuration :
+Variable	Usage
+SECRET_KEY	Obligatoire ; Django lève une erreur si absente
+DEBUG	Mode debug
+ALLOWED_HOSTS	Hôtes autorisés, séparés par virgules
+DATABASE_URL	URL de base de données ; SQLite par défaut
+DEMO_PASSWORD	Mot de passe utilisé par le mécanisme de démonstration
+LBA_API_KEY	Clé facultative côté code pour l’API La bonne alternance
+EMAIL_HOST	Serveur SMTP
+EMAIL_PORT	Port SMTP
+EMAIL_USE_TLS	Utilisation de TLS
+EMAIL_HOST_USER	Compte SMTP
+EMAIL_HOST_PASSWORD	Mot de passe SMTP
+DEFAULT_FROM_EMAIL	Adresse d’expédition
+
+
+Ne pas copier les secrets de production dans un dépôt ou un fichier partagé.
+Initialisation et lancement
+- Appliquer les migrations avec python manage.py migrate.
+- Créer un administrateur Django avec python manage.py createsuperuser.
+- Lancer les tests avec python manage.py test.
+- Démarrer le serveur de développement avec python manage.py runserver.
+- Ouvrir l’administration sur /admin/.
+Les détails de données de démonstration sont dans la commande comptes/management/commands/creer_demo.py. La valeur de LBA_API_KEY n’est pas nécessaire pour parcourir l’application ; elle l’est pour les appels LBA authentifiés selon configuration du service.
+15. Glossaire
+Terme	Définition
+Prospection	Démarche d’un élève auprès d’une entreprise, suivie par un statut, des dates et un historique.
+Entreprise	Fiche du référentiel partagé ; une même entreprise peut être associée à plusieurs élèves, mais un élève n’a qu’une prospection par entreprise.
+Candidature	Dans le modèle actuel, étape représentée par certains statuts de Prospection ; il n’existe pas de modèle Candidature autonome.
+Relance	Événement historisé d’une relance effectivement réalisée. À distinguer de Prospection.date_relance, qui représente une échéance.
+Badge	Récompense configurable dont la condition repose sur un seuil de prospections contactées, candidatures ou relances.
+Badge obtenu	Attribution enregistrée, unique par couple utilisateur/badge.
+Niveau	Palier calculé à partir des XP et des seuils configurables en base.
+XP	Expérience calculée à la volée depuis l’activité ; elle n’est pas stockée comme solde autonome.
+Points	Somme des points des badges obtenus par l’utilisateur.
+Scope superviseur	Autorisation active reliant un superviseur à un centre et donnant accès aux élèves de ce centre.
+Centre	Regroupement auquel appartiennent les élèves et leurs formations.
+Formation	Parcours rattaché à un centre ; un élève doit avoir une formation cohérente avec son centre.
+ROME	Code métier utilisé pour rechercher des offres LBA et stocké sur le profil utilisateur ; aucun mot-clé n’est converti automatiquement en code.
+LBA	La bonne alternance, source externe des offres et recruteurs potentiels.
+KPI	Indicateur agrégé affiché dans les dashboards : compteurs, taux, tendances et distributions.
+Historique de statut	Enregistrement d’une transition d’état de prospection, avec auteur, commentaire et date associée éventuelle.
+Notification in-app	Message stocké en base pour un utilisateur, affiché dans la cloche et la page notifications.
+Demande RGPD	Demande formelle d’exercice d’un droit, enregistrée et traitée dans l’application.
+
+
+Vérifications à effectuer avant un prochain lot
+- Vérifier l’état des migrations réellement appliquées sur la base de production.
+- Vérifier les variables et services actifs sur le VPS, notamment base, cache, SMTP et clé LBA.
+- Exécuter la suite locale python manage.py test avant toute publication.
+- Reconfirmer le SHA de origin/main avant de commencer le lot suivant.
+
+16. Inventaire des templates
+Comptage et conventions
+L’arbre du commit 2389db5 contient 78 fichiers .html sous templates/. Le chiffre de 76 s’obtient en excluant les deux pages système 404.html et offline.html. L’inventaire ci-dessous couvre les 78 fichiers.
+
+Sauf indication contraire :
+- Les pages étendent templates/base.html et définissent les blocs title et content.
+- Les partials ne définissent pas de bloc et sont inclus par les pages indiquées.
+- « JS inline » signifie un bloc <script> dans le fichier ; « CSS inline » signifie un bloc <style>. Les attributs de style ponctuels ne sont pas comptés comme feuille de style.
+- Les fichiers CSS inline sont absents de cet inventaire.
+Racine de templates/
+Chemin	Type et rôle	Hérite / inclus	Utilisé par	JS
+templates/base.html	Base commune : structure HTML, navigation, messages, thème, scripts partagés	Pas d’héritage ; incluse par les 55 pages qui l’étendent	Pages de l’application, dont accueil, comptes, dashboards, entreprises, documents, RGPD, objectifs, tâches et offres	Oui
+templates/accueil.html	Page d’accueil publique	Étend base.html	comptes.views.accueil	Non
+templates/404.html	Page d’erreur 404	Étend base.html	Handler 404 myjobpilot.views.page_404	Non
+templates/offline.html	Page hors ligne de la PWA	Pas d’héritage	myjobpilot.views.offline_view	Non
+templates/recherche.html	Page de recherche globale	Étend base.html	core.views.recherche	Non
+
+
+templates/admin_dashboard/
+Chemin	Rôle	Partials inclus	Vue principale
+dashboard.html	Dashboard admin, filtres, KPI et graphiques	_kpi_cards, _dashboard_prospection_kpis, objectifs/_objectifs_table, _chart_scripts	dashboard_admin
+demandes_rgpd_list.html	Liste administrative des demandes RGPD	_empty_state	admin_demandes_rgpd_list
+eleve_detail.html	Fiche détaillée d’un élève, dont progression et badges	_breadcrumb, _bouton_retour, _progression_categories	admin_eleve_detail
+eleves_list.html	Liste des élèves	_empty_state	admin_eleves_list
+exports.html	Accès aux exports administratifs	Aucun	admin_export_csv
+import_eleves.html	Formulaire d’import CSV des élèves	_breadcrumb, _bouton_retour	admin_import_eleves_csv
+import_entreprises.html	Import du référentiel entreprises	_breadcrumb, _bouton_retour	admin_import_entreprises_csv
+prospection_detail.html	Fiche administrative d’une prospection et actions associées	_breadcrumb, _bouton_retour	admin_prospection_detail
+superviseur_detail.html	Fiche superviseur	_breadcrumb, _bouton_retour	Vue de détail superviseur
+superviseur_form.html	Création/modification d’un superviseur	_breadcrumb, _bouton_retour	admin_superviseur_create ou admin_superviseur_modifier
+superviseur_scopes.html	Consultation et création des scopes d’un superviseur	Aucun	admin_superviseur_scopes et admin_scope_create
+superviseurs_list.html	Liste des superviseurs	Aucun	admin_superviseurs_list
+
+
+Toutes ces pages étendent base.html. Elles ne contiennent pas de bloc <script> ni de bloc <style> propre.
+templates/comptes/
+Chemin	Rôle	Partials inclus	Vue principale
+connexion.html	Formulaire de connexion	Aucun	ConnexionView
+deconnexion.html	Page de déconnexion	Aucun	Vue de déconnexion Django
+en_attente.html	Information sur un compte non encore validé	Aucun	comptes.views.en_attente
+inscription.html	Inscription d’un élève et consentement	Aucun	comptes.views.inscription
+mon_compte.html	Informations du compte personnel	_breadcrumb, _bouton_retour	comptes.views.mon_compte
+notifications.html	Notifications personnelles, lecture et pagination	offres/_pagination.html	notification_list
+
+
+Toutes étendent base.html. Pas de JS ou CSS inline.
+templates/core/
+Chemin	Rôle	Partials inclus	Vue principale
+mes_badges.html	Badges obtenus, badges à venir, points, XP et progression	Aucun	core.views.mes_badges
+
+
+Étend base.html. Pas de JS/CSS inline.
+templates/documents/
+Chemin	Rôle	Partials inclus	Vue principale
+document_confirm_delete.html	Confirmation de suppression	_breadcrumb, _bouton_retour	document_delete
+document_list.html	Liste personnelle des documents	_empty_state	document_list
+document_upload.html	Téléversement d’un document	_breadcrumb, _bouton_retour	document_upload
+staff_documents_eleve.html	Documents d’un élève consultés par le staff	Aucun	staff_documents_eleve
+
+
+Toutes étendent base.html. Pas de JS/CSS inline.
+templates/emails/
+Ces fichiers sont des corps de courriel, pas des pages web ; aucun n’étend base.html.
+Chemin	Rôle	Utilisé par
+accuse_rgpd.html	Accusé de réception d’une demande RGPD	comptes/emails.py
+refus.html	Courriel de refus de compte	comptes/emails.py
+relance.html	Courriel de relance	comptes/emails.py
+reponse_rgpd.html	Réponse au traitement d’une demande RGPD	comptes/emails.py
+validation.html	Courriel de validation de compte	comptes/emails.py
+
+
+Pas de JS/CSS inline.
+templates/entreprises/
+Chemin	Rôle	Partials inclus	Utilisé par
+_commentaires.html	Liste/formulaires de commentaires d’une prospection	Aucun	entreprise_detail.html, staff/detail_eleve.html
+_pagination.html	Pagination des résultats du dashboard entreprises	Aucun	entreprises/dashboard.html
+_tableau_filtres.html	Filtres du dashboard élève	Aucun	entreprises/dashboard.html
+_tableau_resultats.html	Tableau des prospections du dashboard	Aucun	entreprises/dashboard.html
+dashboard.html	Dashboard élève : prospections, KPI et gamification	_kpi_cards, _progression_categories, _chart_scripts, _tableau_filtres, _tableau_resultats, _pagination, _empty_state	dashboard_eleve
+entreprise_confirm_delete.html	Confirmation de suppression d’une prospection	_breadcrumb, _bouton_retour	entreprise_delete
+entreprise_detail.html	Détail d’une prospection et commentaires	_breadcrumb, _bouton_retour, _commentaires	entreprise_detail
+entreprise_form.html	Formulaire de création/modification et changement de statut	_breadcrumb, _bouton_retour	Création/modification/changement de statut
+entreprise_reference_confirm_delete.html	Confirmation de suppression d’une entreprise du référentiel	Aucun	entreprise_reference_delete
+entreprise_reference_detail.html	Détail du référentiel entreprise	Aucun	entreprise_reference_detail
+entreprise_reference_form.html	Création/modification d’une entreprise de référence	Aucun	Création/modification du référentiel
+entreprises_reference.html	Liste filtrée du référentiel partagé	Aucun	entreprises_reference
+hub.html	Hub d’accès aux fonctions entreprises/prospections	Aucun	hub
+mes_relances.html	Échéances et actions de relance	_breadcrumb	mes_relances
+prospection_form_tout_role.html	Création de prospection selon le rôle	Aucun	prospection_create_tout_role
+prospections_toutes.html	Liste des prospections visible selon le rôle	_empty_state	prospections_toutes
+
+
+Toutes les pages de cette liste étendent base.html. Aucun fichier de ce répertoire ne contient de CSS inline.
+templates/objectifs/
+Chemin	Rôle	Partials inclus	Utilisé par
+_objectifs_table.html	Tableau réutilisable des objectifs et de leur atteinte	Aucun	Dashboard admin, dashboard staff, objectifs/liste.html
+confirm_delete.html	Confirmation de suppression d’objectif	Aucun	objectif_supprimer
+form.html	Création/modification d’objectif	Aucun	objectif_nouveau, objectif_modifier
+liste.html	Liste des objectifs accessibles au rôle courant	_objectifs_table.html	objectifs_liste
+
+
+Les pages étendent base.html. Pas de JS/CSS inline.
+templates/offres/
+Chemin	Rôle	Partials inclus	Utilisé par
+_pagination.html	Pagination générique des listes d’offres/notifications	Aucun	_resultats.html (deux listes), mes_offres_enregistrees.html, notifications
+_resultats.html	Résultats LBA et états enregistrés	_pagination.html deux fois	recherche.html
+mes_offres_enregistrees.html	Liste personnelle des favoris LBA	_pagination.html	mes_offres_enregistrees
+recherche.html	Formulaire et résultats de recherche LBA	_resultats.html	offres_alternance
+
+
+Pas de CSS inline.
+templates/partials/
+Chemin	Rôle	Inclus par
+_bouton_retour.html	Lien de retour réutilisable	Pages détail, formulaire et confirmation dans admin, comptes, documents, entreprises, RGPD, tâches et staff
+_breadcrumb.html	Fil d’Ariane	Pages détail/formulaire dans admin, comptes, documents, entreprises, RGPD et staff
+_chart_scripts.html	Chargement et initialisation de Chart.js	Dashboard admin, élève et superviseur
+_dashboard_prospection_kpis.html	KPI de prospection partagés	Dashboards admin et staff
+_empty_state.html	Message d’absence de résultats	Listes admin, documents, dashboard entreprises et staff
+_kpi_cards.html	Cartes KPI partagées	Dashboards admin, élève et staff
+_progression_categories.html	Progression des trois catégories et derniers badges	Dashboard élève et fiches élève admin/staff
+
+
+Les partials n’étendent pas de base. Aucun n’a de CSS inline.
+templates/rgpd/
+Chemin	Rôle	Partials inclus	Utilisé par
+admin_demande_rgpd_traiter.html	Formulaire de traitement admin	_breadcrumb, _bouton_retour	admin_demande_rgpd_traiter
+admin_demandes_rgpd_list.html	Liste admin des demandes RGPD	Aucun	admin_demandes_rgpd_list
+confidentialite.html	Informations de confidentialité	Aucun	confidentialite
+demande_rgpd_detail.html	Détail d’une demande personnelle	_breadcrumb, _bouton_retour	demande_rgpd_detail
+demande_rgpd_form.html	Création d’une demande RGPD	_breadcrumb, _bouton_retour	demande_rgpd_create
+demandes_rgpd_list.html	Liste personnelle des demandes	Aucun	demandes_rgpd_list
+
+
+Toutes étendent base.html. Pas de JS/CSS inline.
+templates/staff/
+Chemin	Rôle	Partials inclus	Utilisé par
+_pagination.html	Pagination de la liste d’élèves	Aucun	staff/dashboard.html
+_tableau_filtres.html	Filtres de la liste d’élèves	Aucun	staff/dashboard.html
+dashboard.html	Dashboard superviseur, élèves du scope et KPI	_kpi_cards, _dashboard_prospection_kpis, _objectifs_table, _chart_scripts, _tableau_filtres, _pagination, _empty_state	dashboard_staff
+detail_eleve.html	Fiche d’élève du scope, prospections, commentaires et progression	_breadcrumb, _bouton_retour, _progression_categories, entreprises/_commentaires.html	detail_eleve_staff
+eleve_changer_centre.html	Formulaire staff de changement de centre	_breadcrumb, _bouton_retour	changer_centre_eleve_staff
+
+
+Toutes les pages de ce répertoire étendent base.html. Aucun CSS inline.
+Blocs de base.html
+base.html définit title et content. Les pages listées les redéfinissent. Le JS inline de base gère notamment la cloche de notifications, le thème et l’enregistrement du service worker.
+17. Formulaires
+Rendus
+Les formulaires sont principalement rendus manuellement par leurs champs dans les templates. Les six pages suivantes utilisent explicitement form.as_p et sont prioritaires pour une éventuelle harmonisation UI :
+- templates/admin_dashboard/import_eleves.html
+- templates/admin_dashboard/superviseur_form.html
+- templates/admin_dashboard/superviseur_scopes.html
+- templates/entreprises/entreprise_form.html
+- templates/rgpd/admin_demande_rgpd_traiter.html
+- templates/rgpd/demande_rgpd_form.html
+Les autres formulaires sont rendus champ par champ, avec certains formulaires composés dans les fiches admin/staff.
+admin_dashboard/forms.py
+Classe / type	Champs et widgets principaux	Vues	Template et rendu
+SuperviseurCreateForm — Form	username CharField/TextInput, email EmailField/EmailInput, password CharField/PasswordInput, centre ModelChoiceField/Select	admin_superviseur_create	superviseur_form.html, form.as_p
+ScopeCreateForm — Form	centre ModelChoiceField/Select, queryset limité aux centres non déjà associés	admin_superviseur_scopes, admin_scope_create	superviseur_scopes.html, form.as_p
+AdminEleveCentreForm — ModelForm(Utilisateur)	centre, formation : ModelChoiceField/Select générés par Django	admin_eleve_changer_centre	eleve_detail.html, rendu manuel
+AdminEleveFormationForm — ModelForm(Utilisateur)	formation : ModelChoiceField/Select, filtré au centre actuel	admin_eleve_changer_formation	eleve_detail.html, rendu manuel
+RefusCompteForm — Form	motif_refus CharField/Textarea, 4 lignes	admin_eleve_refuser	eleve_detail.html, rendu manuel
+AdminSuperviseurUpdateForm — ModelForm(Utilisateur)	username, email, first_name, last_name ; widgets texte générés	admin_superviseur_modifier	superviseur_detail.html, rendu manuel
+MotDePasseSuperviseurForm — Form	nouveau_mot_de_passe, confirmation CharField/PasswordInput	admin_superviseur_mot_de_passe	superviseur_detail.html, rendu manuel
+ImportElevesCSVForm — Form	fichier FileField	admin_import_eleves_csv	import_eleves.html, form.as_p
+
+
+comptes/forms.py
+Classe / type	Champs et widgets principaux	Vue	Template et rendu
+InscriptionForm — UserCreationForm Django	username, first_name, last_name, email, centre, formation, password1, password2, consentement_rgpd. Champs utilisateur générés ; champs mot de passe Django ; consentement BooleanField/CheckboxInput	inscription	comptes/inscription.html, champs rendus manuellement
+ConnexionForm — AuthenticationForm Django	username CharField/TextInput ; password CharField/PasswordInput	ConnexionView	comptes/connexion.html, champs rendus manuellement
+
+
+core/forms.py
+Classe / type	Champs et widgets principaux	Vue	Template et rendu
+TacheForm — ModelForm(Tache)	titre CharField, description Textarea, date_echeance DateInput HTML date, statut Select, prospection ModelChoiceField/Select, assigne_a ModelChoiceField/Select ; querysets limités selon rôle	tache_nouvelle, tache_modifier	taches/form.html, rendu manuel
+OffresAlternanceForm — Form	code_rome CharField/TextInput, tri ChoiceField/Select, ville CharField/TextInput, rayon IntegerField/NumberInput	offres_alternance	offres/recherche.html, rendu manuel
+
+
+documents/forms.py
+Classe / type	Champs et widgets principaux	Vue	Template et rendu
+DocumentUploadForm — Form	nom CharField/TextInput, type ChoiceField/Select, contenu FileField/FileInput	document_upload	documents/document_upload.html, rendu manuel
+
+
+La validation vérifie le poids maximal d’un fichier et le quota total de l’élève. La configuration déclare 5 Mo par fichier et 20 Mo par élève.
+entreprises/forms.py
+Classe / type	Champs et widgets principaux	Vues	Template et rendu
+ProspectionForm — Form	entreprise_id ModelChoiceField/HiddenInput, entreprise_nom CharField/TextInput avec autocomplete, statut ChoiceField/Select, type_contrat ChoiceField/RadioSelect, notes CharField/Textarea, source CharField/TextInput, date_relance et dates métier DateField/DateInput	Création/modification de prospection	entreprise_form.html ou prospection_form_tout_role.html ; rendu as_p dans l’ancien formulaire, manuel dans le formulaire multi-rôle
+ProspectionFormToutRole — héritage de ProspectionForm	Champs hérités + proprietaire ModelChoiceField/Select ; propriétaire caché pour l’élève, limité au scope pour superviseur	prospection_create_tout_role	prospection_form_tout_role.html, rendu manuel
+EntrepriseForm — ModelForm(Entreprise)	nom, secteur, site_web, adresse, ville, code_postal, contact_nom, contact_email, contact_telephone ; widgets texte/email/URL/Textarea selon type de champ, avec classe Bootstrap	CRUD référentiel, parcours création prospection, actions staff	entreprise_form.html, entreprise_reference_form.html, prospection_form_tout_role.html, fiche staff ; rendu variable, manuel dans les formulaires récents
+ChangementStatutForm — Form	nouveau_statut ChoiceField/Select, commentaire CharField/Textarea, date_associee DateField/DateInput	entreprise_changer_statut, admin_prospection_changer_statut, détail admin	entreprise_form.html avec form.as_p ; détail admin rendu manuellement
+CommentaireForm — ModelForm(Commentaire)	contenu TextField/Textarea	commentaire_ajouter, admin_prospection_detail, admin_prospection_ajouter_commentaire	_commentaires.html et admin_dashboard/prospection_detail.html, rendu manuel
+
+
+ProspectionForm expose les dates métier date_candidature, date_mise_en_attente, date_entretien, date_refus, date_acceptation et date_relance. Cette description reflète l’état de ce commit ; ces champs n’ont pas été retirés.
+rgpd/forms.py
+Classe / type	Champs et widgets principaux	Vues	Template et rendu
+DemandeRGPDForm — ModelForm(DemandeRGPD)	type ChoiceField/Select, description Textarea	demande_rgpd_create	demande_rgpd_form.html, form.as_p
+TraitementDemandeRGPDForm — ModelForm(DemandeRGPD)	statut ChoiceField/Select, motif_refus Textarea	admin_demande_rgpd_traiter	admin_demande_rgpd_traiter.html, form.as_p
+
+
+staff/forms.py
+Classe / type	Champs et widgets principaux	Vues	Template et rendu
+ChangementCentreFormStaff — Form	centre ModelChoiceField/Select, queryset limité si fourni	changer_centre_eleve_staff	staff/eleve_changer_centre.html, rendu manuel
+CodesRomeForm — Form	codes_rome CharField/TextInput	modifier_codes_rome_eleve	staff/detail_eleve.html, rendu manuel
+AjoutProspectionStaffForm — héritage de ProspectionForm	Champs de prospection hérités, libellés adaptés au contexte élève	ajouter_entreprise_staff	staff/detail_eleve.html, rendu manuel
+ObjectifForm — ModelForm(Objectif)	eleve ModelChoiceField/Select, type ChoiceField/Select, valeur NumberInput, periode_debut et periode_fin DateInput	objectif_nouveau, objectif_modifier	objectifs/form.html, rendu manuel
+
+
+Autres formulaires
+Les formulaires d’administration Django des modèles sont générés par le site admin. Ils ne sont pas des classes Form/`ModelForm` déclarées dans les fichiers listés ci-dessus.
+18. CSS et design actuel
+Fichiers et chargement
+Ressource	Emplacement / version	Usage
+CSS de l’application	static/css/custom.css	Ajustements de focus, tableaux, KPI, barres, états vides et thème sombre
+Service worker	static/sw.js	Cache du shell, des ressources statiques et affichage hors ligne
+Bootstrap CSS	CDN bootstrap@5.3.3	Grille, navigation, cartes, tableaux, formulaires, boutons, alertes, badges, modals/offcanvas
+Bootstrap JS	CDN bootstrap@5.3.3	Bundle Bootstrap, notamment composants interactifs
+Bootstrap Icons	CDN bootstrap-icons@1.11.3	Icônes de navigation et d’actions
+Chart.js	CDN chart.js sans version fixée dans le partial observé	Graphiques des dashboards
+
+
+Les images PWA static/icons/icon-192.png et icon-512.png, ainsi que static/manifest.json, accompagnent l’interface installable.
+Classes CSS personnalisées
+Définies dans static/css/custom.css :
+- filter-form : bordure des formulaires de filtre.
+- dashboard-stat : accent de bordure sur les statistiques.
+- cockpit-kpi : taille des nombres KPI.
+- cockpit-chart : conteneur de graphiques.
+- kpi-bar-row, kpi-bar-label, kpi-bar-value, kpi-bar-track, kpi-bar-fill : barres KPI horizontales.
+- dashboard-table-wrap, dashboard-table, table-sort-link, table-actions : tableaux de dashboard et actions.
+- empty-state : présentation des états sans résultats.
+Le CSS contient également des règles pour :focus-visible, le thème sombre data-bs-theme="dark", les tableaux, les formulaires et la mise en page mobile. Il n’y a pas de système de variables CSS personnalisé important ; les couleurs sont principalement celles de Bootstrap, avec quelques valeurs écrites directement dans la feuille.
+Palette et polices
+Palette observée : bleu Bootstrap primaire (#0d6efd), vert succès (#198754), jaune avertissement (#ffc107), rouge danger (#dc3545), cyan info (#0dcaf0), gris Bootstrap et couleurs de thème sombre. Le focus clavier utilise un contour jaune (#ffbf47).
+
+Aucune police web dédiée n’est chargée dans les fichiers inspectés. L’affichage repose donc sur les polices système définies par Bootstrap/navigateur.
+Composants les plus présents
+Comptage des classes exactes dans les attributs class des templates HTML, à ce commit. Il s’agit de références de classes, pas d’un comptage des composants finalement produits par Django ou JavaScript.
+Classe	Occurrences
+btn	172
+card	85
+badge	30
+form-select	37
+form-control	17
+table	19
+alert	24
+list-group-item	13
+
+
+Les classes btn-*, card-*, table-*, form-check-* et autres variantes ajoutent des occurrences supplémentaires si l’on compte les familles Bootstrap plutôt que la classe exacte.
+JavaScript du projet
+- static/sw.js : cache PWA, stratégies de cache pour les ressources statiques, exclusion des routes privées et fallback hors ligne pour les navigations.
+- JavaScript inline dans templates/base.html : thème, cloche/compteur de notifications et service worker.
+- JavaScript inline dans templates/entreprises/entreprise_form.html et prospection_form_tout_role.html : interactions de formulaires/autocomplete.
+- JavaScript inline dans templates/offres/recherche.html : comportement de recherche/tri de la page offres.
+- JavaScript inline dans templates/staff/detail_eleve.html : interactions de la fiche staff.
+- templates/partials/_chart_scripts.html : chargement et configuration Chart.js.
+Aucun fichier static/js/ n’apparaît dans l’arbre du commit.
+Début de design system
+Il existe un début de bibliothèque d’interface par réutilisation de partials : cartes KPI, graphiques, tableaux, breadcrumbs, bouton retour, progression des badges, pagination et états vides. Bootstrap fournit le socle visuel. Le design n’est cependant pas encore un système homogène complet : plusieurs pages utilisent form.as_p, certains styles restent codés en dur, et Chart.js est dépendant d’un CDN sans version épinglée dans le partial.

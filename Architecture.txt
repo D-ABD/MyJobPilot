@@ -1,0 +1,795 @@
+MyJobPilot — Architecture et référence technique
+État documenté : commit 64417b6e9854fbfa55cb5bc997a7b2121b865c4b (Lot 23g — Sidebar collapse + Tâches dashboard), tag v0.23.9-lot23g, daté du 11 novembre 2026.
+Tests : 559 tests exécutés et verts pour le Lot 23g.
+Périmètre : code du dépôt et informations de déploiement fournies pour ce lot. Les valeurs propres à la base de production et au VPS restent à vérifier lorsqu’elles ne sont pas visibles dans le dépôt.
+Correction de comptage : l’inventaire pré-UI comptait 78 fichiers HTML. Au commit documenté, le dépôt en contient 80, notamment après l’ajout de templates/partials/_form_field.html et _form_errors.html. Le chiffre 78 n’est donc plus à jour.
+
+1. Vue d’ensemble
+MyJobPilot est une application Django de suivi de recherche d’alternance et d’accompagnement d’élèves. Elle couvre les prospections et candidatures, les entreprises, les relances, les documents, les objectifs, les tableaux de bord, les notifications et la gamification.
+
+Ses publics sont les élèves, les superviseurs qui suivent les élèves de leur périmètre et les administrateurs.
+Élément	Valeur
+Production	https://myjobpilot.adserv.fr
+Dépôt	https://github.com/D-ABD/MyJobPilot
+Branche de référence	main
+Commit documenté	64417b6
+Tag documenté	v0.23.9-lot23g
+Date	11 novembre 2026
+Tests	559, tous verts au Lot 23g
+
+
+Stack
+Composant	Valeur
+Python	3.12.12 dans l’environnement de développement décrit ; version VPS à vérifier
+Django	5.0.6
+Base	DATABASE_URL via dj-database-url; SQLite par défaut si absente
+API REST	Django REST Framework 3.17.2
+Interface	Templates Django, Bootstrap 5.3.3, Bootstrap Icons 1.11.3
+Chart.js	4.4.1, URL CDN épinglée
+Typographie	Inter variable 4.1, locale, static/fonts/inter-variable.woff2 (352 240 octets)
+CSS applicatif	static/css/tokens.css et static/css/custom.css
+Requêtes HTTP	requirements.txt déclare requests==2.34.2 ; cette version ayant été signalée comme à vérifier sur PyPI, la dépendance doit être contrôlée avant un prochain déploiement
+Autres dépendances principales	psycopg[binary], python-dotenv, dj-database-url, coverage
+Fuseau	Europe/Paris, USE_TZ=True
+
+
+Le dépôt utilise un modèle utilisateur personnalisé. Les secrets sont lus depuis l’environnement ou .env ; ils ne doivent pas être ajoutés au code versionné.
+Taille indicative du code
+Les chiffres ci-dessous viennent de l’inventaire antérieur au Lot 23g et ne sont pas recalculés pour ce commit. Ils incluent les migrations et excluent les tests.
+App	Fichiers Python hors tests	Lignes estimées
+core	23	2 236
+comptes	31	1 695
+entreprises	20	2 324
+staff	6	680
+documents	9	386
+rgpd	12	398
+admin_dashboard	6	1 153
+
+
+Tests par app
+App	Tests recensés
+admin_dashboard	44
+comptes	76
+core	169
+documents	18
+entreprises	163
+rgpd	10
+staff	79
+Total	559
+
+
+Le total correspond aux méthodes test_... et au résultat de la suite exécutée pour le Lot 23g.
+2. Architecture des apps Django
+Apps métier
+App	Responsabilité	Modèles du projet	Tests
+comptes	Utilisateurs, centres, formations, scopes, journalisation, notifications et parcours de compte	Centre, Formation, ConsentementRGPD, Utilisateur, JournalAction, ScopeSuperviseur, Notification	76
+core	Recherche globale, tâches, objectifs, offres sauvegardées, badges, niveaux, statistiques et fonctions transverses	Tache, Objectif, OffreEnregistree, Badge, BadgeObtenu, Niveau	169
+entreprises	Référentiel entreprises, prospections, changements de statut, commentaires et relances	Entreprise, Prospection, HistoriqueStatut, Commentaire, Relance	163
+staff	Dashboard superviseur, fiches élèves, actions autorisées dans le scope	Aucun modèle propre	79
+documents	Téléversement et accès contrôlé aux documents	Document	18
+rgpd	Demandes RGPD, traitement, export et purge	DemandeRGPD	10
+admin_dashboard	Administration métier, imports, exports et dashboard admin	Aucun modèle propre	44
+
+
+Django admin, auth, contenttypes, sessions, messages et staticfiles sont également installés. rest_framework fournit les composants d’API.
+Vues et templates principaux
+- comptes : inscription, connexion, déconnexion, attente de validation, profil, notifications. Templates sous templates/comptes/.
+- core : recherche globale, tâches, offres LBA, favoris, badges. Templates sous templates/core/, templates/taches/ et templates/offres/.
+- entreprises : dashboard élève, hub, prospections, référentiel, relances, commentaires et statuts. Templates sous templates/entreprises/.
+- staff : dashboard superviseur, fiche élève, changement de centre et actions liées au scope. Templates sous templates/staff/.
+- admin_dashboard : dashboard admin, gestion des élèves et superviseurs, imports/exports, fiches, RGPD. Templates sous templates/admin_dashboard/.
+- documents : liste, téléversement, téléchargement et suppression. Templates sous templates/documents/.
+- rgpd : demandes personnelles et écrans administratifs. Templates sous templates/rgpd/.
+Migrations
+Les migrations sont réparties par app, sous migrations/. Les apps métier sans modèles propres n’ont pas nécessairement de migrations. Le statut effectivement appliqué à la base de production est à vérifier sur le VPS.
+Dépendances fonctionnelles
+comptes <-> entreprises
+comptes <-> core
+entreprises -> comptes, core
+core -> comptes, entreprises
+staff -> comptes, entreprises, core, documents
+admin_dashboard -> comptes, entreprises, core, documents, rgpd
+documents -> comptes
+rgpd -> comptes
+
+Les relations de modèles sont parfois déclarées par chaînes Django pour éviter les imports circulaires.
+3. Modèles de données
+Les modèles ci-dessous sont ceux du projet. Les champs hérités d’`AbstractUser` ne sont pas tous répétés.
+3.1 comptes
+Centre — regroupement d’élèves et de formations.
+- nom : CharField(150), unique.
+- departement : CharField(100).
+- Meta : tri par nom.
+- __str__ : nom et département.
+- Relations entrantes : Formation.centre, Utilisateur.centre, ScopeSuperviseur.centre.
+Formation — formation rattachée à un centre.
+- centre : FK vers Centre, PROTECT, related_name="formations".
+- nom : CharField(150).
+- Meta : tri par centre puis nom ; unicité (centre, nom).
+- __str__ : formation et centre.
+- Relation entrante : Utilisateur.formation.
+ConsentementRGPD — trace du consentement donné par l’utilisateur.
+- utilisateur : OneToOne vers Utilisateur, CASCADE, related_name="consentement".
+- version_politique : CharField(20), défaut "1.0".
+- date_consentement : DateTimeField(auto_now_add=True).
+- ip : GenericIPAddressField, nullable et blank.
+- user_agent : TextField, blank.
+- Meta : date décroissante.
+- __str__ décrit le consentement.
+Utilisateur — compte applicatif, hérite d’`AbstractUser`.
+- role : CharField(20), choix eleve, superviseur, admin, défaut eleve.
+- codes_rome : CharField(255), blank, défaut vide.
+- centre : FK Centre, PROTECT, nullable et blank, related_name="utilisateurs".
+- formation : FK Formation, PROTECT, nullable et blank, related_name="eleves".
+- is_valide : booléen, défaut False.
+- date_validation : DateTimeField, nullable et blank.
+- valide_par : FK récursive, SET_NULL, nullable et blank, related_name="validations_effectuees".
+- motif_refus : TextField, blank.
+- Champs hérités usuels : username, first_name, last_name, email, password, last_login, is_superuser, is_staff, is_active, date_joined, groupes et permissions.
+- Méthodes/propriétés : departement, a_consenti_rgpd, points_total, clean().
+- clean() normalise et valide les codes ROME et vérifie la cohérence centre/formation. full_clean() doit être appelé pour déclencher cette validation ; un objects.create() direct ne l’appelle pas.
+- Relations entrantes : prospections, documents, tâches, objectifs, badges obtenus, notifications, relances comme auteur, commentaires, historiques, journal, scopes, demandes RGPD et consentement.
+ScopeSuperviseur — autorisation d’un superviseur sur un centre.
+- superviseur : FK Utilisateur, CASCADE, related_name="scopes".
+- centre : FK Centre, CASCADE, related_name="scopes_superviseurs".
+- is_active : booléen, défaut True.
+- date_creation : DateTimeField(auto_now_add=True).
+- date_desactivation : DateTimeField, nullable et blank.
+- cree_par : FK Utilisateur, SET_NULL, nullable et blank, related_name="scopes_crees".
+- Meta : unicité (superviseur, centre) ; index (superviseur, is_active) et (centre, is_active).
+- Méthodes : création/récupération idempotente et désactivation journalisée.
+JournalAction — journal d’événements métier et de sécurité.
+- Champs : utilisateur FK nullable SET_NULL, action, cible_type, cible_id, details (JSONField, défaut dict), ip, user_agent, date.
+- Actions couvrent notamment l’authentification, les comptes, les scopes, les changements de statut, les documents, commentaires, exports/imports, tâches, relances et objectifs.
+- Meta : date décroissante.
+- __str__ : libellé et date.
+Notification — notification personnelle, avec TypeNotification comme énumération distincte.
+- destinataire : FK Utilisateur, CASCADE, related_name="notifications".
+- type : CharField(32).
+- message : CharField(255).
+- lien : CharField(255), blank.
+- lu : booléen, défaut False.
+- date_creation : DateTimeField(auto_now_add=True).
+- Meta : date décroissante ; index sur destinataire, lecture et date.
+- Types : compte_valide, compte_refuse, statut_change, relance_creee, codes_rome_modifies, commentaire, document, ajout_prospection, badge_obtenu, progression_badge.
+3.2 entreprises
+Entreprise — fiche du référentiel partagé.
+- nom : CharField(200).
+- secteur : CharField(100), blank.
+- site_web : URLField, blank.
+- adresse : TextField, blank.
+- ville : CharField(100), blank.
+- code_postal : CharField(20), blank.
+- contact_nom : CharField(100), blank.
+- contact_email : EmailField, blank.
+- contact_telephone : CharField(30), blank.
+- date_creation : DateTimeField(auto_now_add=True).
+- Meta : unicité insensible à la casse sur le nom.
+- __str__ : nom.
+- Relations entrantes : prospections.
+Statut et TypeContrat sont des énumérations, pas des modèles.
+- Statut : a_contacter, a_relancer, terminee, candidature_envoyee, en_attente, entretien_programme, refus, accepte.
+- TypeContrat : stage, alternance.
+Prospection — démarche d’un élève auprès d’une entreprise.
+- eleve : FK Utilisateur, CASCADE, related_name="prospections".
+- entreprise : FK Entreprise, PROTECT, related_name="prospections".
+- statut : CharField(30), choix Statut, défaut a_contacter.
+- type_contrat : CharField(20), choix TypeContrat, défaut alternance.
+- date_relance : DateField, nullable et blank (échéance).
+- date_derniere_relance_email : DateTimeField, nullable et blank.
+- date_candidature : DateField, nullable et blank.
+- date_mise_en_attente : DateField, nullable et blank.
+- date_entretien : DateTimeField, nullable et blank.
+- date_refus et date_acceptation : DateField, nullable et blank.
+- notes : TextField, blank.
+- source : CharField(100), blank.
+- date_creation : DateTimeField(auto_now_add=True).
+- date_modification : DateTimeField(auto_now=True).
+- Meta : tri par modification décroissante ; unicité (eleve, entreprise) ; index (eleve, statut) et (eleve, -date_modification).
+- __str__ identifie l’élève et l’entreprise.
+- Relations entrantes : historique, commentaires, tâches et relances.
+Relance — événement de relance réellement effectué, distinct de l’échéance Prospection.date_relance.
+- prospection : FK Prospection, CASCADE, related_name="relances".
+- type : CharField(16), choix prospection / candidature, défaut prospection.
+- auteur : FK Utilisateur, SET_NULL, nullable et blank, related_name="relances_effectuees".
+- date_relance : DateTimeField(auto_now_add=True).
+- contenu : TextField, blank.
+- Meta : date décroissante.
+- __str__ combine le type et la prospection.
+HistoriqueStatut — trace des transitions d’état.
+- prospection : FK Prospection, CASCADE, related_name="historique".
+- ancien_statut : CharField(30), choix Statut, blank.
+- nouveau_statut : CharField(30), choix Statut.
+- date_changement : DateTimeField(auto_now_add=True).
+- auteur : FK Utilisateur, SET_NULL, nullable, related_name="changements_statut".
+- commentaire : TextField, blank.
+- date_associee : DateField, nullable et blank.
+- Meta : date décroissante.
+Commentaire — message associé à une prospection.
+- auteur : FK Utilisateur, CASCADE, related_name="commentaires".
+- prospection : FK Prospection, CASCADE, related_name="commentaires".
+- contenu : TextField.
+- date : DateTimeField(auto_now_add=True).
+- Meta : date décroissante ; index (prospection, -date).
+3.3 core
+Tache
+- titre : CharField(200).
+- description : TextField, blank.
+- date_echeance : DateField, nullable et blank.
+- statut : CharField(20), choix a_faire, en_cours, terminee, défaut a_faire.
+- createur et assigne_a : FK vers l’utilisateur, CASCADE, related names taches_creees et taches_assignees.
+- prospection : FK Prospection, SET_NULL, nullable et blank, related_name="taches".
+- date_creation, date_modification : horodatages Django.
+- Meta : tri par statut, échéance puis création décroissante ; index assignataire/statut et assignataire/échéance.
+- __str__ retourne le titre.
+Objectif
+- createur, eleve : FK utilisateur, CASCADE, related_name="objectifs_crees" et "objectifs".
+- type : prospections_semaine ou candidatures_mois.
+- valeur : PositiveIntegerField.
+- periode_debut, periode_fin : DateField.
+- date_creation : DateTimeField(auto_now_add=True).
+- Meta : période décroissante, puis nom d’élève ; index (eleve, type) et (createur, periode_debut) ; unicité élève/type/période.
+- L’atteinte est calculée par core/stats.py.
+OffreEnregistree
+- utilisateur : FK utilisateur, CASCADE, related_name="offres_enregistrees".
+- offre_id_lba, titre, entreprise, ville, url : chaînes de données de l’offre, les champs entreprise/ville/url étant facultatifs.
+- date_publication : DateTimeField, nullable et blank.
+- date_enregistrement : DateTimeField(auto_now_add=True).
+- Meta : unicité (utilisateur, offre_id_lba), tri par enregistrement décroissant.
+Badge
+- slug : SlugField, unique et identifiant stable.
+- categorie : prospections, candidatures, suivi.
+- nom : CharField(100).
+- description : TextField, blank.
+- icone : CharField(50), blank.
+- type_condition : prospections_contactees_count, candidatures_count, relances_count.
+- seuil : PositiveIntegerField, défaut 1.
+- valeur_points : PositiveIntegerField, défaut 10.
+- ordre_affichage : PositiveIntegerField, défaut 0.
+- est_actif : booléen, défaut True.
+- Meta : tri catégorie, ordre d’affichage, seuil.
+BadgeObtenu
+- utilisateur : FK Utilisateur, CASCADE, related_name="badges_obtenus".
+- badge : FK Badge, CASCADE.
+- date_obtention : DateTimeField(auto_now_add=True).
+- Meta : unicité utilisateur/badge ; date décroissante.
+Niveau
+- nom : CharField(50).
+- seuil_min : PositiveIntegerField.
+- ordre_affichage : PositiveIntegerField, défaut 0.
+- est_actif : booléen, défaut True.
+- Meta : tri par seuil décroissant ; unicité du seuil et du nom.
+3.4 documents
+Document
+- eleve : FK utilisateur, CASCADE, related_name="documents".
+- nom : CharField(200).
+- type : CharField(30), choix cv, lettre, diplome, autre, défaut autre.
+- contenu : BinaryField.
+- taille : PositiveIntegerField.
+- content_type : CharField(100).
+- date_upload : DateTimeField(auto_now_add=True).
+- Meta : upload décroissant ; index élève/date.
+- DocumentManager.listing() retarde le chargement du contenu binaire dans les listes.
+3.5 rgpd
+DemandeRGPD
+- utilisateur : FK utilisateur, CASCADE, related_name="demandes_rgpd".
+- type : acces, rectification, effacement, portabilite, opposition.
+- statut : recue, en_cours, traitee, refusee, défaut recue.
+- description : TextField, blank.
+- date_demande : DateTimeField(auto_now_add=True).
+- date_traitement : DateTimeField, nullable et blank.
+- motif_refus : TextField, blank.
+- traitee_par : FK utilisateur, SET_NULL, nullable et blank, related_name="demandes_traitees".
+- Meta : demande décroissante ; index utilisateur/date et statut/date.
+4. Rôles et permissions
+Rôle	Accès général
+eleve	Gère ses propres démarches et consulte ses données personnelles
+superviseur	Suit les élèves couverts par ses scopes actifs
+admin	Gère les données métier à travers les vues d’administration
+
+
+Le rôle métier admin est distinct de is_staff et is_superuser. L’accès à /admin/ dépend des permissions Django.
+Scope superviseur
+ScopeSuperviseur(superviseur, centre, is_active) associe un superviseur à un centre. Les élèves accessibles sont ceux du rôle élève rattachés à un centre dans un scope actif.
+
+Pattern utilitaire : centres_du_superviseur(user), superviser_eleve(user, eleve) et verifier_superviseur(request, eleve=None). Ce dernier lève PermissionDenied hors scope, transformé par Django en réponse 403. Les vues qui manipulent un élève appliquent également un queryset limité au périmètre.
+Matrice indicative
+Action	Élève	Superviseur	Admin métier
+Dashboard élève	Ses données	Non	Vue admin distincte
+Créer prospection	Pour lui-même	Pour un élève du scope selon la vue	Pour tous
+Lire prospections	Les siennes	Les siennes et le scope selon la vue	Toutes
+Changer statut	Sa prospection	Scope	Toutes
+Créer relance	Ses prospections	Scope	Toutes
+Page personnelle des badges	Ses badges	403	403
+Voir les badges d’un élève	Non	Fiche du scope	Fiche admin
+Gérer objectif	Non	Élèves du scope	Tous les élèves
+Modifier codes ROME	Non	Élèves du scope	Tout utilisateur
+Exporter listes administratives	Non	Pas d’export global documenté	Oui
+Export RGPD	Ses données	Pas les données d’autrui	Traitement des demandes
+
+
+À vérifier vue par vue pour les parcours historiques et les exceptions de permission.
+5. Flux utilisateurs principaux
+5.1 Inscription, validation, première connexion
+1. Inscription via /comptes/inscription/.
+2. comptes.views.inscription valide le formulaire et journalise l’événement.
+3. Le compte est créé avec is_valide=False.
+4. L’admin valide ou refuse le compte.
+5. Connexion via /comptes/connexion/, puis redirection selon rôle et validation : admin, superviseur, élève en attente ou élève validé vers /dashboard/.
+Modèles : Utilisateur, JournalAction, éventuellement Notification, ConsentementRGPD.
+5.2 Créer une prospection
+1. Depuis /dashboard/, l’élève ouvre /entreprises/nouvelle/.
+2. La vue vérifie le rôle, l’entreprise et les doublons.
+3. Elle crée Prospection et HistoriqueStatut.
+4. La redirection revient au détail ou au dashboard selon le parcours.
+5.3 Modifier un statut
+1. Détail /entreprises/<id>/.
+2. POST vers la route de changement de statut.
+3. Contrôle propriétaire/scope, validation, mise à jour de la prospection et date métier éventuelle.
+4. Création de HistoriqueStatut, journalisation et notification si la modification est faite par le superviseur/admin pour un élève.
+5.4 Effectuer une relance
+1. Depuis /mes-relances/, POST vers /mes-relances/creer/.
+2. mes_relance_creer vérifie propriétaire, scope superviseur ou rôle admin.
+3. Crée Relance, met à jour l’échéance Prospection.date_relance, et peut faire passer a_relancer à en_attente.
+4. L’élève reçoit une notification si la relance est effectuée par quelqu’un d’autre.
+5. Les badges sont recalculés puis la vue redirige vers /mes-relances/.
+5.5 Badges et progression
+L’élève ouvre /mon-compte/badges/. La vue vérifie les badges et notifications de progression, assemble XP, niveau, points et progression par catégorie, puis affiche les ancres #badge-<slug>.
+5.6 Superviseur
+Depuis /staff/, le superviseur consulte les élèves de ses scopes, puis /staff/eleves/<id>/. La fiche revalide le scope et présente les données autorisées, dont les prospections, badges et progression.
+5.7 Admin
+Depuis /admin-dashboard/, l’administrateur consulte les listes, filtres, imports/exports, KPI, scopes et fiches élèves. L’admin Django permet la gestion de modèles configurables si le compte dispose de is_staff.
+6. Gamification — lots 22a à 22d
+Modèles et règles
+- Relance représente une action réellement effectuée ; Prospection.date_relance reste une échéance.
+- Badge est configurable par l’admin ; le slug est stable après création.
+- BadgeObtenu persiste l’attribution, unique par couple utilisateur/badge.
+- Niveau est configurable en base ; les migrations initialisent sept niveaux.
+Les 17 badges initiaux, tous à 10 points :
+Catégorie	Seuils et slugs	Noms initiaux
+Prospection	prospection-10, -20, -35, -50, -75, -100	Novice, Explorateur, Persévérant, Chasseur, Stratège, Expert
+Candidature	candidature-3, -5, -10, -15, -25	Premier pas, Candidat motivé, Candidat engagé, Candidat déterminé, Candidat confirmé
+Suivi	relance-1, -3, -5, -10, -15, -25	Premier suivi, Relanceur, Insistant, Persévérant, Accrocheur, Roi de la relance
+
+
+Les sept seuils de niveau sont : Novice 0, Explorateur 100, Persévérant 250, Chasseur 500, Stratège 1 000, Expert 2 000, Ambassadeur 4 000.
+Compteurs et calculs
+- Prospections contactées : toutes sauf les statuts a_contacter et terminee.
+- Candidatures : candidature_envoyee, en_attente, entretien_programme, refus, accepte.
+- Relances : objets Relance liés aux prospections de l’élève.
+- XP calculés à la demande : 10 par prospection contactée, 20 par candidature, 10 par relance.
+- Points : somme des points des badges obtenus ; ce n’est pas un solde XP.
+- Progression vers le prochain badge : compteur actuel divisé par seuil cible, plafonné à 1.
+core/gamification.py
+Fonction	Rôle
+compter_progression(utilisateur)	Compteurs canoniques prospections, candidatures et relances
+_xp_depuis_compteurs(compteurs)	Conversion des compteurs en XP
+calculer_xp(utilisateur)	Calcul des XP
+calculer_niveau(xp)	Choix du niveau actif et progression vers le suivant
+calculer_progression_utilisateur(utilisateur)	Assemble XP, niveau, badges et compteurs
+verifier_et_attribuer_badges(utilisateur)	Attribue les seuils atteints par bulk_create idempotent
+progression_badges(utilisateur)	Compteurs de progression
+calculer_prochain_badge(utilisateur, type_condition, compteurs=None)	Prochain badge, progression et manque
+calculer_progression_categories(utilisateur)	Les trois catégories à partir des compteurs
+calculer_derniers_badges(utilisateur, limite=5)	Dernières attributions avec select_related
+verifier_et_notifier_progression(utilisateur)	Notification à l’approche d’un seuil
+resume_badges(utilisateur)	Attributions et points
+
+
+Les appels sont explicites, sans signaux Django : dashboard élève, création de relance, changement de statut et page badges, pour rattraper aussi les attributions anciennes. Les notifications de badge pointent vers /mon-compte/badges/#badge-<slug>.
+Interfaces et limite connue
+- Dashboard élève : hero XP/niveau, trois progressions, derniers badges.
+- Page badges : templates/core/mes_badges.html.
+- Fiches staff/admin : progression en lecture seule.
+- verifier_et_notifier_progression() peut approcher une douzaine de requêtes selon les seuils et notifications à créer ; mesure et optimisation restent à faire sur données représentatives.
+7. Notifications — lot 21a et extensions
+Notification est définie dans comptes. Les types existants sont compte_valide, compte_refuse, statut_change, relance_creee, codes_rome_modifies, commentaire, document, ajout_prospection, badge_obtenu, progression_badge.
+
+ajout_prospection est un type historique ; la création d’une prospection ne notifie plus.
+
+creer_notification(destinataire, type, message, lien="") crée une notification si l’utilisateur destinataire existe et est actif. Les notifications métier sont créées par appels explicites, pas par un système général de signaux.
+
+Routes principales :
+- /notifications/ : liste personnelle paginée.
+- /notifications/unread-count/ : compteur JSON.
+- /notifications/<pk>/lue/ : POST de marquage en lecture.
+- /notifications/tout-lu/ : POST de marquage global.
+La cloche et son compteur sont dans templates/base.html; le compteur initial est fourni par un context processor et le polling se fait toutes les 60 secondes. La vue vérifie l’appartenance et la sûreté du lien avant redirection.
+
+Événements : validation/refus compte, changement de statut par staff/admin, relance créée par staff/admin, modification ROME par superviseur, commentaire, document, badge obtenu et approche d’un seuil. Pas d’auto-notification à l’élève qui effectue lui-même sa relance.
+8. API La bonne alternance — lot 20
+core/external_apis.py interroge La bonne alternance. La clé LBA_API_KEY est lue par os.getenv("LBA_API_KEY"), jamais intégrée au code. La page /offres-alternance/ est accessible sans authentification.
+- Recherche sur codes ROME, ville et rayon ; jusqu’à trois codes valides.
+- Les codes ROME du profil peuvent préremplir la recherche.
+- Résultats d’offres et d’entreprises dédoublonnés.
+- Tri des offres : plus récent, pertinence LBA ou ordre des codes saisis. Le tri par codes ne s’applique pas aux entreprises.
+- Pagination indépendante de 20 résultats pour les offres et les entreprises, paramètres conservés.
+- Cache Django d’une heure.
+- OffreEnregistree conserve les favoris par utilisateur ; création/retrait par POST authentifié et protégé CSRF.
+- Les caractères d’espacement Unicode admis sont normalisés ; BOM retiré, contrôles conservés pour rejet par validation.
+Templates : templates/offres/recherche.html, _resultats.html, _pagination.html, mes_offres_enregistrees.html.
+9. Dashboards et KPI — lots 19, 21b et 22c
+Dashboard élève
+/dashboard/, vue entreprises.views.dashboard_eleve, template templates/entreprises/dashboard.html.
+
+Contenu actuel :
+- XP, niveau, points et badges ;
+- KPI et graphiques de prospection ;
+- progression prospection/candidature/relance ;
+- cinq derniers badges ;
+- carte « Mes tâches » affichant jusqu’à cinq tâches actives et leur total ;
+- prochaines échéances de relance ;
+- filtres, tri, pagination et tableau des prospections.
+La carte tâches utilise un queryset assigné à l’utilisateur, exclut les tâches terminées et effectue une requête de liste plus une requête de comptage.
+Dashboards superviseur et admin
+- /staff/, staff.views.dashboard_staff, templates/staff/dashboard.html : élèves selon scope, filtres période/centre/élève, KPI, objectifs, graphiques.
+- /admin-dashboard/, admin_dashboard.views.dashboard_admin, templates/admin_dashboard/dashboard.html : filtres période/centre/superviseur/élève et KPI administratifs.
+- Fiches élève : /staff/eleves/<id>/ et /admin-dashboard/eleves/<id>/.
+core/stats.py fournit notamment calculer_kpis_dashboard, calculer_stats_eleve, calculer_stats_superviseur, calculer_stats_admin et calculer_atteinte_objectif. Le taux de conversion du dashboard porte sur les prospections créées dans la période qui sont aujourd’hui acceptées. Le taux de réponse exclut a_contacter et terminee.
+10. Sécurité et RGPD
+- Authentification Django avec AUTH_USER_MODEL = "comptes.Utilisateur".
+- Middleware de validation de compte.
+- Vues protégées par login_required, require_POST, contrôles de rôle et de scope.
+- PermissionDenied produit un 403 ; les querysets doivent aussi être filtrés pour garantir l’isolation.
+- Protection CSRF Django activée ; mutations sensibles en POST.
+- ConsentementRGPD conserve version, date, IP et user-agent.
+- rgpd.views.export_rgpd permet l’export personnel.
+- Commandes de purge : comptes/management/commands/purge_journal.py, rgpd/management/commands/purge_rgpd.py.
+- Paramètres déclarés : compte désactivé 1 095 jours, compte non validé 180 jours, journal 1 095 jours. La planification effective en production est à vérifier.
+- TESTING = "test" in sys.argv reconnaît manage.py test, pas nécessairement pytest.
+- Les exports CSV/RGPD et les fichiers personnels exigent des contrôles d’accès stricts.
+- La clé LBA et les secrets SMTP ne doivent jamais être versionnés.
+11. Tests et qualité
+Les tests sont des tests Django, généralement TestCase et self.client, avec données préparées dans setUp ou chaque méthode. Ils sont organisés sous tests/ par app. Pas de factories centralisées évidentes dans l’inventaire.
+Fichier	Tests	Fichier	Tests
+admin_dashboard/tests/test_badges.py	3	admin_dashboard/tests/test_exports.py	5
+admin_dashboard/tests/test_pwa.py	4	admin_dashboard/tests/test_scopes.py	8
+admin_dashboard/tests/test_views.py	24	comptes/tests/test_emails.py	8
+comptes/tests/test_models.py	17	comptes/tests/test_notifications.py	13
+comptes/tests/test_purge_journal.py	2	comptes/tests/test_relances.py	13
+comptes/tests/test_signals.py	1	comptes/tests/test_utils.py	6
+comptes/tests/test_ux.py	4	comptes/tests/test_views.py	12
+core/tests/test_dashboard_kpi.py	21	core/tests/test_external_apis.py	8
+core/tests/test_gamification.py	65	core/tests/test_navigation.py	1
+core/tests/test_notifications.py	12	core/tests/test_offres_enregistrees.py	13
+core/tests/test_offres_tri_pagination.py	6	core/tests/test_recherche.py	12
+core/tests/test_rome.py	11	core/tests/test_settings.py	2
+core/tests/test_stats.py	7	core/tests/test_taches.py	11
+documents/tests/test_models.py	2	documents/tests/test_quotas.py	4
+documents/tests/test_views.py	12	entreprises/tests/test_api.py	5
+entreprises/tests/test_autocomplete.py	4	entreprises/tests/test_commentaires.py	11
+entreprises/tests/test_export.py	11	entreprises/tests/test_filters.py	13
+entreprises/tests/test_hub.py	4	entreprises/tests/test_import.py	9
+entreprises/tests/test_models.py	12	entreprises/tests/test_progression_badges_dashboard.py	3
+entreprises/tests/test_progression_notifications.py	1	entreprises/tests/test_prospection.py	4
+entreprises/tests/test_prospections_tout_role.py	28	entreprises/tests/test_reference.py	17
+entreprises/tests/test_relance_actions.py	14	entreprises/tests/test_views.py	27
+rgpd/tests/test_export.py	1	rgpd/tests/test_models.py	2
+rgpd/tests/test_purge_rgpd.py	3	rgpd/tests/test_views.py	4
+staff/tests/test_actions.py	15	staff/tests/test_badges.py	4
+staff/tests/test_codes_rome.py	2	staff/tests/test_models.py	2
+staff/tests/test_objectifs.py	23	staff/tests/test_scope_utils.py	16
+staff/tests/test_views.py	17	Total	559
+
+
+Lancement : python manage.py test. La couverture de branches n’est pas chiffrée ici ; utiliser coverage pour la mesurer.
+12. Déploiement et workflow
+Déploiement automatique
+Le dépôt indique un workflow GitHub Actions qui se déclenche sur main. Il se connecte au VPS par SSH, met à jour le dépôt, installe les dépendances, vérifie les dépendances et migrations, lance les checks Django, applique les migrations, collecte les fichiers statiques et redémarre myjobpilot. Le délai observé visé est d’environ deux minutes. Les tests sont à lancer avant publication ; ne pas supposer qu’ils sont exécutés par le workflow de déploiement.
+VPS
+Contexte documenté : serveur srv781699, utilisateurs abd et myjobpilot, dépôt sous /home/myjobpilot/MyJobPilot, service systemd myjobpilot. L’unité systemd, serveur d’application, proxy et base de production sont à vérifier sur le VPS.
+Règles de travail appliquées
+- Un lot validé à la fois, un commit avec le message convenu.
+- Tests locaux avant publication.
+- Publication via la connexion GitHub lorsque le shell n’a pas d’identifiants.
+- Après chaque publication : git fetch origin main, puis git reset --hard origin/main.
+- Vérifier git log --oneline -3 et l’état propre avant le lot suivant.
+- Pas de git push --force.
+- Le commit c886668 est une leçon d’historique de workflow, pas une preuve que la suite actuelle échoue.
+13. Dettes techniques et limites connues
+Priorité	Dette	Pourquoi	Effort indicatif	Risque
+Haute	Prospection mélange les statuts et dates de candidature	Une refonte vers un modèle Candidature toucherait données, KPI, vues, exports et tests	Plusieurs jours à plusieurs semaines	Moyen à élevé
+Moyenne	Progression et notifications recalculées à chaque chargement	verifier_et_notifier_progression() peut approcher 12 requêtes	1–3 jours pour profiler/optimiser	Moyen
+Moyenne	Pas de modèle Candidature	Les étapes de candidature restent des statuts de Prospection	À estimer avec étude d’impact	Moyen
+Moyenne	Couverture de code non mesurée	559 tests ne donnent pas le taux de branches couvertes	0,5–2 jours	Moyen
+Moyenne	Pas de factories centralisées évidentes	Les jeux de données sont répétés dans les setUp	1–3 jours	Faible à moyen
+Moyenne	Pas de tests de rendu visuel CSS	Les tests Django vérifient le HTML fonctionnel, pas les régressions visuelles dans un navigateur	1–3 jours pour mettre en place une vérification visuelle automatisée	Moyen
+Faible à moyenne	RefusCompteForm reste rendu manuellement	La vue ne transmet pas l’objet form au template	Quelques heures	Faible
+Faible à moyenne	Deux scripts d’autocomplete distincts	Staff et formulaire multi-rôle conservent des IDs et scripts différents	0,5–1,5 jour pour évaluer une factorisation	Faible
+Faible	Version de pied de page v0.8.4	Texte codé en dur, différent du tag actuel	Quelques heures	Confusion support
+Faible à moyenne	Dépendances front-end CDN	Chart.js est épinglé, Bootstrap et Icons restent servis par CDN	0,5–2 jours pour l’auto-hébergement	Dégradation si CDN indisponible
+Moyenne	Configuration réelle du VPS hors dépôt	Variables, cache, SMTP et détails systemd ne sont pas tous versionnés	0,5–1 jour de documentation	Dépendance opérationnelle
+Faible	Détection de tests par sys.argv	Ne couvre pas nécessairement pytest	Quelques heures	Faible
+
+
+Résolu par la refonte UI : l’interface datée, l’absence de design tokens et la version non épinglée de Chart.js.
+Résolu par le fix du service worker : CSS critiques servis avec une stratégie network-first ; voir section 19.
+14. Guide de démarrage rapide
+Cloner et installer
+git clone https://github.com/D-ABD/MyJobPilot.git
+cd MyJobPilot
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+Après tout changement de dépendance, synchroniser le virtualenv : pip install -r requirements.txt.
+Configurer l’environnement
+Créer .env à la racine, sans versionner les secrets. Variables référencées :
+- SECRET_KEY
+- DEBUG
+- ALLOWED_HOSTS
+- DATABASE_URL
+- DEMO_PASSWORD
+- LBA_API_KEY
+- EMAIL_HOST
+- EMAIL_PORT
+- EMAIL_USE_TLS
+- EMAIL_HOST_USER
+- EMAIL_HOST_PASSWORD
+- DEFAULT_FROM_EMAIL
+L’application charge les feuilles static/css/tokens.css puis static/css/custom.css. La police Inter est versionnée dans static/fonts/inter-variable.woff2; si elle manque sur une installation, la télécharger depuis https://rsms.me/inter/ et la placer dans static/fonts/.
+Initialiser et lancer
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py test
+python manage.py runserver
+
+Administration Django : /admin/. Données de démonstration : commande comptes/management/commands/creer_demo.py.
+15. Glossaire
+Terme	Définition
+Prospection	Démarche d’un élève auprès d’une entreprise, suivie par statut, dates et historique.
+Entreprise	Fiche de référentiel partagée, associable à plusieurs élèves.
+Candidature	Étape représentée actuellement par des statuts de Prospection ; pas de modèle autonome.
+Relance	Événement historisé réellement effectué ; distinct de l’échéance date_relance.
+Badge	Récompense configurable basée sur un seuil prospection, candidature ou relance.
+Badge obtenu	Attribution persistante unique par utilisateur et badge.
+Niveau	Palier configurable et calculé à partir des XP.
+XP	Expérience recalculée à la demande depuis l’activité.
+Points	Somme des valeurs des badges obtenus.
+Scope superviseur	Liaison active entre superviseur et centre donnant accès aux élèves de ce centre.
+Centre	Regroupement des élèves et formations.
+Formation	Parcours rattaché à un centre.
+ROME	Code métier stocké sur le profil et transmis à LBA ; aucun mot-clé n’est converti automatiquement.
+LBA	La bonne alternance, source externe d’offres et de recruteurs.
+KPI	Indicateur agrégé des dashboards.
+Historique de statut	Enregistrement d’une transition de statut, son auteur et sa date associée éventuelle.
+Notification in-app	Message stocké en base, affiché dans la cloche et la page notifications.
+Demande RGPD	Demande d’exercice d’un droit enregistrée puis traitée.
+
+
+16. Inventaire des templates
+Au commit documenté, find templates -type f -name '*.html' compte 80 fichiers. Les pages applicatives héritent généralement de base.html; les partials sont inclus. Les pages héritant de la base bénéficient du shell commun.
+Racine
+- templates/base.html — shell global : sidebar sombre, topbar, messages, cloche, thème, sidebar collapse desktop, service worker.
+- templates/accueil.html — accueil public.
+- templates/404.html — page d’erreur.
+- templates/offline.html — fallback PWA.
+- templates/recherche.html — recherche globale.
+templates/admin_dashboard/
+dashboard.html — tableau de bord ; demandes_rgpd_list.html — demandes RGPD ; eleve_detail.html — fiche élève et progression ; eleves_list.html — élèves ; exports.html — exports ; import_eleves.html et import_entreprises.html — imports et rapports ; prospection_detail.html — fiche prospection ; superviseur_detail.html, superviseur_form.html, superviseur_scopes.html, superviseurs_list.html — gestion superviseurs et scopes.
+templates/comptes/
+connexion.html, deconnexion.html, en_attente.html, inscription.html, mon_compte.html, notifications.html.
+templates/core/
+mes_badges.html — badges, XP, points et progression.
+templates/documents/
+document_confirm_delete.html, document_list.html, document_upload.html, staff_documents_eleve.html.
+templates/emails/
+accuse_rgpd.html, refus.html, relance.html, reponse_rgpd.html, validation.html. Ces fichiers sont des corps d’e-mail, pas des pages héritant de base.html.
+templates/entreprises/
+_commentaires.html, _pagination.html, _tableau_filtres.html, _tableau_resultats.html, dashboard.html, entreprise_confirm_delete.html, entreprise_detail.html, entreprise_form.html, entreprise_reference_confirm_delete.html, entreprise_reference_detail.html, entreprise_reference_form.html, entreprises_reference.html, hub.html, mes_relances.html, prospection_form_tout_role.html, prospections_toutes.html.
+
+Le dashboard contient aussi la carte tâches ajoutée au Lot 23g, après les badges et avant les graphiques.
+Autres répertoires
+- templates/objectifs/ : _objectifs_table.html, confirm_delete.html, form.html, liste.html.
+- templates/offres/ : _pagination.html, _resultats.html, mes_offres_enregistrees.html, recherche.html.
+- templates/rgpd/ : admin_demande_rgpd_traiter.html, admin_demandes_rgpd_list.html, confidentialite.html, demande_rgpd_detail.html, demande_rgpd_form.html, demandes_rgpd_list.html.
+- templates/staff/ : _pagination.html, _tableau_filtres.html, dashboard.html, detail_eleve.html, eleve_changer_centre.html.
+- templates/taches/ : confirm_delete.html, form.html, liste.html.
+templates/partials/
+- _bouton_retour.html, _breadcrumb.html
+- _chart_scripts.html — charge Chart.js 4.4.1
+- _dashboard_prospection_kpis.html, _kpi_cards.html
+- _empty_state.html, _progression_categories.html
+- _form_field.html, _form_errors.html — pattern formulaire réutilisable
+Les pages de staff et admin ont été modernisées au Lot 23f. Les templates des formulaires complexes ont été habillés sans modifier les vues, données POST, permissions, tableaux ni actions métier.
+17. Formulaires
+Pattern commun
+templates/partials/_form_field.html rend un champ individuel : label, widget, requis, erreurs et aide. Les champs cachés sont rendus sans wrapper. templates/partials/_form_errors.html affiche les erreurs globales du formulaire.
+
+Les formulaires migrés utilisent ces partials ; les balises <form>, méthodes, actions, CSRF, enctype, noms de champs et IDs JavaScript restent propres aux templates. Les champs restent fournis par les formulaires Django.
+Formulaires et templates concernés
+Template	Formulaire(s) principaux
+templates/entreprises/entreprise_form.html	ProspectionForm, ChangementStatutForm, EntrepriseForm intégré au panneau d’entreprise
+templates/admin_dashboard/import_eleves.html	ImportElevesCSVForm (multipart/form-data)
+templates/admin_dashboard/superviseur_form.html	SuperviseurCreateForm
+templates/admin_dashboard/superviseur_scopes.html	ScopeCreateForm
+templates/rgpd/admin_demande_rgpd_traiter.html	TraitementDemandeRGPDForm
+templates/rgpd/demande_rgpd_form.html	DemandeRGPDForm
+templates/comptes/connexion.html	ConnexionForm
+templates/comptes/inscription.html	InscriptionForm
+templates/offres/recherche.html	OffresAlternanceForm, méthode GET
+templates/staff/detail_eleve.html	CodesRomeForm, AjoutProspectionStaffForm, formulaire de changement de centre
+templates/staff/eleve_changer_centre.html	ChangementCentreFormStaff
+templates/admin_dashboard/eleve_detail.html	AdminEleveCentreForm, AdminEleveFormationForm
+templates/admin_dashboard/superviseur_detail.html	AdminSuperviseurUpdateForm, MotDePasseSuperviseurForm
+templates/admin_dashboard/prospection_detail.html	ChangementStatutForm, CommentaireForm
+templates/documents/document_upload.html	DocumentUploadForm (multipart/form-data)
+templates/objectifs/form.html	ObjectifForm
+templates/taches/form.html	TacheForm
+templates/entreprises/prospection_form_tout_role.html	ProspectionFormToutRole et panneau d’entreprise
+templates/entreprises/entreprise_reference_form.html	EntrepriseForm
+
+
+Note de décompte : le bilan des lots UI annonce 18 formulaires migrés, tandis que les lots détaillés recensent 19 chemins de templates et plusieurs formulaires dans certains templates. Ce décompte doit être clarifié si un chiffre unique par classe Django est nécessaire. L’exception connue est RefusCompteForm : motif_refus reste en HTML manuel dans admin_dashboard/eleve_detail.html, car la vue ne fournit pas l’objet form au template.
+Autocomplete
+Deux scripts restent séparés et non fusionnés :
+- Staff : script de templates/staff/detail_eleve.html, IDs spécifiques au parcours staff.
+- Multi-rôle : script de templates/entreprises/prospection_form_tout_role.html, dont resultats-entreprises-tout-role.
+Les noms de champs, actions POST et IDs sont des contrats fonctionnels à préserver.
+18. CSS et design actuel
+Fichiers et ressources
+- static/css/tokens.css : variables de thème light et dark, échelle d’espacement, rayons, ombres, couleurs et typographie.
+- static/css/custom.css : shell, formulaires, cartes, tableaux, pagination, filtres, statuts, relances, badges, tâches et responsive.
+- static/fonts/inter-variable.woff2 : Inter variable locale, version 4.1, 352 240 octets.
+- Bootstrap 5.3.3 et Bootstrap Icons 1.11.3 restent chargés depuis CDN.
+- Chart.js 4.4.1 est chargé par templates/partials/_chart_scripts.html.
+Design tokens et palette
+Principaux tokens : --brand-*, --accent-*, --amber-*, --rose-*, --sky-*, --violet-*, surfaces, textes, bordures, rayons, ombres, espacements et familles de police.
+
+Valeurs représentatives : --brand-500: #5368e8, accent autour de #20b486, ambre #e7a826, rose #e75a70, sky #4b9de0, violet #8a69d4. La palette exacte est maintenue dans tokens.css.
+
+Le mode sombre est défini via [data-bs-theme="dark"]. Bootstrap demeure le socle de grille et de composants de base ; les pages privilégient les classes de custom.css pour leur présentation.
+Composants custom
+Classes principales : .sidebar, .topbar, .nav-link-custom, .icon-btn, .desktop-only, .kpi-card, .progress-block, .table-card, .table-header, .status-badge et variantes, .badge-card, .hero-xp, .filter-bar, .cards-grid, .relances-section, .badges-grid, .form-group-custom, .form-control-wrapper, .form-error-custom, .form-alert-custom, .taches-dashboard-list et variantes.
+
+Les classes héritées telles que filter-form, dashboard-stat, cockpit-kpi, cockpit-chart, kpi-bar-*, dashboard-table*, table-sort-link, table-actions et empty-state sont préservées.
+Service worker et scripts
+static/sw.js utilise actuellement CACHE_NAME = "myjobpilot-shell-v5", met tokens.css et custom.css en cache, mais récupère d’abord ces deux CSS sur le réseau, avec cache en fallback. Les routes privées restent exclues des réponses en cache.
+
+base.html contient les scripts du thème, des compteurs de notifications/tâches/relances, du sidebar collapse desktop et du hamburger mobile. Les graphiques conservent cockpit-chart-data et data-cockpit-chart.
+19. Refonte UI — lots 23a à 23g
+La refonte a modernisé l’interface sans changer les modèles, migrations, URL ou règles métier. Le bilan fourni indique environ 80 templates concernés, 18 formulaires migrés et 559 tests verts à chaque étape.
+Lot	Résultat
+23a	Tokens CSS, sidebar et topbar, Inter locale, thème sombre, Chart.js épinglé
+23b	Dashboard élève : hero XP, KPI, progression, badges
+23c	Prospections, référentiel, tables, filtres et pagination
+23d	Relances et page badges
+23e1	Partial formulaire validé sur le formulaire pilote
+23e2a	Formulaires simples : imports, superviseurs, scopes, RGPD, connexion, inscription, offres
+23e2b	Formulaires complexes staff, admin, documents, objectifs, tâches et prospection multi-rôle
+23f	Templates staff/admin, documents, RGPD, offres, tâches, objectifs, notifications, profil et recherche
+23g	Sidebar collapse desktop avec persistance localStorage et carte tâches du dashboard élève
+
+
+Trois corrections ont complété la migration :
+1. Radios et checkboxes : neutralisation des styles Bootstrap appliqués au wrapper Django.
+2. Hub entreprises : grille CSS et cartes <a> comme éléments directs de la grille.
+3. Service worker : passage des CSS critiques en network-first ; cache-first reste pour le reste des ressources statiques.
+Décisions et leçons
+- Le design system repose sur tokens, composants CSS et partials partagés.
+- Inter est locale ; le fallback système reste disponible.
+- Le thème sombre réutilise les mêmes tokens.
+- La sidebar desktop peut être réduite et mémorisée ; le menu hamburger mobile garde son comportement distinct.
+- Le formulaire pilote a été validé avant la migration des autres écrans.
+- Les migrations de formulaires ont touché les widgets et leur habillage, pas leurs champs, POST, CSRF ou IDs.
+- Les scripts d’autocomplete staff et multi-rôle restent séparés.
+- Les tests automatisés vérifient le comportement HTML ; ils ne remplacent pas les contrôles visuels navigateur.
+- Le problème récurrent de CSS ancien venait du cache service worker ; le network-first des deux CSS critiques le corrige.
+20. Workflow de modification et déploiement
+20.1 Principe
+Dépôt privé : https://github.com/D-ABD/MyJobPilot
+Branche de référence : main.
+
+Un push sur main déclenche GitHub Actions. Le workflow se connecte au VPS, met à jour /home/myjobpilot/MyJobPilot, installe les dépendances, vérifie les migrations, applique celles qui sont en attente, collecte les fichiers statiques et redémarre le service systemd myjobpilot. Le délai indicatif est d’environ deux minutes. Les tests doivent être lancés séparément avant publication.
+20.2 Modifier le projet
+A. Via ChatGPT — workflow utilisé
+1. Décrire le lot et ses contraintes.
+2. Faire inspecter le code et obtenir un plan.
+3. Valider explicitement le plan.
+4. Faire réaliser le lot et exécuter python manage.py test.
+5. Publier le commit sur main via la connexion GitHub.
+6. Réaligner le checkout : git fetch origin main, puis git reset --hard origin/main.
+7. Vérifier le workflow Actions.
+8. Contrôler la production.
+9. Après validation, ajouter le tag de version.
+B. Expérimentation locale
+git fetch origin main
+git checkout -b ma-branche origin/main
+python manage.py runserver
+
+Tester sur la branche. Si le résultat n’est pas retenu :
+git checkout main
+git branch -D ma-branche
+
+Si le résultat est retenu, le faire intégrer proprement à main après tests.
+
+C. Modification directe de main
+
+Déconseillée pour le développement local : elle complique la revue et peut créer des commits locaux non présents sur GitHub.
+20.3 Commandes Git essentielles sur Mac
+Synchroniser avant de commencer :
+git fetch origin main
+git checkout main
+git pull origin main
+git status
+git log --oneline -5
+
+Après validation d’un lot, créer un tag :
+git fetch origin main
+git checkout main
+git pull origin main
+git tag v0.XX.Y-lotXX
+git push origin v0.XX.Y-lotXX
+
+Consulter les commits et tags :
+git log --oneline --decorate -10
+
+20.4 Vérifier le déploiement
+Après publication sur main :
+1. Ouvrir https://github.com/D-ABD/MyJobPilot/actions et vérifier le workflow du commit.
+2. Sur le VPS, vérifier le SHA déployé :
+sudo -u myjobpilot bash -lc 'cd /home/myjobpilot/MyJobPilot && git log --oneline -1'
+
+3. Vérifier les migrations :
+sudo -u myjobpilot bash -lc 'cd /home/myjobpilot/MyJobPilot && source venv/bin/activate && python manage.py showmigrations | tail -20'
+
+4. Tester https://myjobpilot.adserv.fr.
+5. Pour vérifier un changement CSS, faire un hard refresh (Cmd+Shift+R). Le service worker doit récupérer les CSS critiques sur le réseau.
+20.5 Rollback
+Revert propre d’un commit
+git fetch origin main
+git checkout main
+git pull origin main
+git revert <hash-du-commit-casse> --no-edit
+git push origin main
+
+Le workflow redéploie le revert.
+
+Revert de plusieurs commits depuis un tag connu
+
+Pour produire un seul commit de rollback :
+git fetch origin main
+git checkout main
+git pull origin main
+git revert --no-commit v0.23.8-lot23f..HEAD
+git commit -m "Rollback après v0.23.8-lot23f"
+git push origin main
+
+Vérifier d’abord que le tag représente bien l’état à restaurer et que les migrations sont compatibles. Un revert de code ne restaure pas automatiquement les données supprimées ou transformées par une migration.
+
+Urgence VPS
+
+Un checkout temporaire sur tag peut dépanner une instance, mais place le dépôt en detached HEAD :
+sudo -u myjobpilot bash -lc 'cd /home/myjobpilot/MyJobPilot && git checkout v0.23.8-lot23f'
+sudo systemctl restart myjobpilot
+
+C’est un dépannage temporaire. Il faut ensuite rétablir un état suivi par main et publier un revert Git propre ; sinon, le déploiement suivant peut remettre le code problématique.
+
+À ne jamais faire : git reset --hard suivi d’un force push pour réécrire main.
+20.6 Pièges à éviter
+Cache CSS du service worker
+- custom.css et tokens.css sont en network-first.
+- En cas de rendu ancien, faire un hard refresh ; si nécessaire, ouvrir DevTools → Application → Service Workers → Unregister puis recharger.
+Commit local absent de GitHub
+
+Après chaque publication via la connexion GitHub, faire :
+git fetch origin main
+git reset --hard origin/main
+git log --oneline -3
+git status
+
+Ne pas construire le lot suivant sur un commit local absent de origin/main.
+
+Force push
+
+Ne pas utiliser git push --force. Il réécrit l’historique et peut désynchroniser les clones.
+
+Troncature GitHub
+
+Après création d’un commit via GitHub, contrôler que les fichiers et le tree correspondent au résultat testé localement. Si une troncature est constatée, publier un commit correctif et le signaler ; les tests doivent rester verts.
+20.7 En cas de doute
+git status
+git log --oneline -5
+git fetch origin main
+
+Vérifier ensuite Actions, le SHA réellement déployé sur le VPS et l’erreur constatée. Ne pas lancer de reset avant d’avoir identifié les modifications locales qui seraient perdues. Ne pas oublier de vérifier le workflow après publication et de taguer la version validée.
