@@ -1,9 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Accueil — MyJobPilot{% endblock %}
 {% block content %}
 <div class="landing-container">
   <section class="hero-public" aria-labelledby="titre-hero-public">
     <div class="hero-public-content">
+      <img src="{% static 'logo/logo.png' %}" alt="MyJobPilot" class="hero-public-logo">
       <div class="hero-public-eyebrow">MyJobPilot</div>
       <h1 class="hero-public-title" id="titre-hero-public">Pilotez votre recherche d'alternance</h1>
       <p class="hero-public-subtitle">

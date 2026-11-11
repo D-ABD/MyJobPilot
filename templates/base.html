@@ -7,6 +7,8 @@
   <meta name="description" content="Application de prospection d'alternance MyJobPilot">
   <meta name="theme-color" content="#18213a">
   <link rel="manifest" href="{% url 'manifest' %}">
+  <link rel="icon" type="image/png" href="{% static 'logo/favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'logo/favicon.png' %}">
   <title>{% block title %}MyJobPilot{% endblock %}</title>
   <script>
     (() => {
@@ -37,7 +39,7 @@
     <button class="sidebar-overlay" type="button" aria-label="Fermer la navigation" hidden></button>
     <aside class="sidebar" id="app-sidebar" aria-label="Navigation principale">
       <a class="sidebar-brand" href="{% url 'comptes:accueil' %}">
-        <span class="sidebar-brand-mark" aria-hidden="true"><i class="bi bi-compass-fill"></i></span>
+        <span class="sidebar-brand-mark" aria-hidden="true"><img src="{% static 'logo/favicon.png' %}" alt="MyJobPilot" class="sidebar-brand-img"></span>
         <span>MyJobPilot</span>
       </a>
 
@@ -119,7 +121,7 @@
         <button class="icon-btn desktop-only" id="sidebar-collapse-toggle" type="button" aria-label="Réduire la navigation" aria-expanded="true" aria-controls="app-sidebar" title="Réduire la navigation">
           <i class="bi bi-layout-sidebar" aria-hidden="true"></i>
         </button>
-        <div class="topbar-heading">{% block page_heading %}MyJobPilot{% endblock %}</div>
+        <div class="topbar-heading">{% block page_heading %}<img src="{% static 'logo/logo.png' %}" alt="MyJobPilot" class="topbar-logo">{% endblock %}</div>
         {% if user.is_authenticated %}
           <form class="topbar-search" role="search" action="{% url 'core:recherche' %}" method="get">
             <label class="visually-hidden" for="global-search">Rechercher</label>
