@@ -1,4 +1,4 @@
-const CACHE_NAME = "myjobpilot-shell-v4";
+const CACHE_NAME = "myjobpilot-shell-v5";
 const SHELL_ASSETS = [
   "/",
   "/offline/",
@@ -26,6 +26,25 @@ self.addEventListener("fetch", event => {
     return;
   }
   if (PRIVATE_PREFIXES.some(prefix => url.pathname.startsWith(prefix))) return;
+  if (url.pathname.endsWith("/css/custom.css") || url.pathname.endsWith("/css/tokens.css")) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          try {
+            await cache.put(request, response.clone());
+          } catch (error) {
+            // Le chargement réseau reste disponible si l'écriture du cache échoue.
+          }
+        }
+        return response;
+      } catch (error) {
+        return (await cache.match(request)) || Response.error();
+      }
+    })());
+    return;
+  }
   if (url.pathname.startsWith("/static/")) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
@@ -49,3 +68,4 @@ self.addEventListener("fetch", event => {
     event.respondWith(fetch(request).catch(() => caches.match("/offline/")));
   }
 });
+
