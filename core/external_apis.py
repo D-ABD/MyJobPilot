@@ -207,7 +207,11 @@ def _rechercher_opportunites_lba(romes, ville, rayon):
 
 
 def rechercher_offres_lba(romes, ville, rayon):
-    """Recherche les offres actives à proximité d'un code postal et pour des codes ROME."""
+    """Recherche des offres via job/v1/search après géocodage du code postal.
+
+    Les requêtes HTTP expirent après 8 secondes ; entrée invalide, absence de
+    coordonnées ou erreur API renvoie une liste vide.
+    """
     resultats = _rechercher_opportunites_lba(romes, ville, rayon)
     if resultats is None:
         return []
@@ -215,7 +219,11 @@ def rechercher_offres_lba(romes, ville, rayon):
 
 
 def rechercher_entreprises_lba(romes, ville, rayon):
-    """Recherche les recruteurs à fort potentiel pour les candidatures spontanées."""
+    """Retourne les recruteurs de la réponse au même endpoint job/v1/search.
+
+    Les recruteurs proviennent de sa liste recruiters ; les erreurs API ou
+    données d'entrée invalides renvoient une liste vide (timeout de 8 secondes).
+    """
     resultats = _rechercher_opportunites_lba(romes, ville, rayon)
     if resultats is None:
         return []

@@ -482,6 +482,11 @@ def _contexte_eleve_detail(eleve, type_contrat="tous"):
 
 @administrateur_requis
 def admin_eleve_detail(request, pk):
+    """Affiche la fiche complète d'un élève à un administrateur.
+
+    Le contexte inclut ses prospections, documents, commentaires et données
+    RGPD ; son calcul de progression rattrape les badges manquants.
+    """
     eleve = get_object_or_404(
         Utilisateur.objects.select_related("centre", "formation", "valide_par"),
         pk=pk, role=Utilisateur.Role.ELEVE,
@@ -738,6 +743,11 @@ def admin_prospection_detail(request, pk):
 @administrateur_requis
 @require_POST
 def admin_prospection_changer_statut(request, pk):
+    """Modifie le statut d'une prospection depuis l'interface admin.
+
+    Enregistre les dates associées, l'historique et le journal, notifie l'élève
+    si le statut change, vérifie ses badges puis redirige vers le détail admin.
+    """
     prospection = get_object_or_404(Prospection.objects.select_related("entreprise"), pk=pk)
     form = ChangementStatutForm(request.POST)
     if not form.is_valid():

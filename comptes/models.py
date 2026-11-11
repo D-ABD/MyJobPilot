@@ -71,6 +71,11 @@ class GestionnaireUtilisateur(UserManager):
 
 
 class Utilisateur(AbstractUser):
+    """Compte MyJobPilot portant un rôle métier et ses rattachements.
+
+    Élèves et superviseurs sont associés à un centre ; les codes ROME sont
+    normalisés et validés par clean(), appelé notamment par les ModelForm.
+    """
     class Role(models.TextChoices):
         ELEVE = "eleve", "Élève"
         SUPERVISEUR = "superviseur", "Superviseur"
@@ -305,6 +310,11 @@ class TypeNotification(models.TextChoices):
 
 
 class Notification(models.Model):
+    """Notification in-app destinée à un utilisateur.
+
+    Le type classe l'événement et le booléen lu suit son état de consultation ;
+    la création est centralisée dans comptes.notifications.
+    """
     destinataire = models.ForeignKey(
         "comptes.Utilisateur",
         on_delete=models.CASCADE,

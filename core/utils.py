@@ -14,7 +14,12 @@ _MOTIF_CODES_ROME = re.compile(
 
 
 def normaliser_codes_rome(valeur: str) -> str:
-    """Normalise les espaces Unicode et retire le BOM des codes ROME."""
+    """Normalise les espaces de saisie des codes ROME sans valider leur format.
+
+    Remplace U+00A0, U+202F, U+2007, U+2009, U+200A, U+2028 et U+2029 par
+    des espaces ASCII, retire U+FEFF et conserve les caractères de contrôle
+    pour que la validation ultérieure les rejette.
+    """
     valeur = (valeur or "").replace("\ufeff", "")
     valeur = valeur.translate(_TABLE_TRADUCTION)
     # str.strip() effacerait les tabulations et autres contrôles périphériques.

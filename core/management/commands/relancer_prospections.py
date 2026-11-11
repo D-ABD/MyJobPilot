@@ -19,6 +19,12 @@ def _env_bool(name, default):
 
 
 class Command(BaseCommand):
+    """Envoie un rappel email pour chaque prospection échue à relancer.
+
+    Le délai vient de RELANCES_AUTO_JOURS (défaut 7) et l'envoi de
+    RELANCES_AUTO_EMAIL ; --dry-run simule sans envoyer ni modifier les données.
+    Un succès date l'envoi et l'inscrit au journal, sous verrou transactionnel.
+    """
     help = "Envoie un email pour chaque relance échue depuis le délai configuré."
 
     def add_arguments(self, parser):

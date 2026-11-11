@@ -659,6 +659,11 @@ def prospections_toutes(request):
 
 @login_required
 def dashboard_eleve(request):
+    """Affiche le tableau de bord personnel de l'élève connecté.
+
+    Refuse les autres rôles en 403, rattrape badges et notifications de
+    progression, puis rend KPI, progression, tâches et prospections filtrées.
+    """
     _verifier_eleve(request)
     verifier_et_attribuer_badges(request.user)
     verifier_et_notifier_progression(request.user)
@@ -738,6 +743,11 @@ def recherche_entreprises(request):
 
 @login_required
 def entreprise_create(request):
+    """Crée une entreprise si nécessaire puis la prospection de l'élève.
+
+    Vérifie les formulaires et les doublons dans une transaction, enregistre
+    l'historique initial et redirige vers le détail de la prospection créée.
+    """
     _verifier_eleve(request)
     if request.method == "POST":
         form = ProspectionForm(request.POST)
@@ -1020,6 +1030,12 @@ def entreprise_detail(request, pk):
 
 @login_required
 def entreprise_changer_statut(request, pk):
+    """Modifie le statut d'une prospection appartenant à l'acteur autorisé.
+
+    Élève propriétaire, superviseur de son scope ou admin ; le changement est
+    historisé et journalisé, puis notifié si le statut a réellement changé.
+    Un POST valide redirige vers le détail de la prospection.
+    """
     if request.user.role not in {
         Utilisateur.Role.ELEVE,
         Utilisateur.Role.SUPERVISEUR,

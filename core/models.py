@@ -109,6 +109,11 @@ class OffreEnregistree(models.Model):
 
 
 class Badge(models.Model):
+    """Définit un badge configurable par catégorie, condition et seuil.
+
+    Le slug sert d'identifiant stable après création ; désactiver le badge ne
+    supprime pas les attributions déjà enregistrées.
+    """
     class Categorie(models.TextChoices):
         PROSPECTION = "prospection", "Prospection"
         CANDIDATURE = "candidature", "Candidature"
@@ -147,6 +152,11 @@ class Badge(models.Model):
 
 
 class BadgeObtenu(models.Model):
+    """Enregistre l'obtention d'un badge par un utilisateur.
+
+    Une attribution est unique par couple utilisateur/badge et conserve sa
+    date d'obtention même si le badge est ensuite désactivé.
+    """
     utilisateur = models.ForeignKey(
         "comptes.Utilisateur",
         on_delete=models.CASCADE,
@@ -164,6 +174,11 @@ class BadgeObtenu(models.Model):
 
 
 class Niveau(models.Model):
+    """Définit un niveau atteint à partir d'un seuil minimal d'XP.
+
+    Seuls les niveaux actifs participent au calcul ; leurs seuils déterminent
+    le niveau courant et la progression vers le suivant.
+    """
     nom = models.CharField(max_length=50, help_text="Éditable librement.")
     seuil_min = models.PositiveIntegerField(
         help_text="XP minimum pour atteindre ce niveau. Modifier ce seuil recalcule automatiquement le niveau de tous les utilisateurs."

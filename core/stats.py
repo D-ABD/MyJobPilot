@@ -13,7 +13,11 @@ from rgpd.models import DemandeRGPD, StatutDemande
 
 
 def calculer_atteinte_objectif(objectif):
-    """Calcule la progression d'un objectif sur la période définie."""
+    """Calcule la progression sur la période de l'objectif.
+
+    Les prospections/semaine sont une moyenne sur les semaines couvertes ;
+    candidatures/mois compte uniquement le statut CANDIDATURE_ENVOYEE.
+    """
     periode = (objectif.periode_debut, objectif.periode_fin)
     if objectif.type == Objectif.Type.PROSPECTIONS_SEMAINE:
         prospections = Prospection.objects.filter(
@@ -111,7 +115,11 @@ def filtrer_prospections_periode(prospections, periode):
 
 
 def calculer_kpis_dashboard(eleve_ids, periode="30"):
-    """Calcule les quatre KPI sur les élèves et la période demandés."""
+    """Calcule les KPI des élèves sur 7, 30, 90 jours ou tout l'historique.
+
+    Le taux rapporte les prospections créées dans la période qui sont
+    actuellement acceptées ; les relances couvrent les sept prochains jours.
+    """
     prospections = filtrer_prospections_periode(
         Prospection.objects.filter(eleve_id__in=eleve_ids), periode
     )
@@ -158,6 +166,11 @@ def calculer_kpis_dashboard(eleve_ids, periode="30"):
 
 
 def calculer_stats_eleve(eleve):
+    """Calcule les KPI et graphiques de l'élève sur tout son historique.
+
+    Retourne ses totaux, candidatures envoyées, entretiens, taux de réponse,
+    répartition des statuts, activité hebdomadaire et trois relances futures.
+    """
     prospections = Prospection.objects.filter(eleve=eleve).select_related("entreprise")
     total = prospections.count()
     candidatures = prospections.filter(statut=Statut.CANDIDATURE_ENVOYEE).count()
@@ -187,6 +200,11 @@ def calculer_stats_eleve(eleve):
 
 
 def calculer_stats_superviseur(superviseur, eleves=None, periode="all"):
+    """Calcule les KPI du scope actif du superviseur, ou des élèves fournis.
+
+    La période filtre les prospections par date de création ; le résultat
+    comprend validation des comptes, entretiens, statuts, activité et inactifs.
+    """
     centres_ids = centres_du_superviseur(superviseur)
     if eleves is None:
         eleves = Utilisateur.objects.filter(
@@ -226,6 +244,11 @@ def calculer_stats_superviseur(superviseur, eleves=None, periode="all"):
 
 
 def calculer_stats_admin(eleves=None, superviseurs=None, periode="all"):
+    """Calcule les KPI globaux ou ceux des populations fournies.
+
+    La période filtre les prospections et demandes RGPD ; les demandes ouvertes
+    depuis plus de 25 jours sont signalées comme en retard.
+    """
     if eleves is None:
         eleves = Utilisateur.objects.filter(role=Utilisateur.Role.ELEVE)
     if superviseurs is None:

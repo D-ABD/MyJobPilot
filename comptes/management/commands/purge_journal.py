@@ -11,6 +11,11 @@ logger = logging.getLogger("comptes")
 
 
 class Command(BaseCommand):
+    """Supprime les entrées du journal antérieures à la durée de rétention.
+
+    La durée vient de RETENTION_JOURNAL_JOURS ; --dry-run compte les entrées
+    concernées sans les supprimer.
+    """
     help = "Supprime les entrées du journal d'action arrivées à échéance."
 
     def add_arguments(self, parser):

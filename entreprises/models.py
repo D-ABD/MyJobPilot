@@ -44,6 +44,11 @@ class Entreprise(models.Model):
 
 
 class Prospection(models.Model):
+    """Suit le pipeline de prospection d'un élève auprès d'une entreprise.
+
+    Le statut et les dates associées décrivent l'avancement ; une entreprise
+    ne peut être prospectée qu'une fois par élève.
+    """
     eleve = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -95,6 +100,11 @@ class Prospection(models.Model):
 
 
 class Relance(models.Model):
+    """Historise une relance réellement effectuée pour une prospection.
+
+    Elle distingue le suivi de prospection de celui de candidature et conserve
+    l'auteur lorsqu'il existe, sans empêcher sa suppression ultérieure.
+    """
     class Type(models.TextChoices):
         PROSPECTION = "prospection", "Relance de prospection"
         CANDIDATURE = "candidature", "Relance de candidature"

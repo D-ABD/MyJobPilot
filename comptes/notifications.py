@@ -3,7 +3,11 @@ from .models import Notification, TypeNotification
 
 
 def creer_notification(destinataire, type, message, lien=""):
-    """Crée une notification pour un destinataire actif."""
+    """Crée une notification pour un destinataire actif.
+
+    Renvoie None si le destinataire est absent ou inactif ; message et lien
+    sont tronqués à 255 caractères. Cette fonction ne dédoublonne pas.
+    """
     if destinataire is None or not destinataire.is_active:
         return None
     return Notification.objects.create(

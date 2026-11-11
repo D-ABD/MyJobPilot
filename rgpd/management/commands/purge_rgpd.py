@@ -9,6 +9,12 @@ from comptes.utils import invalidate_user_sessions, log_action
 
 
 class Command(BaseCommand):
+    """Purge les comptes désactivés ou élèves non validés trop anciens.
+
+    Les durées de rétention viennent des réglages dédiés ; --dry-run affiche
+    les comptes concernés sans invalider leurs sessions ni les supprimer.
+    L'exécution journalise ensuite la purge de chaque compte.
+    """
     help = "Purge les comptes anciens désactivés ou non validés."
 
     def add_arguments(self, parser):

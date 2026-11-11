@@ -10,6 +10,11 @@ from comptes.models import Centre, Formation, Utilisateur
 
 
 class Command(BaseCommand):
+    """Prépare de manière idempotente les quatre comptes de démonstration.
+
+    Le mot de passe vient de DEMO_PASSWORD ou d'une saisie interactive ; il
+    n'est jamais affiché par la commande.
+    """
     help = "Crée les comptes de démonstration MyJobPilot."
 
     def handle(self, *args, **options):
