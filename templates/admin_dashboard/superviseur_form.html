@@ -3,5 +3,18 @@
 {% block content %}
 {% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
 {% include "partials/_bouton_retour.html" %}<h1>Créer un superviseur</h1>
-<form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary" type="submit">Créer</button></form>
+<form method="post">
+  {% csrf_token %}
+  {% include "partials/_form_errors.html" with form=form %}
+  {% for field in form %}
+    {% if field.is_hidden %}
+    {% else %}
+      {% include "partials/_form_field.html" with field=field %}
+    {% endif %}
+  {% endfor %}
+  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+  <div class="form-actions">
+    <button class="btn-primary-custom" type="submit">Créer</button>
+  </div>
+</form>
 {% endblock %}

@@ -7,21 +7,17 @@
     <p class="text-body-secondary mb-4">Votre compte devra être validé par l'administration avant l'accès aux fonctions protégées.</p>
     <form method="post" novalidate>
       {% csrf_token %}
-      {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+      {% include "partials/_form_errors.html" with form=form %}
       {% for field in form %}
-        <div class="mb-3 {% if field.name == 'consentement_rgpd' %}form-check{% endif %}">
-          {% if field.name == "consentement_rgpd" %}
-            {{ field }}
-            <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% else %}
-            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-          {% endif %}
-          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-          {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-        </div>
+        {% if field.is_hidden %}
+        {% else %}
+          {% include "partials/_form_field.html" with field=field %}
+        {% endif %}
       {% endfor %}
-      <button class="btn btn-primary" type="submit" aria-label="Envoyer la demande d'inscription">Envoyer ma demande</button>
+      {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+      <div class="form-actions">
+        <button class="btn-primary-custom" type="submit" aria-label="Envoyer la demande d'inscription">Envoyer ma demande</button>
+      </div>
     </form>
   </div>
 </section>

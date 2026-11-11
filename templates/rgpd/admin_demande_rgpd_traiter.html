@@ -4,5 +4,18 @@
 {% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
 {% include "partials/_bouton_retour.html" %}<h1>Traiter la demande de {{ demande.utilisateur.username }}</h1>
 <p>{{ demande.get_type_display }} — {{ demande.description|default:"Aucune description"|linebreaksbr }}</p>
-<form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary" type="submit">Enregistrer</button></form>
+<form method="post">
+  {% csrf_token %}
+  {% include "partials/_form_errors.html" with form=form %}
+  {% for field in form %}
+    {% if field.is_hidden %}
+    {% else %}
+      {% include "partials/_form_field.html" with field=field %}
+    {% endif %}
+  {% endfor %}
+  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+  <div class="form-actions">
+    <button class="btn-primary-custom" type="submit">Enregistrer</button>
+  </div>
+</form>
 {% endblock %}

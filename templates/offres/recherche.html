@@ -7,19 +7,21 @@
     <p class="text-body-secondary">Offres et entreprises à contacter, proposées par La bonne alternance.</p>
   </div>
   <form method="get" class="card card-body mb-4" aria-label="Recherche d'offres d'alternance">
+    {% include "partials/_form_errors.html" with form=form %}
     {% for field in form %}
-      <div class="mb-3">
-        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-      </div>
+      {% if field.is_hidden %}
+      {% else %}
+        {% include "partials/_form_field.html" with field=field %}
+      {% endif %}
     {% endfor %}
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
     <p id="aide-tri-rome" class="form-text mb-3" {% if form.tri.value != "rome" %}hidden{% endif %}>
       Le tri par code ROME s'applique aux offres uniquement. Les entreprises conservent l'ordre LBA.
     </p>
     <p class="form-text">Référentiel France Travail : <a href="https://candidat.francetravail.fr/metierscope/" target="_blank" rel="noopener noreferrer">rechercher un code ROME</a>.</p>
-    <button class="btn btn-primary align-self-start" type="submit">Rechercher</button>
+    <div class="form-actions">
+      <button class="btn-primary-custom" type="submit">Rechercher</button>
+    </div>
   </form>
 
   {% if recherche_effectuee %}

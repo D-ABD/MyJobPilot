@@ -7,8 +7,17 @@
 <p>Format attendu : username,email,first_name,last_name,centre,formation. Les comptes importés restent en attente de validation.</p>
 <form method="post" enctype="multipart/form-data" class="vstack gap-3">
   {% csrf_token %}
-  {{ form.as_p }}
-  <button class="btn btn-primary" type="submit">Importer le CSV</button>
+  {% include "partials/_form_errors.html" with form=form %}
+  {% for field in form %}
+    {% if field.is_hidden %}
+    {% else %}
+      {% include "partials/_form_field.html" with field=field %}
+    {% endif %}
+  {% endfor %}
+  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+  <div class="form-actions">
+    <button class="btn-primary-custom" type="submit">Importer le CSV</button>
+  </div>
 </form>
 {% if rapport %}
 <section class="mt-4" aria-labelledby="rapport-import">
