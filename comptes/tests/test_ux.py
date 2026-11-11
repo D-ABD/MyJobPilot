@@ -17,6 +17,10 @@ class ExperienceUtilisateurTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="theme-toggle"')
         self.assertContains(response, 'aria-label="Changer de thème"')
+        self.assertContains(response, 'id="sidebar-collapse-toggle"')
+        self.assertContains(response, 'id="sidebar-toggle"')
+        self.assertContains(response, 'localStorage.getItem("sidebar-collapsed")')
+        self.assertContains(response, 'localStorage.setItem("sidebar-collapsed", String(collapsed))')
 
     def test_base_contient_script_theme(self):
         response = self.client.get(reverse("rgpd:confidentialite"))

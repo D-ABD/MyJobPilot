@@ -1,8 +1,9 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from comptes.models import Utilisateur
-from core.models import Badge, BadgeObtenu
+from core.models import Badge, BadgeObtenu, Tache
 from entreprises.models import Entreprise, Prospection, Statut
 
 
@@ -43,9 +44,21 @@ class ProgressionBadgesDashboardTests(TestCase):
             type_condition=Badge.TypeCondition.RELANCES_COUNT,
         )
         BadgeObtenu.objects.create(utilisateur=self.eleve, badge=badge)
+        Tache.objects.create(
+            titre="Préparer une candidature",
+            createur=self.eleve,
+            assigne_a=self.eleve,
+            date_echeance=timezone.localdate(),
+            statut=Tache.Statut.EN_COURS,
+        )
 
         response = self.client.get(reverse("entreprises:dashboard"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Badge récent sur le dashboard")
         self.assertContains(response, reverse("core:mes_badges"))
+        self.assertContains(response, "Mes tâches (1)")
+        self.assertContains(response, "Préparer une candidature")
+        contenu = response.content.decode()
+        self.assertLess(contenu.index("Derniers badges obtenus"), contenu.index("titre-taches-dashboard"))
+        self.assertLess(contenu.index("titre-taches-dashboard"), contenu.index("titre-graphiques-eleve"))

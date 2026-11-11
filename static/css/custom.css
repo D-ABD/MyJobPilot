@@ -22,6 +22,7 @@ body {
 
 .app-shell { min-height: 100vh; }
 .mobile-only { display: none; }
+.desktop-only { display: none; }
 .sidebar {
   position: fixed;
   z-index: 1040;
@@ -135,6 +136,16 @@ body {
 .topbar-heading { min-width: 120px; flex: 1; color: var(--text); font-size: 1rem; font-weight: 700; }
 .topbar-search { width: min(340px, 38vw); }
 .topbar-actions { display: flex; align-items: center; gap: var(--space-2); }
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+.table-header h2,
+.table-header h3 { color: var(--text); }
 .icon-btn {
   display: inline-grid;
   width: 40px;
@@ -388,10 +399,14 @@ body {
 [data-bs-theme="dark"] .btn-danger-custom { color: var(--on-brand); }
 
 @media (min-width: 968px) {
+  .desktop-only { display: inline-grid; }
   .sidebar { transform: translateX(0); }
   .sidebar-overlay { display: none; }
+  [data-sidebar-collapsed="true"] .sidebar { transform: translateX(-100%); }
+  [data-sidebar-collapsed="true"] .app-main { margin-left: 0; }
 }
 @media (max-width: 967.98px) {
+  .desktop-only { display: none; }
   .mobile-only { display: block; }
   .icon-btn.mobile-only { display: inline-grid; }
   .sidebar { transform: translateX(-100%); }
@@ -400,6 +415,26 @@ body {
   .topbar { min-height: 64px; gap: var(--space-2); }
   .topbar-search { width: min(220px, 35vw); }
   .topbar-heading { min-width: 0; font-size: .92rem; }
+}
+
+/* Lot 23g — tâches prioritaires du dashboard élève. */
+.taches-dashboard-list { list-style: none; padding: 0; margin: 0; }
+.tache-dashboard-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.tache-dashboard-item:last-child { border-bottom: 0; }
+.tache-dashboard-title { flex: 1; color: var(--text); font-weight: 600; text-decoration: none; }
+.tache-dashboard-title:hover { color: var(--brand-600); }
+.tache-dashboard-date { color: var(--text-muted); font-size: 12px; }
+.tache-dashboard-date.overdue { color: var(--danger); font-weight: 600; }
+.tache-dashboard-date.today { color: var(--warning); font-weight: 600; }
+@media (max-width: 575.98px) {
+  .tache-dashboard-item { align-items: flex-start; flex-wrap: wrap; padding: 12px 16px; }
+  .tache-dashboard-title { flex-basis: 100%; }
 }
 @media (max-width: 575.98px) {
   .topbar-search { display: none; }

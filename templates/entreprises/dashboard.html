@@ -45,6 +45,36 @@
 
   {% include "partials/_progression_categories.html" with afficher_lien_tous_badges=True dashboard_style="eleve" %}
 
+  <section class="table-card mt-4" aria-labelledby="titre-taches-dashboard">
+    <div class="table-header">
+      <h2 class="h5 mb-0" id="titre-taches-dashboard">Mes tâches ({{ taches_dashboard_count }})</h2>
+      <a href="{% url 'core:taches_liste' %}" class="btn-secondary-custom btn-sm">Voir tout</a>
+    </div>
+    {% if taches_dashboard %}
+      {% now "Y-m-d" as today %}
+      <ul class="taches-dashboard-list">
+        {% for tache in taches_dashboard %}
+          <li class="tache-dashboard-item">
+            <a class="tache-dashboard-title" href="{% url 'core:taches_liste' %}">{{ tache.titre }}</a>
+            {% if tache.date_echeance %}
+              {% with date_echeance=tache.date_echeance|date:"Y-m-d" %}
+                <time class="tache-dashboard-date{% if date_echeance < today %} overdue{% elif date_echeance == today %} today{% endif %}" datetime="{{ date_echeance }}">{{ tache.date_echeance|date:"d/m/Y" }}</time>
+              {% endwith %}
+            {% else %}
+              <span class="tache-dashboard-date">Sans échéance</span>
+            {% endif %}
+            <span class="badge rounded-pill {% if tache.statut == 'a_faire' %}text-bg-secondary{% elif tache.statut == 'en_cours' %}text-bg-primary{% endif %}">{{ tache.get_statut_display }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty-state">
+        <p>Aucune tâche en cours.</p>
+        <a href="{% url 'core:tache_nouvelle' %}" class="btn-primary-custom">Créer une tâche</a>
+      </div>
+    {% endif %}
+  </section>
+
   <section class="cockpit-charts mb-4" aria-labelledby="titre-graphiques-eleve">
     <h2 class="h4" id="titre-graphiques-eleve">Votre progression récente</h2>
     {{ charts|json_script:"cockpit-chart-data" }}

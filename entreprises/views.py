@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 from django.db.models.deletion import ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -19,6 +19,7 @@ from django.utils.dateparse import parse_date
 from comptes.models import JournalAction, TypeNotification, Utilisateur
 from comptes.notifications import creer_notification, notifier_changement_statut
 from comptes.scope_utils import centres_du_superviseur, verifier_superviseur
+from core.models import Tache
 from core.stats import calculer_stats_eleve
 from comptes.utils import log_action
 from core.filters import FiltreMixin
@@ -690,6 +691,14 @@ def dashboard_eleve(request):
         tri_urls[champ] = f"{request.path}?{parametres_tri.urlencode()}"
 
     cockpit = calculer_stats_eleve(request.user)
+    taches_actives = Tache.objects.filter(
+        assigne_a=request.user,
+    ).exclude(
+        statut="terminee",
+    ).order_by(
+        F("date_echeance").asc(nulls_last=True),
+        "-date_creation",
+    )
     contexte = {
         **filtreur.get_contexte_filtres(request),
         "prospections": page_obj.object_list,
@@ -707,6 +716,8 @@ def dashboard_eleve(request):
         "progression": progression,
         "progression_categories": calculer_progression_categories(request.user),
         "derniers_badges": calculer_derniers_badges(request.user, 5),
+        "taches_dashboard": list(taches_actives[:5]),
+        "taches_dashboard_count": taches_actives.count(),
     }
     return render(request, "entreprises/dashboard.html", contexte)
 
