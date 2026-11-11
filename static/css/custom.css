@@ -53,10 +53,10 @@ body {
   height: 38px;
   place-items: center;
   border-radius: var(--radius-md);
-  background: var(--brand-500);
+  background: transparent;
   color: var(--on-brand);
 }
-.sidebar-brand-img { display: block; width: 28px; height: 28px; object-fit: contain; }
+.sidebar-brand-img { display: block; width: 32px; height: auto; object-fit: contain; }
 .sidebar-section { margin-bottom: var(--space-6); }
 .sidebar-section-title {
   margin: 0 0 var(--space-2) var(--space-3);
@@ -135,7 +135,6 @@ body {
   backdrop-filter: blur(12px);
 }
 .topbar-heading { min-width: 120px; flex: 1; color: var(--text); font-size: 1rem; font-weight: 700; }
-.topbar-logo { display: block; height: 32px; width: auto; object-fit: contain; }
 .topbar-search { width: min(340px, 38vw); }
 .topbar-actions { display: flex; align-items: center; gap: var(--space-2); }
 .table-header {

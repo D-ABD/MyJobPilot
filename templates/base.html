@@ -121,7 +121,7 @@
         <button class="icon-btn desktop-only" id="sidebar-collapse-toggle" type="button" aria-label="Réduire la navigation" aria-expanded="true" aria-controls="app-sidebar" title="Réduire la navigation">
           <i class="bi bi-layout-sidebar" aria-hidden="true"></i>
         </button>
-        <div class="topbar-heading">{% block page_heading %}<img src="{% static 'logo/logo.png' %}" alt="MyJobPilot" class="topbar-logo">{% endblock %}</div>
+        <div class="topbar-heading">{% block page_heading %}MyJobPilot{% endblock %}</div>
         {% if user.is_authenticated %}
           <form class="topbar-search" role="search" action="{% url 'core:recherche' %}" method="get">
             <label class="visually-hidden" for="global-search">Rechercher</label>
