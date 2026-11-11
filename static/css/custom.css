@@ -342,6 +342,12 @@ body {
 .hub-card:hover,
 .hub-card:focus-visible { transform: translateY(-2px); border-color: var(--brand-300); color: var(--text); }
 .hub-card h2 { margin: 0; }
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: var(--space-4);
+}
+.cards-grid > * { width: 100%; min-width: 0; }
 .detail-card { padding: var(--space-5); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
 .detail-card .card-header { margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-4); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); background: transparent; color: var(--text); }
 .detail-card dl dt { color: var(--text-secondary); font-weight: 600; }
@@ -571,12 +577,35 @@ body {
 .form-control-wrapper input[type="radio"] {
   width: 18px;
   height: 18px;
-  margin-right: 8px;
   accent-color: var(--brand-500);
   cursor: pointer;
   vertical-align: middle;
 }
-.form-control-wrapper input[type="radio"] + label { margin-right: 16px; cursor: pointer; }
+.form-control-wrapper input[type="radio"],
+.form-control-wrapper input[type="checkbox"] {
+  float: none;
+  margin: 0;
+  flex: 0 0 auto;
+}
+.form-control-wrapper > div:has(input[type="radio"]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.form-control-wrapper > div:has(input[type="radio"]) > div {
+  display: inline-flex;
+  align-items: center;
+}
+.form-control-wrapper label:has(> input[type="radio"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--text);
+  font-size: .875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
 .form-control-wrapper input[type="file"] {
   width: 100%;
   padding: var(--space-4);
