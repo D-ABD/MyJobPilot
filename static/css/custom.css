@@ -338,16 +338,26 @@ body {
 .pagination-custom .btn[aria-current="page"] { cursor: default; }
 .pagination-custom button:disabled { cursor: not-allowed; opacity: .45; }
 .pagination-ellipsis { min-width: 20px; color: var(--text-muted); text-align: center; }
-.hub-card { display: flex; align-items: center; color: var(--text); transition: transform .18s ease, border-color .18s ease; }
+.hub-card { color: var(--text); transition: transform .18s ease, border-color .18s ease; }
 .hub-card:hover,
 .hub-card:focus-visible { transform: translateY(-2px); border-color: var(--brand-300); color: var(--text); }
-.hub-card h2 { margin: 0; }
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: var(--space-4);
 }
-.cards-grid > * { width: 100%; min-width: 0; }
+.cards-grid > .kpi-card {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-5);
+  color: var(--text);
+  text-decoration: none;
+}
+.cards-grid > .kpi-card:hover { box-shadow: var(--shadow-md); }
+.cards-grid > .kpi-card h2 { margin: 0; font-size: 1rem; font-weight: 600; }
 .detail-card { padding: var(--space-5); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
 .detail-card .card-header { margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-4); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); background: transparent; color: var(--text); }
 .detail-card dl dt { color: var(--text-secondary); font-weight: 600; }
@@ -587,23 +597,41 @@ body {
   margin: 0;
   flex: 0 0 auto;
 }
-.form-control-wrapper > div:has(input[type="radio"]) {
+/* Neutralise .form-check-input when Django applies it to the RadioSelect wrapper. */
+.form-control-wrapper > div.form-check-input {
+  float: none;
+  margin: 0;
+  margin-left: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: 20px;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
-.form-control-wrapper > div:has(input[type="radio"]) > div {
-  display: inline-flex;
+.form-control-wrapper > div.form-check-input > div {
+  display: flex;
   align-items: center;
 }
-.form-control-wrapper label:has(> input[type="radio"]) {
+.form-control-wrapper > div.form-check-input label {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  margin: 0;
-  color: var(--text);
-  font-size: .875rem;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
   font-weight: 500;
+  color: var(--text);
+  margin: 0;
+}
+.form-control-wrapper > div.form-check-input input[type="radio"] {
+  float: none;
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand-500);
   cursor: pointer;
 }
 .form-control-wrapper input[type="file"] {

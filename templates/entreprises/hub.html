@@ -5,18 +5,18 @@
   <h1 class="h2 mb-4" id="titre-hub">Hub</h1>
   <div class="cards-grid">
     {% if user.role == "superviseur" %}
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/prospections/?mine=1"><h2 class="h5">Mes prospections</h2></a></div>
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/prospections/?eleves=1"><h2 class="h5">Prospections de mes élèves</h2></a></div>
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/staff/"><h2 class="h5">Mes élèves</h2></a></div>
+      <a class="kpi-card hub-card" href="/prospections/?mine=1"><h2 class="h5">Mes prospections</h2></a>
+      <a class="kpi-card hub-card" href="/prospections/?eleves=1"><h2 class="h5">Prospections de mes élèves</h2></a>
+      <a class="kpi-card hub-card" href="/staff/"><h2 class="h5">Mes élèves</h2></a>
     {% elif user.role == "admin" %}
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/prospections/?mine=1"><h2 class="h5">Mes prospections</h2></a></div>
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/prospections/"><h2 class="h5">Toutes les prospections</h2></a></div>
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/prospections/?eleves=1"><h2 class="h5">Prospections des élèves</h2></a></div>
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/prospections/?superviseurs=1"><h2 class="h5">Prospections des superviseurs</h2></a></div>
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/admin-dashboard/"><h2 class="h5">Dashboard admin</h2></a></div>
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/admin-dashboard/superviseurs/"><h2 class="h5">Superviseurs</h2></a></div>
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/admin-dashboard/import-eleves/"><h2 class="h5">Import CSV élèves</h2></a></div>
-      <div><a class="kpi-card hub-card h-100 text-decoration-none" href="/admin-dashboard/import-entreprises/"><h2 class="h5">Importer des entreprises</h2></a></div>
+      <a class="kpi-card hub-card" href="/prospections/?mine=1"><h2 class="h5">Mes prospections</h2></a>
+      <a class="kpi-card hub-card" href="/prospections/"><h2 class="h5">Toutes les prospections</h2></a>
+      <a class="kpi-card hub-card" href="/prospections/?eleves=1"><h2 class="h5">Prospections des élèves</h2></a>
+      <a class="kpi-card hub-card" href="/prospections/?superviseurs=1"><h2 class="h5">Prospections des superviseurs</h2></a>
+      <a class="kpi-card hub-card" href="/admin-dashboard/"><h2 class="h5">Dashboard admin</h2></a>
+      <a class="kpi-card hub-card" href="/admin-dashboard/superviseurs/"><h2 class="h5">Superviseurs</h2></a>
+      <a class="kpi-card hub-card" href="/admin-dashboard/import-eleves/"><h2 class="h5">Import CSV élèves</h2></a>
+      <a class="kpi-card hub-card" href="/admin-dashboard/import-entreprises/"><h2 class="h5">Importer des entreprises</h2></a>
     {% endif %}
   </div>
 </section>
