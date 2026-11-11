@@ -1,37 +1,92 @@
 {% extends "base.html" %}
 {% block title %}Accueil — MyJobPilot{% endblock %}
 {% block content %}
-<section class="p-4 p-md-5 bg-light rounded-3">
-  <div class="container-fluid py-2">
-    <h1 class="display-5 fw-bold">Préparez votre prospection d'alternance</h1>
-    <p class="col-md-9 fs-5">MyJobPilot vous accompagne dans le suivi de vos démarches et de vos échanges avec votre centre.</p>
-    {% if user.is_authenticated %}
-      <a class="btn btn-primary btn-lg" href="{% url 'comptes:redirection_apres_login' %}" aria-label="Accéder à mon espace">Accéder à mon espace</a>
-    {% else %}
-      <a class="btn btn-primary btn-lg me-2 mb-2" href="{% url 'comptes:inscription' %}" aria-label="Créer un compte">Créer un compte</a>
-      <a class="btn btn-outline-primary btn-lg mb-2" href="{% url 'comptes:connexion' %}" aria-label="Se connecter">Se connecter</a>
-    {% endif %}
-  </div>
-</section>
+<div class="landing-container">
+  <section class="hero-public" aria-labelledby="titre-hero-public">
+    <div class="hero-public-content">
+      <div class="hero-public-eyebrow">MyJobPilot</div>
+      <h1 class="hero-public-title" id="titre-hero-public">Pilotez votre recherche d'alternance</h1>
+      <p class="hero-public-subtitle">
+        Centralisez vos entreprises ciblées, suivez vos candidatures et gardez une trace de chaque échange.
+      </p>
+      <div class="hero-public-actions">
+        {% if user.is_authenticated %}
+          <a href="{% url 'comptes:redirection_apres_login' %}" class="btn-primary-custom">
+            Accéder à mon espace
+          </a>
+        {% else %}
+          <a href="{% url 'comptes:inscription' %}" class="btn-primary-custom">
+            Commencer maintenant
+          </a>
+          <a href="{% url 'comptes:connexion' %}" class="btn-secondary-custom">
+            J'ai déjà un compte
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
 
-<section class="py-5" aria-labelledby="titre-etapes">
-  <h2 class="h3 mb-4" id="titre-etapes">Comment ça marche ?</h2>
-  <div class="row g-3">
-    <div class="col-12 col-md-4"><article class="card h-100"><div class="card-body"><span class="badge text-bg-primary mb-2">1</span><h3 class="h5">S’inscrire</h3><p class="mb-0">Créez votre compte et choisissez votre centre et votre formation.</p></div></article></div>
-    <div class="col-12 col-md-4"><article class="card h-100"><div class="card-body"><span class="badge text-bg-primary mb-2">2</span><h3 class="h5">Prospecter</h3><p class="mb-0">Ajoutez les entreprises ciblées et suivez chaque démarche.</p></div></article></div>
-    <div class="col-12 col-md-4"><article class="card h-100"><div class="card-body"><span class="badge text-bg-primary mb-2">3</span><h3 class="h5">Décrocher</h3><p class="mb-0">Gardez une trace des échanges, candidatures et entretiens.</p></div></article></div>
-  </div>
-</section>
+  <section class="landing-section" aria-labelledby="titre-etapes">
+    <div class="landing-section-heading">
+      <div class="landing-eyebrow">Votre recherche, étape par étape</div>
+      <h2 class="landing-section-title" id="titre-etapes">Comment ça marche ?</h2>
+    </div>
+    <div class="landing-grid landing-grid-steps">
+      <article class="landing-card step-card">
+        <span class="step-number" aria-hidden="true">1</span>
+        <h3>Créez votre compte</h3>
+        <p>Inscrivez-vous et rattachez votre centre et votre formation.</p>
+      </article>
+      <article class="landing-card step-card">
+        <span class="step-number" aria-hidden="true">2</span>
+        <h3>Prospectez</h3>
+        <p>Ajoutez les entreprises ciblées, suivez chaque démarche et chaque relance.</p>
+      </article>
+      <article class="landing-card step-card">
+        <span class="step-number" aria-hidden="true">3</span>
+        <h3>Décrochez</h3>
+        <p>Gérez vos candidatures, entretiens et réponses jusqu'à la signature.</p>
+      </article>
+    </div>
+  </section>
 
-<section class="py-4" aria-labelledby="titre-fonctionnalites">
-  <h2 class="h3 mb-4" id="titre-fonctionnalites">Fonctionnalités</h2>
-  <div class="row g-3">
-    <div class="col-12 col-sm-6 col-lg-4"><article class="card h-100"><div class="card-body"><h3 class="h5">Prospection</h3><p class="mb-0">Centralisez vos démarches par entreprise et type de contrat.</p></div></article></div>
-    <div class="col-12 col-sm-6 col-lg-4"><article class="card h-100"><div class="card-body"><h3 class="h5">Documents</h3><p class="mb-0">Conservez vos CV, lettres et diplômes dans votre espace.</p></div></article></div>
-    <div class="col-12 col-sm-6 col-lg-4"><article class="card h-100"><div class="card-body"><h3 class="h5">Suivi</h3><p class="mb-0">Consultez les statuts et l’historique de chaque prospection.</p></div></article></div>
-    <div class="col-12 col-sm-6 col-lg-4"><article class="card h-100"><div class="card-body"><h3 class="h5">RGPD</h3><p class="mb-0">Consultez vos droits et demandez l’accès ou l’export de vos données.</p></div></article></div>
-    <div class="col-12 col-sm-6 col-lg-4"><article class="card h-100"><div class="card-body"><h3 class="h5">Notifications</h3><p class="mb-0">Retrouvez les nouvelles informations dans l’application.</p></div></article></div>
-    <div class="col-12 col-sm-6 col-lg-4"><article class="card h-100"><div class="card-body"><h3 class="h5">Multi-rôles</h3><p class="mb-0">Un espace adapté aux élèves, superviseurs et administrateurs.</p></div></article></div>
-  </div>
-</section>
+  <section class="landing-section landing-features" aria-labelledby="titre-fonctionnalites">
+    <div class="landing-section-heading">
+      <div class="landing-eyebrow">Tous vos outils au même endroit</div>
+      <h2 class="landing-section-title" id="titre-fonctionnalites">Fonctionnalités</h2>
+    </div>
+    <div class="landing-grid landing-grid-features">
+      <article class="landing-card feature-card">
+        <div class="feature-icon feature-icon-brand"><i class="bi bi-briefcase" aria-hidden="true"></i></div>
+        <h3>Prospection</h3>
+        <p>Centralisez vos démarches par entreprise et type de contrat.</p>
+      </article>
+      <article class="landing-card feature-card">
+        <div class="feature-icon feature-icon-violet"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></div>
+        <h3>Documents</h3>
+        <p>Conservez vos CV, lettres et diplômes au même endroit.</p>
+      </article>
+      <article class="landing-card feature-card">
+        <div class="feature-icon feature-icon-accent"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></div>
+        <h3>Suivi</h3>
+        <p>Suivez les statuts, l'historique et les relances de chaque prospection.</p>
+      </article>
+      <article class="landing-card feature-card">
+        <div class="feature-icon feature-icon-sky"><i class="bi bi-shield-check" aria-hidden="true"></i></div>
+        <h3>RGPD</h3>
+        <p>Exercez vos droits et exportez vos données à tout moment.</p>
+      </article>
+      <article class="landing-card feature-card">
+        <div class="feature-icon feature-icon-amber"><i class="bi bi-inbox" aria-hidden="true"></i></div>
+        <h3>Notifications</h3>
+        <p>Restez informé des relances et changements de statut.</p>
+      </article>
+      <article class="landing-card feature-card">
+        <div class="feature-icon feature-icon-rose"><i class="bi bi-people" aria-hidden="true"></i></div>
+        <h3>Multi-rôles</h3>
+        <p>Un espace adapté aux élèves, superviseurs et administrateurs.</p>
+      </article>
+    </div>
+  </section>
+</div>
 {% endblock %}
