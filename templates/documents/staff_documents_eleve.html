@@ -5,8 +5,8 @@
   <a class="btn btn-link px-0" href="{% url 'staff:detail_eleve' eleve.pk %}">Retour à la fiche élève</a>
   <h1 class="h2 mb-4" id="titre-documents-eleve">Documents de {{ eleve.username }}</h1>
   {% if documents %}
-    <div class="table-responsive">
-      <table class="table table-striped align-middle">
+    <div class="table-responsive dashboard-table-wrap">
+      <table class="table dashboard-table table-striped align-middle">
         <caption class="visually-hidden">Documents de {{ eleve.username }}</caption>
         <thead><tr><th scope="col">Nom</th><th scope="col">Type</th><th scope="col">Taille</th><th scope="col">Ajouté le</th><th scope="col">Action</th></tr></thead>
         <tbody>
@@ -23,7 +23,7 @@
       </table>
     </div>
   {% else %}
-    <p class="alert alert-info" role="status">Aucun document pour cet élève.</p>
+    <p class="alert alert-info empty-state p-3" role="status">Aucun document pour cet élève.</p>
   {% endif %}
 </section>
 {% endblock %}

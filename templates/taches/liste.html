@@ -38,8 +38,8 @@
     </div>
   </form>
   {% if taches %}
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
+    <div class="table-responsive dashboard-table-wrap">
+      <table class="table dashboard-table table-hover align-middle">
         <caption class="visually-hidden">Tâches accessibles selon votre rôle</caption>
         <thead><tr><th scope="col">Tâche</th><th scope="col">Assignée à</th><th scope="col">Échéance</th><th scope="col">Statut</th><th scope="col">Prospection</th><th scope="col">Actions</th></tr></thead>
         <tbody>
@@ -65,7 +65,7 @@
       </table>
     </div>
     {% if page_obj.paginator.num_pages > 1 %}
-      <nav aria-label="Pagination des tâches"><ul class="pagination">
+      <nav aria-label="Pagination des tâches"><ul class="pagination pagination-custom">
         {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Précédent</a></li>{% endif %}
         <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span></li>
         {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Suivant</a></li>{% endif %}

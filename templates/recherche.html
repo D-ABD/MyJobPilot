@@ -9,7 +9,7 @@
   {% if prospections %}
     <section class="mb-4" aria-labelledby="titre-resultats-prospections">
       <h2 class="h4" id="titre-resultats-prospections">Prospections ({{ prospections|length }})</h2>
-      <ul class="list-group">
+      <ul class="list-group table-card">
         {% for resultat in prospections %}
           <li class="list-group-item"><a href="{{ resultat.url }}">{{ resultat.objet.entreprise.nom }}</a> — {{ resultat.objet.eleve.username }} · {{ resultat.objet.get_statut_display }}</li>
         {% endfor %}
@@ -19,7 +19,7 @@
   {% if documents %}
     <section class="mb-4" aria-labelledby="titre-resultats-documents">
       <h2 class="h4" id="titre-resultats-documents">Documents ({{ documents|length }})</h2>
-      <ul class="list-group">
+      <ul class="list-group table-card">
         {% for resultat in documents %}
           <li class="list-group-item"><a href="{{ resultat.url }}">{{ resultat.objet.nom }}</a></li>
         {% endfor %}
@@ -29,7 +29,7 @@
   {% if eleves %}
     <section class="mb-4" aria-labelledby="titre-resultats-eleves">
       <h2 class="h4" id="titre-resultats-eleves">Élèves ({{ eleves|length }})</h2>
-      <ul class="list-group">
+      <ul class="list-group table-card">
         {% for resultat in eleves %}
           <li class="list-group-item"><a href="{{ resultat.url }}">{{ resultat.username }}</a>{% if resultat.nom_complet %} — {{ resultat.nom_complet }}{% endif %}</li>
         {% endfor %}

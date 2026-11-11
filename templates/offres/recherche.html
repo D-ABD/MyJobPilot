@@ -27,8 +27,8 @@
   {% if recherche_effectuee %}
     {% include "offres/_resultats.html" %}
   {% elif request.GET %}
-    <p class="alert alert-warning" role="status">Vérifiez les critères de recherche puis relancez la recherche.</p>
-    {% if message_aide %}<p class="alert alert-info" role="status">{{ message_aide }} <a href="https://candidat.francetravail.fr/metierscope/" target="_blank" rel="noopener noreferrer">Référentiel France Travail</a>.</p>{% endif %}
+    <p class="alert alert-warning empty-state p-3" role="status">Vérifiez les critères de recherche puis relancez la recherche.</p>
+    {% if message_aide %}<p class="alert alert-info empty-state p-3" role="status">{{ message_aide }} <a href="https://candidat.francetravail.fr/metierscope/" target="_blank" rel="noopener noreferrer">Référentiel France Travail</a>.</p>{% endif %}
   {% else %}
     <p class="text-body-secondary">Saisissez un code ROME, un code postal et un rayon pour afficher les résultats.</p>
   {% endif %}

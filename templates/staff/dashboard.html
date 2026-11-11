@@ -35,7 +35,7 @@
     </div>
   </form>
 
-  {% include "partials/_kpi_cards.html" %}
+  {% include "partials/_kpi_cards.html" with dashboard_style="eleve" %}
   {% include "partials/_dashboard_prospection_kpis.html" %}
 
   <section class="mb-4" aria-labelledby="titre-objectifs-staff">
@@ -50,7 +50,7 @@
     <h2 class="h4" id="titre-graphiques-staff">Activité du périmètre</h2>
     {{ charts|json_script:"cockpit-chart-data" }}
     <div class="row g-3">
-      {% for chart in charts.values %}<div class="col-12 col-lg-6"><div class="card h-100"><div class="card-body"><h3 class="h6">{{ chart.title }}</h3><div class="cockpit-chart"><canvas data-cockpit-chart="{{ chart.key }}" role="img" aria-label="{{ chart.title }}"></canvas></div></div></div></div>{% endfor %}
+      {% for chart in charts.values %}<div class="col-12 col-lg-6"><div class="detail-card h-100"><div class="card-body"><h3 class="h6">{{ chart.title }}</h3><div class="cockpit-chart"><canvas data-cockpit-chart="{{ chart.key }}" role="img" aria-label="{{ chart.title }}"></canvas></div></div></div></div>{% endfor %}
     </div>
   </section>
   {% include "partials/_chart_scripts.html" %}
@@ -63,7 +63,7 @@
   <div class="row g-3 mb-4" aria-label="Nombre d'élèves par centre">
     {% for statistique in stats_par_centre %}
       <div class="col-12 col-sm-6 col-lg-4">
-        <div class="card h-100">
+        <div class="detail-card h-100">
           <div class="card-body">
             <h2 class="h6">{{ statistique.centre.nom }}</h2>
             <p class="h3 mb-0">{{ statistique.nombre }}</p>
@@ -83,7 +83,7 @@
   <p class="text-body-secondary" aria-live="polite">{{ page_obj.paginator.count }} élève{{ page_obj.paginator.count|pluralize:"s" }}</p>
   {% if eleves %}
     <div class="table-responsive dashboard-table-wrap">
-      <table class="table table-hover align-middle dashboard-table">
+      <table class="table dashboard-table table-hover align-middle">
         <caption class="visually-hidden">Élèves du périmètre superviseur</caption>
         <thead class="table-light">
           <tr>

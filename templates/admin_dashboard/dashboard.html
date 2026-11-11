@@ -34,7 +34,7 @@
     <div class="col-12"><button class="btn btn-primary" type="submit">Appliquer</button></div>
   </div>
 </form>
-{% include "partials/_kpi_cards.html" %}
+{% include "partials/_kpi_cards.html" with dashboard_style="eleve" %}
 {% include "partials/_dashboard_prospection_kpis.html" %}
 <section class="mb-4" aria-labelledby="titre-objectifs-admin">
   <div class="d-flex justify-content-between align-items-center mb-2">
@@ -47,24 +47,24 @@
   <h2 class="h4" id="titre-graphiques-admin">Vue globale de la plateforme</h2>
   {{ charts|json_script:"cockpit-chart-data" }}
   <div class="row g-3">
-    {% for chart in charts.values %}<div class="col-12 col-lg-6"><div class="card h-100"><div class="card-body"><h3 class="h6">{{ chart.title }}</h3><div class="cockpit-chart"><canvas data-cockpit-chart="{{ chart.key }}" role="img" aria-label="{{ chart.title }}"></canvas></div></div></div></div>{% endfor %}
+    {% for chart in charts.values %}<div class="col-12 col-lg-6"><div class="detail-card h-100"><div class="card-body"><h3 class="h6">{{ chart.title }}</h3><div class="cockpit-chart"><canvas data-cockpit-chart="{{ chart.key }}" role="img" aria-label="{{ chart.title }}"></canvas></div></div></div></div>{% endfor %}
   </div>
 </section>
 {% include "partials/_chart_scripts.html" %}
 <div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Élèves validés</h2><p class="display-6 mb-0">{{ stats.eleves_valides }}</p></div></div></div>
-  <div class="col-md-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Élèves en attente</h2><p class="display-6 mb-0">{{ stats.eleves_attente }}</p></div></div></div>
-  <div class="col-md-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Superviseurs actifs</h2><p class="display-6 mb-0">{{ stats.superviseurs_actifs }}</p></div></div></div>
-  <div class="col-md-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Prospections totales</h2><p class="display-6 mb-0">{{ stats.prospections_totales }}</p></div></div></div>
-  <div class="col-md-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Demandes RGPD en attente</h2><p class="display-6 mb-0">{{ stats.demandes_rgpd_attente }}</p></div></div></div>
-  <div class="col-md-4"><div class="card h-100"><div class="card-body"><h2 class="h6">Demandes RGPD de plus de 25 jours</h2><p class="display-6 mb-0"><span class="badge text-bg-danger">{{ stats.demandes_rgpd_retard }} en retard</span></p></div></div></div>
+  <div class="col-md-4"><div class="detail-card h-100"><div class="card-body"><h2 class="h6">Élèves validés</h2><p class="display-6 mb-0">{{ stats.eleves_valides }}</p></div></div></div>
+  <div class="col-md-4"><div class="detail-card h-100"><div class="card-body"><h2 class="h6">Élèves en attente</h2><p class="display-6 mb-0">{{ stats.eleves_attente }}</p></div></div></div>
+  <div class="col-md-4"><div class="detail-card h-100"><div class="card-body"><h2 class="h6">Superviseurs actifs</h2><p class="display-6 mb-0">{{ stats.superviseurs_actifs }}</p></div></div></div>
+  <div class="col-md-4"><div class="detail-card h-100"><div class="card-body"><h2 class="h6">Prospections totales</h2><p class="display-6 mb-0">{{ stats.prospections_totales }}</p></div></div></div>
+  <div class="col-md-4"><div class="detail-card h-100"><div class="card-body"><h2 class="h6">Demandes RGPD en attente</h2><p class="display-6 mb-0">{{ stats.demandes_rgpd_attente }}</p></div></div></div>
+  <div class="col-md-4"><div class="detail-card h-100"><div class="card-body"><h2 class="h6">Demandes RGPD de plus de 25 jours</h2><p class="display-6 mb-0"><span class="badge text-bg-danger">{{ stats.demandes_rgpd_retard }} en retard</span></p></div></div></div>
 </div>
 <h2 class="h4">Accès rapides</h2>
-<ul>
-  <li><a href="{% url 'admin_dashboard:eleves' %}">Élèves</a></li>
-  <li><a href="{% url 'admin_dashboard:superviseurs' %}">Superviseurs</a></li>
-  <li><a href="{% url 'admin_dashboard:demandes_rgpd' %}">Demandes RGPD</a></li>
-  <li><a href="{% url 'admin_dashboard:exports' %}">Exports CSV</a></li>
-  <li><a href="{% url 'admin_dashboard:import_eleves' %}">Importer des élèves (CSV)</a></li>
+<ul class="list-group table-card">
+  <li class="list-group-item"><a href="{% url 'admin_dashboard:eleves' %}">Élèves</a></li>
+  <li class="list-group-item"><a href="{% url 'admin_dashboard:superviseurs' %}">Superviseurs</a></li>
+  <li class="list-group-item"><a href="{% url 'admin_dashboard:demandes_rgpd' %}">Demandes RGPD</a></li>
+  <li class="list-group-item"><a href="{% url 'admin_dashboard:exports' %}">Exports CSV</a></li>
+  <li class="list-group-item"><a href="{% url 'admin_dashboard:import_eleves' %}">Importer des élèves (CSV)</a></li>
 </ul>
 {% endblock %}

@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Mes demandes RGPD</h1>
 <p><a class="btn btn-primary" href="{% url 'rgpd:demande_rgpd_create' %}">Créer une demande</a></p>
-<div class="table-responsive"><table class="table">
+<div class="table-responsive dashboard-table-wrap"><table class="table dashboard-table">
 <thead><tr><th>Type</th><th>Description</th><th>Statut</th><th>Date</th><th></th></tr></thead>
 <tbody>{% for demande in demandes %}<tr>
 <td>{{ demande.get_type_display }}</td><td>{{ demande.description|default:"—"|truncatechars:100 }}</td>

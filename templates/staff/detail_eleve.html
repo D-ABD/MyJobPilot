@@ -17,7 +17,7 @@
     <a class="btn btn-outline-primary" href="{% url 'staff:documents_eleve' eleve.pk %}">Documents de l'élève</a>
   </div>
 
-  <div class="card mb-4">
+  <div class="detail-card mb-4">
     <div class="card-header"><h2 class="h5 mb-0">Informations de l'élève</h2></div>
     <dl class="row card-body mb-0">
       <dt class="col-sm-4">Identifiant</dt><dd class="col-sm-8">{{ eleve.username }}</dd>
@@ -33,14 +33,14 @@
     </dl>
   </div>
 
-  <section class="card mb-4" aria-label="Badges et points de l'élève">
+  <section class="detail-card mb-4" aria-label="Badges et points de l'élève">
     <div class="card-body">
       <h2 class="h5">Badges et points</h2>
       <p class="mb-1"><strong>🏆 Niveau : {{ progression.niveau.nom }}</strong> · {{ progression.xp }} XP</p>
       {% if progression.niveau.est_max %}<p class="small">Niveau maximum atteint</p>{% else %}<p class="small">{{ progression.niveau.xp_pour_suivant }} XP pour {{ progression.niveau.niveau_suivant_nom|default:"le prochain niveau" }}</p>{% endif %}
       <div class="progress mb-2" role="progressbar" aria-label="Progression XP de l'élève" aria-valuenow="{{ progression.niveau.progression_pourcentage }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width: {{ progression.niveau.progression_pourcentage }}%"></div></div>
       <p class="mb-1"><strong>{{ points_total }} points</strong> · {{ badges_obtenus_count }}/{{ badges_total_count }} badges</p>
-      {% include "partials/_progression_categories.html" with afficher_lien_tous_badges=False %}
+      {% include "partials/_progression_categories.html" with afficher_lien_tous_badges=False dashboard_style="eleve" %}
       {% if historique_relances %}<p class="small text-body-secondary mb-0">{{ historique_relances|length }} événement{{ historique_relances|length|pluralize:"s" }} de relance récent{{ historique_relances|length|pluralize:"s" }}</p>{% endif %}
     </div>
   </section>
@@ -62,12 +62,12 @@
     </form>
   </div>
 
-  <div class="card">
+  <div class="detail-card">
     <div class="card-header"><h2 class="h5 mb-0">Prospections de l'élève</h2></div>
     <form method="get" class="card-body border-bottom"><label class="form-label" for="filtre-type-contrat-detail">Type de contrat</label><div class="d-flex gap-2"><select class="form-select" id="filtre-type-contrat-detail" name="type_contrat"><option value="tous" {% if filtre_type_contrat == "tous" %}selected{% endif %}>Tous</option>{% for code, libelle in types_contrat %}<option value="{{ code }}" {% if filtre_type_contrat == code %}selected{% endif %}>{{ libelle }}</option>{% endfor %}</select><button class="btn btn-primary" type="submit">Filtrer</button></div></form>
     {% if prospections %}
-      <div class="table-responsive">
-        <table class="table table-striped mb-0">
+      <div class="table-responsive dashboard-table-wrap">
+        <table class="table dashboard-table table-striped mb-0">
           <caption class="visually-hidden">Prospections de {{ eleve.username }}</caption>
           <thead><tr><th scope="col">Entreprise</th><th scope="col">Ville</th><th scope="col">Statut</th><th scope="col">Type de contrat</th><th scope="col">Modifiée le</th>{% if request.user.role == "superviseur" %}<th scope="col">Actions</th>{% endif %}</tr></thead>
           <tbody>
@@ -102,7 +102,7 @@
     {% endif %}
   </div>
 
-  <section class="card mt-4" aria-labelledby="titre-historique-relances-staff">
+  <section class="detail-card mt-4" aria-labelledby="titre-historique-relances-staff">
     <div class="card-body"><h2 class="h5" id="titre-historique-relances-staff">Historique des relances</h2>
       <ul class="mb-0">{% for evenement in historique_relances %}<li>{{ evenement.get_type_display }} — {{ evenement.prospection.entreprise.nom }} — {{ evenement.date_relance|date:"d/m/Y H:i" }}{% if evenement.auteur %} · par {{ evenement.auteur.username }}{% endif %}</li>{% empty %}<li>Aucune relance enregistrée.</li>{% endfor %}</ul>
     </div>

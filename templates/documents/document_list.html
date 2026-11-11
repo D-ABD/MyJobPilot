@@ -13,7 +13,7 @@
   </div>
 
   {% if quota_total_mo %}
-    <div class="card mb-4">
+    <div class="card detail-card mb-4">
       <div class="card-body">
         <p class="mb-2"><strong>{{ quota_utilise_mo|floatformat:2 }} Mo utilisés sur {{ quota_total_mo|floatformat:0 }} Mo</strong></p>
         <div class="progress" role="progressbar" aria-label="Quota de stockage utilisé"
@@ -26,8 +26,8 @@
 
   <p class="text-body-secondary" aria-live="polite">{{ documents|length }} document{{ documents|length|pluralize:"s" }}</p>
   {% if documents %}
-    <div class="table-responsive">
-      <table class="table table-striped align-middle">
+    <div class="table-responsive dashboard-table-wrap">
+      <table class="table dashboard-table table-striped align-middle">
         <caption class="visually-hidden">Documents disponibles</caption>
         <thead><tr>
           {% if request.user.role == "admin" %}<th scope="col">Élève</th>{% endif %}

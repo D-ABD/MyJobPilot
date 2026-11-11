@@ -6,6 +6,6 @@
     <h1 id="titre-objectifs">Objectifs</h1>
     {% if peut_gerer %}<a class="btn btn-primary" href="{% url 'objectifs:nouveau' %}">Nouvel objectif</a>{% endif %}
   </div>
-  {% include "objectifs/_objectifs_table.html" %}
+  <div class="table-card">{% include "objectifs/_objectifs_table.html" %}</div>
 </section>
 {% endblock %}

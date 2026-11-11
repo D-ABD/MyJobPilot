@@ -3,7 +3,7 @@
 {% block content %}
 {% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
 {% include "partials/_bouton_retour.html" %}<h1>Traiter la demande de {{ demande.utilisateur.username }}</h1>
-<p>{{ demande.get_type_display }} — {{ demande.description|default:"Aucune description"|linebreaksbr }}</p>
+<div class="detail-card mb-4"><p class="mb-0">{{ demande.get_type_display }} — {{ demande.description|default:"Aucune description"|linebreaksbr }}</p></div>
 <form method="post">
   {% csrf_token %}
   {% include "partials/_form_errors.html" with form=form %}

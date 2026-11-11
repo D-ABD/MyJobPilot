@@ -17,8 +17,8 @@
 {% for field in action_form %}{% if field.is_hidden %}{% else %}{% include "partials/_form_field.html" with field=field %}{% endif %}{% endfor %}
 {% for hidden in action_form.hidden_fields %}{{ hidden }}{% endfor %}
 <button class="btn btn-primary" type="submit">Enregistrer</button></form></div></section>{% endif %}
-<dl class="row"><dt class="col-sm-3">Nom complet</dt><dd class="col-sm-9">{{ superviseur.first_name }} {{ superviseur.last_name }}</dd>
-<dt class="col-sm-3">Courriel</dt><dd class="col-sm-9">{{ superviseur.email }}</dd><dt class="col-sm-3">Compte actif</dt><dd class="col-sm-9">{{ superviseur.is_active|yesno:"Oui,Non" }}</dd><dt class="col-sm-3">Créé le</dt><dd class="col-sm-9">{{ superviseur.date_joined|date:"d/m/Y H:i" }}</dd></dl>
-<h2 class="h4">Scopes</h2><ul>{% for scope in scopes %}<li>{{ scope.centre.nom }} — {% if scope.is_active %}Actif{% else %}Inactif{% endif %}</li>{% empty %}<li>Aucun scope.</li>{% endfor %}</ul>
+<section class="detail-card mb-4"><dl class="row mb-0"><dt class="col-sm-3">Nom complet</dt><dd class="col-sm-9">{{ superviseur.first_name }} {{ superviseur.last_name }}</dd>
+<dt class="col-sm-3">Courriel</dt><dd class="col-sm-9">{{ superviseur.email }}</dd><dt class="col-sm-3">Compte actif</dt><dd class="col-sm-9">{{ superviseur.is_active|yesno:"Oui,Non" }}</dd><dt class="col-sm-3">Créé le</dt><dd class="col-sm-9">{{ superviseur.date_joined|date:"d/m/Y H:i" }}</dd></dl></section>
+<section class="detail-card mb-4"><h2 class="h4">Scopes</h2><ul class="list-group table-card">{% for scope in scopes %}<li class="list-group-item">{{ scope.centre.nom }} — {% if scope.is_active %}Actif{% else %}Inactif{% endif %}</li>{% empty %}<li class="list-group-item">Aucun scope.</li>{% endfor %}</ul></section>
 <p><a href="{% url 'admin_dashboard:superviseur_scopes' superviseur.pk %}">Gérer les scopes</a> · <a href="{% url 'admin_dashboard:superviseurs' %}">Retour à la liste</a></p>
 {% endblock %}

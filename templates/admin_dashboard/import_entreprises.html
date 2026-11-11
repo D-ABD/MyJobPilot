@@ -7,7 +7,7 @@
   <h1 class="h2" id="titre-import-entreprises">Importer des entreprises</h1>
   <p>Le fichier CSV doit contenir la colonne obligatoire <code>nom</code>. Les colonnes secteur, ville, code_postal, site_web, contact_nom, contact_email et contact_telephone sont facultatives.</p>
   <p><a href="{% url 'admin_dashboard:import_entreprises_exemple' %}">Télécharger un fichier d'exemple</a></p>
-  {% if erreur_fichier %}<p class="alert alert-danger" role="alert">{{ erreur_fichier }}</p>{% endif %}
+  {% if erreur_fichier %}<p class="alert alert-danger detail-card" role="alert">{{ erreur_fichier }}</p>{% endif %}
   <form method="post" enctype="multipart/form-data" class="vstack gap-3">
     {% csrf_token %}
     <div>
@@ -17,7 +17,7 @@
     <button class="btn btn-primary align-self-start" type="submit">Importer le CSV</button>
   </form>
   {% if rapport %}
-    <section class="mt-4" aria-labelledby="rapport-import-entreprises">
+    <section class="detail-card mt-4" aria-labelledby="rapport-import-entreprises">
       <h2 class="h4" id="rapport-import-entreprises">Rapport d’import</h2>
       <p>{{ rapport.total }} lignes traitées, {{ rapport.crees }} entreprises créées, {{ rapport.rejetes }} lignes rejetées.</p>
       {% if rapport.erreurs %}

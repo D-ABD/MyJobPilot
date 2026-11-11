@@ -12,7 +12,7 @@
     {% endif %}
   </div>
   {% if notifications %}
-      <ul class="list-group">
+      <ul class="list-group table-card">
       {% for notification in notifications %}
         <li class="list-group-item p-0 {% if not notification.lu %}list-group-item-primary{% endif %}">
           <form method="post" action="{% url 'comptes:notification_mark_read' notification.pk %}">
@@ -34,7 +34,7 @@
         {% include "offres/_pagination.html" with pagination=pagination titre="Pages des notifications" %}
       {% endif %}
   {% else %}
-    <p class="alert alert-info" role="status">Aucune notification.</p>
+    <p class="alert alert-info empty-state p-3" role="status">Aucune notification.</p>
   {% endif %}
 </section>
 {% endblock %}

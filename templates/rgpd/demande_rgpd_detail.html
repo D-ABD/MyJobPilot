@@ -4,7 +4,7 @@
 {% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
 {% include "partials/_bouton_retour.html" %}
 <h1>{{ demande.get_type_display }}</h1>
-<dl class="row"><dt class="col-sm-3">Statut</dt><dd class="col-sm-9">{{ demande.get_statut_display }}</dd>
+<dl class="row detail-card"><dt class="col-sm-3">Statut</dt><dd class="col-sm-9">{{ demande.get_statut_display }}</dd>
 <dt class="col-sm-3">Date</dt><dd class="col-sm-9">{{ demande.date_demande|date:"d/m/Y H:i" }}</dd>
 <dt class="col-sm-3">Description</dt><dd class="col-sm-9">{{ demande.description|default:"—"|linebreaksbr }}</dd>
 {% if demande.motif_refus %}<dt class="col-sm-3">Motif du refus</dt><dd class="col-sm-9">{{ demande.motif_refus|linebreaksbr }}</dd>{% endif %}

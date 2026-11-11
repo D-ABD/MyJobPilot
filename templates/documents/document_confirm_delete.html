@@ -3,13 +3,13 @@
 {% block content %}
 {% include "partials/_breadcrumb.html" with items=breadcrumb_items %}
 {% include "partials/_bouton_retour.html" %}
-<section class="mx-auto" style="max-width: 640px" aria-labelledby="titre-suppression-document">
+<section class="confirmation-card mx-auto" style="max-width: 640px" aria-labelledby="titre-suppression-document">
   <h1 class="h2" id="titre-suppression-document">Supprimer le document</h1>
   <p>Confirmez-vous la suppression de « {{ document.nom }} » ?</p>
   <form method="post">
     {% csrf_token %}
-    <button class="btn btn-danger" type="submit">Supprimer définitivement</button>
-    <a class="btn btn-outline-secondary" href="{% url 'documents:list' %}">Annuler</a>
+    <button class="btn-danger-custom" type="submit">Supprimer définitivement</button>
+    <a class="btn-secondary-custom" href="{% url 'documents:list' %}">Annuler</a>
   </form>
 </section>
 {% endblock %}

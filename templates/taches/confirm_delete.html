@@ -3,10 +3,10 @@
 {% block content %}
 <section class="mx-auto" style="max-width: 40rem" aria-labelledby="titre-suppression-tache">
   {% include "partials/_bouton_retour.html" with url_retour="/taches/" %}
-  <div class="card"><div class="card-body">
+  <div class="confirmation-card"><div class="card-body">
     <h1 class="h3" id="titre-suppression-tache">Supprimer la tâche ?</h1>
     <p>Confirmer la suppression de « {{ tache.titre }} » ? Cette action est définitive.</p>
-    <form method="post" action="{% url 'core:tache_supprimer' tache.pk %}">{% csrf_token %}<button class="btn btn-danger" type="submit">Supprimer</button><a class="btn btn-outline-secondary" href="{% url 'core:taches_liste' %}">Annuler</a></form>
+    <form method="post" action="{% url 'core:tache_supprimer' tache.pk %}">{% csrf_token %}<button class="btn-danger-custom" type="submit">Supprimer</button><a class="btn-secondary-custom" href="{% url 'core:taches_liste' %}">Annuler</a></form>
   </div></div>
 </section>
 {% endblock %}

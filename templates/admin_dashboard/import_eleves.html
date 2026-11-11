@@ -20,10 +20,10 @@
   </div>
 </form>
 {% if rapport %}
-<section class="mt-4" aria-labelledby="rapport-import">
+<section class="detail-card mt-4" aria-labelledby="rapport-import">
   <h2 id="rapport-import">Rapport d'import</h2>
   <p>{{ rapport.total }} lignes traitées, {{ rapport.crees }} élèves créés, {{ rapport.rejetes }} lignes rejetées.</p>
-  {% if rapport.erreurs %}<ul>{% for erreur in rapport.erreurs %}<li>Ligne {{ erreur.ligne }} : {{ erreur.message }}</li>{% endfor %}</ul>{% endif %}
+  {% if rapport.erreurs %}<ul class="list-group table-card">{% for erreur in rapport.erreurs %}<li class="list-group-item">Ligne {{ erreur.ligne }} : {{ erreur.message }}</li>{% endfor %}</ul>{% endif %}
 </section>
 {% endif %}
 {% endblock %}
