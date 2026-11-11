@@ -9,14 +9,14 @@
   <p class="text-body-secondary">Taille maximale : 5 Mo. Quota total : 20 Mo.</p>
   <form method="post" enctype="multipart/form-data" class="card card-body">
     {% csrf_token %}
-    {{ form.non_field_errors }}
+    {% include "partials/_form_errors.html" with form=form %}
     {% for field in form %}
-      <div class="mb-3">
-        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors }}</div>{% endif %}
-      </div>
+      {% if field.is_hidden %}
+      {% else %}
+        {% include "partials/_form_field.html" with field=field %}
+      {% endif %}
     {% endfor %}
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
     <div class="d-flex gap-2">
       <button class="btn btn-primary" type="submit">Téléverser</button>
       <a class="btn btn-outline-secondary" href="{% url 'documents:list' %}">Annuler</a>

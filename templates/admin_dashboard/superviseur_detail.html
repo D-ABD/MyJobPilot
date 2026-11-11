@@ -11,7 +11,12 @@
 {% else %}<form method="post" action="{% url 'admin_dashboard:superviseur_reactiver' superviseur.pk %}">{% csrf_token %}<button class="btn btn-outline-success" type="submit">Réactiver</button></form>{% endif %}
 <form method="post" action="{% url 'admin_dashboard:superviseur_supprimer' superviseur.pk %}">{% csrf_token %}<label><input type="checkbox" id="confirmation-suppression" name="confirmation" value="oui" required><label for="confirmation-suppression">Confirmer la suppression du superviseur</label> Confirmer la suppression</label><button class="btn btn-danger ms-2" type="submit">Supprimer le compte</button></form>
 </div>
-{% if action_form %}<section class="card mb-4"><div class="card-body"><h2 class="h5">{{ action_title }}</h2><form method="post" action="{{ action_url }}">{% csrf_token %}{{ action_form.as_p }}<button class="btn btn-primary" type="submit">Enregistrer</button></form></div></section>{% endif %}
+{% if action_form %}<section class="card mb-4"><div class="card-body"><h2 class="h5">{{ action_title }}</h2><form method="post" action="{{ action_url }}">
+{% csrf_token %}
+{% include "partials/_form_errors.html" with form=action_form %}
+{% for field in action_form %}{% if field.is_hidden %}{% else %}{% include "partials/_form_field.html" with field=field %}{% endif %}{% endfor %}
+{% for hidden in action_form.hidden_fields %}{{ hidden }}{% endfor %}
+<button class="btn btn-primary" type="submit">Enregistrer</button></form></div></section>{% endif %}
 <dl class="row"><dt class="col-sm-3">Nom complet</dt><dd class="col-sm-9">{{ superviseur.first_name }} {{ superviseur.last_name }}</dd>
 <dt class="col-sm-3">Courriel</dt><dd class="col-sm-9">{{ superviseur.email }}</dd><dt class="col-sm-3">Compte actif</dt><dd class="col-sm-9">{{ superviseur.is_active|yesno:"Oui,Non" }}</dd><dt class="col-sm-3">Créé le</dt><dd class="col-sm-9">{{ superviseur.date_joined|date:"d/m/Y H:i" }}</dd></dl>
 <h2 class="h4">Scopes</h2><ul>{% for scope in scopes %}<li>{{ scope.centre.nom }} — {% if scope.is_active %}Actif{% else %}Inactif{% endif %}</li>{% empty %}<li>Aucun scope.</li>{% endfor %}</ul>

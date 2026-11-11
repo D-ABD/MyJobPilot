@@ -12,7 +12,12 @@
 <a class="btn btn-outline-primary" href="{% url 'admin_dashboard:eleve_changer_centre' eleve.pk %}">Modifier le centre</a>
 <a class="btn btn-outline-primary" href="{% url 'admin_dashboard:eleve_changer_formation' eleve.pk %}">Modifier la formation</a>
 </div>
-{% if action_form %}<section class="card mb-4"><div class="card-body"><h2 class="h5">{{ action_title }}</h2><form method="post" action="{{ action_url }}">{% csrf_token %}{{ action_form.as_p }}<button class="btn btn-primary" type="submit">Enregistrer</button></form></div></section>{% endif %}
+{% if action_form %}<section class="card mb-4"><div class="card-body"><h2 class="h5">{{ action_title }}</h2><form method="post" action="{{ action_url }}">
+{% csrf_token %}
+{% include "partials/_form_errors.html" with form=action_form %}
+{% for field in action_form %}{% if field.is_hidden %}{% else %}{% include "partials/_form_field.html" with field=field %}{% endif %}{% endfor %}
+{% for hidden in action_form.hidden_fields %}{{ hidden }}{% endfor %}
+<button class="btn btn-primary" type="submit">Enregistrer</button></form></div></section>{% endif %}
 <section class="mb-4"><h2 class="h4">Informations</h2><dl class="row">
 <dt class="col-sm-3">Identifiant</dt><dd class="col-sm-9">{{ eleve.username }}</dd>
 <dt class="col-sm-3">Nom</dt><dd class="col-sm-9">{{ eleve.first_name }} {{ eleve.last_name }}</dd>

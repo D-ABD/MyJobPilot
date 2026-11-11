@@ -15,8 +15,18 @@
 <dt class="col-sm-3">Créée</dt><dd class="col-sm-9">{{ prospection.date_creation|date:"d/m/Y H:i" }}</dd><dt class="col-sm-3">Modifiée</dt><dd class="col-sm-9">{{ prospection.date_modification|date:"d/m/Y H:i" }}</dd>
 <dt class="col-sm-3">Relance</dt><dd class="col-sm-9">{{ prospection.date_relance|date:"d/m/Y"|default:"—" }}</dd><dt class="col-sm-3">Candidature</dt><dd class="col-sm-9">{{ prospection.date_candidature|date:"d/m/Y"|default:"—" }}</dd><dt class="col-sm-3">Mise en attente</dt><dd class="col-sm-9">{{ prospection.date_mise_en_attente|date:"d/m/Y"|default:"—" }}</dd>
 <dt class="col-sm-3">Entretien</dt><dd class="col-sm-9">{{ prospection.date_entretien|date:"d/m/Y H:i"|default:"—" }}</dd><dt class="col-sm-3">Refus</dt><dd class="col-sm-9">{{ prospection.date_refus|date:"d/m/Y"|default:"—" }}</dd><dt class="col-sm-3">Acceptation</dt><dd class="col-sm-9">{{ prospection.date_acceptation|date:"d/m/Y"|default:"—" }}</dd></dl>
-<section class="card mb-4"><div class="card-body"><h2 class="h5">Changer le statut</h2><form method="post" action="{% url 'admin_dashboard:prospection_changer_statut' prospection.pk %}">{% csrf_token %}{{ statut_form.as_p }}<button class="btn btn-primary" type="submit">Enregistrer</button></form></div></section>
-<section class="card mb-4"><div class="card-body"><h2 class="h5">Ajouter un commentaire</h2><form method="post" action="{% url 'admin_dashboard:prospection_ajouter_commentaire' prospection.pk %}">{% csrf_token %}{{ commentaire_form.as_p }}<button class="btn btn-primary" type="submit">Ajouter</button></form></div></section>
+<section class="card mb-4"><div class="card-body"><h2 class="h5">Changer le statut</h2><form method="post" action="{% url 'admin_dashboard:prospection_changer_statut' prospection.pk %}">
+{% csrf_token %}
+{% include "partials/_form_errors.html" with form=statut_form %}
+{% for field in statut_form %}{% if field.is_hidden %}{% else %}{% include "partials/_form_field.html" with field=field %}{% endif %}{% endfor %}
+{% for hidden in statut_form.hidden_fields %}{{ hidden }}{% endfor %}
+<button class="btn btn-primary" type="submit">Enregistrer</button></form></div></section>
+<section class="card mb-4"><div class="card-body"><h2 class="h5">Ajouter un commentaire</h2><form method="post" action="{% url 'admin_dashboard:prospection_ajouter_commentaire' prospection.pk %}">
+{% csrf_token %}
+{% include "partials/_form_errors.html" with form=commentaire_form %}
+{% for field in commentaire_form %}{% if field.is_hidden %}{% else %}{% include "partials/_form_field.html" with field=field %}{% endif %}{% endfor %}
+{% for hidden in commentaire_form.hidden_fields %}{{ hidden }}{% endfor %}
+<button class="btn btn-primary" type="submit">Ajouter</button></form></div></section>
 <h2 class="h4">Historique</h2><ul>{% for entree in historique %}<li>{{ entree.date_changement|date:"d/m/Y H:i" }} — {{ entree.get_ancien_statut_display|default:"—" }} → {{ entree.get_nouveau_statut_display }}{% if entree.date_associee %} (date associée : {{ entree.date_associee|date:"d/m/Y" }}){% endif %} — {{ entree.auteur.username|default:"système" }}{% if entree.commentaire %} — {{ entree.commentaire }}{% endif %}</li>{% empty %}<li>Aucun changement.</li>{% endfor %}</ul>
 <h2 class="h4">Commentaires</h2><ul>{% for commentaire in commentaires %}<li>{{ commentaire.date|date:"d/m/Y H:i" }} — {{ commentaire.auteur.username }} : {{ commentaire.contenu|linebreaksbr }}</li>{% empty %}<li>Aucun commentaire.</li>{% endfor %}</ul>
 <a href="{% url 'admin_dashboard:eleve_detail' prospection.eleve_id %}">Retour à la fiche élève</a>

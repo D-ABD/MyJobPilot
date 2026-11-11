@@ -8,15 +8,14 @@
   <h1 class="h2 mb-4" id="titre-changement-centre">Changer le centre de {{ eleve.username }}</h1>
   <form method="post" class="card card-body">
     {% csrf_token %}
+    {% include "partials/_form_errors.html" with form=form %}
     {% for field in form %}
-      <div class="mb-3">
-        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-        {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-      </div>
+      {% if field.is_hidden %}
+      {% else %}
+        {% include "partials/_form_field.html" with field=field %}
+      {% endif %}
     {% endfor %}
-    {% for error in form.non_field_errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
     <div class="d-flex gap-2">
       <button class="btn btn-primary" type="submit">Enregistrer le nouveau centre</button>
       <a class="btn btn-outline-secondary" href="{% url 'staff:detail_eleve' eleve.pk %}">Annuler</a>
